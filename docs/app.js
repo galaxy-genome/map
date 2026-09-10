@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=01e8a59a74"), read("data/reachable.png?v=01e8a59a74")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=4372227a74"), read("data/reachable.png?v=4372227a74")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -245,7 +245,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=01e8a59a74", 1), read("data/zones.webp?v=01e8a59a74", 3)]);
+    [read("data/side.webp?v=4372227a74", 1), read("data/zones.webp?v=4372227a74", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1913,3 +1913,94 @@ resize();   // first paint, once route state exists
   });
   apply();
 }
+
+// ---- deep links -------------------------------------------------------------
+// A link can arrive pre-filtered or pre-routed, so a wiki page can point at
+// "belts holding Painite" rather than at the map's front door. Every parameter
+// drives the control a person would have used, which keeps the sidebar honest.
+async function applyParams(){
+  const p = new URLSearchParams(location.search);
+  if (![...p.keys()].length) return;
+  const fire = (el, ev = "change") => el.dispatchEvent(new Event(ev, {bubbles: true}));
+
+  const lang0 = p.get("lang");
+  if (lang0 && D.langCodes.includes(lang0)){
+    const sel = document.getElementById("lang");
+    sel.value = lang0; fire(sel);
+  }
+  if (p.get("spoilers") === "1"){
+    const c = document.getElementById("spoilers");
+    if (!c.checked){ c.checked = true; fire(c, "change"); }
+  }
+
+  // Chips, by the same names the sidebar uses.
+  for (const f of (p.get("filters") || "").split(",").filter(Boolean)){
+    const b = document.querySelector(`[data-f="${CSS.escape(f.trim())}"]`);
+    if (b && b.getAttribute("aria-pressed") !== "true") b.click();
+  }
+
+  // A dropdown is matched on the game's own key first, then on what it shows,
+  // so a link works whatever language the reader has selected.
+  const choose = (id, raw, want) => {
+    const sel = document.getElementById(id);
+    if (!sel || !want) return;
+    const w = want.trim().toLowerCase();
+    const i = (raw || []).findIndex(k => String(k).toLowerCase() === w);
+    if (i >= 0) sel.value = String(i);
+    else {
+      const o = [...sel.options].find(o => o.textContent.trim().toLowerCase() === w);
+      if (!o) return;
+      sel.value = o.value;
+    }
+    fire(sel);
+  };
+  choose("ore", D.oreRaw, p.get("ore"));
+  choose("ptype", D.ptypeRaw, p.get("ptype"));
+  choose("module", null, p.get("module"));
+  choose("startype", null, p.get("startype"));
+
+  for (const [key, id] of [["pct", "pctMin"], ["scan", "scanMin"], ["planets", "plMin"],
+                           ["landable", "laMin"], ["lymin", "lyMin"], ["lymax", "lyMax"]]){
+    const v = p.get(key);
+    if (v == null) continue;
+    const el = document.getElementById(id);
+    el.disabled = false; el.value = v; fire(el, "input"); fire(el);
+  }
+
+  const jump = p.get("jump") || p.get("warp");
+  if (jump){
+    const el = document.getElementById("jump");
+    el.value = jump; fire(el, "input"); fire(el);
+  }
+
+  // A named system may be catalogued or generated; both are ordinary here.
+  const resolve = async name => {
+    const want = name.trim().toLowerCase();
+    for (const [nm, i] of indexOfName)
+      if (nm.toLowerCase() === want) return S[i];
+    if (typeof cellFromName === "function" && cellFromName(name)){
+      if (!GEN.side) await loadGenerationMaps();
+      const c = cellFromName(name);
+      return (cellStars(c.cx, c.cy) || []).find(
+        st => st.name.toLowerCase() === want) || null;
+    }
+    return null;
+  };
+
+  const from = p.get("from"), to = p.get("to"), only = p.get("system");
+  if (from){ const s = await resolve(from); if (s) setEnd("from", s); }
+  if (to){ const s = await resolve(to); if (s) setEnd("to", s); }
+  if (only){ const s = await resolve(only); if (s) focusOn(Array.isArray(s) ? s
+    : {[NAME]: s.name, [X]: s.x, [Z]: s.z}); }
+  if (from && !to){ const s = await resolve(from); if (s) focusOn(Array.isArray(s) ? s
+    : {[NAME]: s.name, [X]: s.x, [Z]: s.z}); }
+
+  // A link that filters but names no place would otherwise open on a patch of
+  // sky with nothing in it, so the view widens to where the matches are.
+  const ly = +p.get("ly");
+  if (ly > 0) goto(cx, cz, scaleFor(ly));
+  else if (p.get("view") === "galaxy") document.getElementById("toAll").click();
+  else if (!from && !only && anyFilter()) document.getElementById("toAll").click();
+  draw();
+}
+applyParams();

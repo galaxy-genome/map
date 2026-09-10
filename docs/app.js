@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=e9d5047e16"), read("data/reachable.png?v=e9d5047e16")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=41b55a5705"), read("data/reachable.png?v=41b55a5705")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -245,7 +245,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=e9d5047e16", 1), read("data/zones.webp?v=e9d5047e16", 3)]);
+    [read("data/side.webp?v=41b55a5705", 1), read("data/zones.webp?v=41b55a5705", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1067,10 +1067,13 @@ const SPOILER_ALIAS = new Set(["engineer", "landmark"]);
 function bindSearch(id){
   const input = document.getElementById(id);
   const list = document.querySelector(`.hits[data-for="${id}"]`);
-  input.addEventListener("input", () => {
+  input.addEventListener("input", async () => {
     const q = input.value.trim().toLowerCase();
     list.innerHTML = "";
     if (q.length < 2) return;
+    // A generated name can be resolved from any zoom, so the maps it needs are
+    // fetched here rather than waiting for the view to reach them.
+    if (cellFromName(q) && !GEN.side) await loadGenerationMaps();
 
     // A system matches on its own name — and then shows everything it contains.
     // An alias match pulls in its system too, listed with the alias that matched.
@@ -1107,8 +1110,7 @@ function bindSearch(id){
           Math.hypot(star.x, star.z)))} ly</span>`;
         li.onclick = () => {
           list.innerHTML = "";
-          clearFocus();
-          goto(star.x, star.z, Math.max(scale, 6));
+          focusOn({[NAME]: star.name, [X]: star.x, [Z]: star.z});
           setEnd(id, star);
         };
         list.append(li);

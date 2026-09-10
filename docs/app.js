@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=41b55a5705"), read("data/reachable.png?v=41b55a5705")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=a6e1d8e308"), read("data/reachable.png?v=a6e1d8e308")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -245,7 +245,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=41b55a5705", 1), read("data/zones.webp?v=41b55a5705", 3)]);
+    [read("data/side.webp?v=a6e1d8e308", 1), read("data/zones.webp?v=a6e1d8e308", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -508,10 +508,62 @@ for (const [label, si, kind] of D.aliases){
 
 const cv = document.getElementById("sky"), ctx = cv.getContext("2d");
 const tip = document.getElementById("tip");
+// A coarse pointer has no hover and no reliable double click, so a tap is spent
+// on the tooltip and the route ends are typed instead.
+const TOUCH = matchMedia("(pointer:coarse)").matches;
+
+// A phone has too little room for the rail and the map at once, so the page is
+// laid out on a wider virtual screen and the browser scales it down. Everything
+// renders smaller and about a third more fits.
+const SHRINK = 0.75;
+
+function setViewport(content){
+  // Chrome can ignore an in-place edit, so the tag is replaced outright.
+  document.querySelector("meta[name=viewport]")?.remove();
+  const vp = document.createElement("meta");
+  vp.name = "viewport"; vp.content = content;
+  document.head.append(vp);
+  void window.innerWidth;                   // apply the new layout before it is read
+}
+
+function fitViewport(){
+  // Measured at device width, so the reading is the device's own, whichever way
+  // it is held. screen.width is not reliably in CSS pixels on Android.
+  setViewport("width=device-width,initial-scale=1");
+  if (!TOUCH) return;
+  const dev = window.innerWidth;
+  // The short edge identifies a phone in either orientation; a tablet is wider.
+  if (Math.min(dev, window.innerHeight) > 500) return;
+  // No initial-scale: naming one pins the zoom at 1 and the wider layout simply
+  // overflows. Left out, the browser scales the layout down to fit the screen.
+  setViewport(`width=${Math.round(dev / SHRINK)}`);
+}
+fitViewport();
+matchMedia("(orientation: portrait)").addEventListener("change", fitViewport);
+{
+  const btn = document.getElementById("menuBtn");
+  const setMenu = open => {
+    document.body.classList.toggle("menu", open);
+    btn.setAttribute("aria-expanded", String(open));
+  };
+  btn.addEventListener("click", () => {
+    tip.style.display = "none";
+    setMenu(!document.body.classList.contains("menu"));
+  });
+  addEventListener("keydown", e => { if (e.key === "Escape") setMenu(false); });
+  if (TOUCH){
+    document.body.classList.add("touch");
+    document.querySelector(".readout div").classList.add("hidden");
+    document.getElementById("from").dataset.uiPh = "findPlaceholderTouch";
+    document.getElementById("to").dataset.uiPh = "toPlaceholderTouch";
+  }
+}
 let W = 0, H = 0, dpr = 1;
 // view: world (ly) -> screen. scale = px per ly.
 let cx = 0, cz = 0, scale = 4, scaleSet = false;
-const HOME_LY = 150;                      // light years across the window at home zoom
+// Light years across the window at home zoom. A phone screen is narrow, so it
+// starts closer in to keep the same sense of a neighbourhood.
+const HOME_LY = TOUCH ? 75 : 150;
 const scaleFor = lyAcross => W / lyAcross;
 const filters = new Set();
 // Hand-placed discoveries stay hidden until asked for: named landmarks, warp
@@ -623,7 +675,18 @@ let genVisible = [];              // generated stars currently on screen
 const GEN_SCALE = 0.6;            // px per ly at which generated stars appear
 const FLASH_MS = 1500, FLASHES = 3;
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function filterCount(){
+  return filters.size + F.sec.size + F.purp.size + F.fac.size +
+    [F.ore, F.ptype, F.startype, F.module].filter(v => v >= 0).length +
+    [F.lyMin, F.lyMax, F.scanMin, F.plMin, F.pctMin, F.laMin]
+      .filter(v => v != null).length;
+}
+
 function draw(){
+  const n = filterCount();
+  document.getElementById("fCount").textContent = n ? n : "";
+  document.getElementById("ctr").textContent =
+    num(Math.round(cx + halfCover() / scale)) + ", " + num(Math.round(cz));
   ctx.fillStyle = "#04060e"; ctx.fillRect(0, 0, W, H);
   drawGrid();
 
@@ -708,8 +771,29 @@ function draw(){
     num(visible.filter(passes).length) + " " + ui("of") + " " + num(S.length);
 }
 
+const portrait = () => matchMedia("(orientation: portrait)").matches;
+
+function placeTip(mx, my){
+  document.getElementById("help").style.display = "none";
+  if (TOUCH){
+    // Docked out of the way: a panel that follows the finger on a small screen
+    // always lands on something worth seeing. Portrait has room for the full
+    // width; landscape keeps it in the corner so the map stays readable.
+    tip.style.top = "auto"; tip.style.bottom = "8px";
+    tip.style.left = portrait() ? "8px" : "auto";
+    tip.style.right = "8px";
+    return;
+  }
+  tip.style.right = ""; tip.style.bottom = "";
+  const r = tip.getBoundingClientRect();
+  const left = TOUCH ? mx - r.width / 2 : mx + 16;
+  const top  = TOUCH ? my - r.height - 22 : my + 16;
+  tip.style.left = Math.max(8, Math.min(left, window.innerWidth - r.width - 10)) + "px";
+  tip.style.top  = Math.max(8, Math.min(top, window.innerHeight - r.height - 10)) + "px";
+}
+
 function pickGenerated(mx, my){
-  let best = null, bd = 12 * 12;
+  let best = null, bd = TOUCH ? 22 * 22 : 12 * 12;
   for (const st of genVisible){
     const dx = sx(st.x) - mx, dy = sy(st.z) - my, d = dx*dx + dy*dy;
     if (d < bd){ bd = d; best = st; }
@@ -730,15 +814,13 @@ function showGenTip(st, mx, my){
       ? row("planets", b.planets.length + (b.landable ? ` (${b.landable})` : "")) : "") +
     (b.belts.length ? row("belts", b.belts.length) : "") +
     (b.scan ? row("fullScan", `${num(b.scan)} CR`) : "") +
-    `</dl>` + (ore.length ? `<div class="ore">${ore.join(" &middot; ")}</div>` : "");
+    `</dl>` + (ore.length ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "");
   tip.style.display = "block";
-  const r = tip.getBoundingClientRect();
-  tip.style.left = Math.min(mx + 16, window.innerWidth - r.width - 10) + "px";
-  tip.style.top  = Math.min(my + 16, window.innerHeight - r.height - 10) + "px";
+  placeTip(mx, my);
 }
 
 function pick(mx, my){
-  let best = null, bd = 14 * 14;
+  let best = null, bd = TOUCH ? 24 * 24 : 14 * 14;
   for (const s of visible){
     if (!passes(s)) continue;
     const dx = sx(s[X]) - mx, dy = sy(s[Z]) - my, d = dx * dx + dy * dy;
@@ -782,41 +864,114 @@ function showTip(s, mx, my){
     (s[SCAN] ? row("fullScan", `${num(s[SCAN])} CR`) : "") +
     (aliasRows ? `<dt class="rule"></dt><dd class="rule"></dd>` + aliasRows : "") +
     `</dl>` +
-    (ore ? `<div class="ore">${ore.join(" &middot; ")}</div>` : "");
+    (ore ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "");
   tip.style.display = "block";
-  const r = tip.getBoundingClientRect();
-  tip.style.left = Math.min(mx + 16, window.innerWidth - r.width - 10) + "px";
-  tip.style.top  = Math.min(my + 16, window.innerHeight - r.height - 10) + "px";
+  placeTip(mx, my);
 }
 
 let drag = null;
+// How far a pointer may wander before it counts as a drag. A finger resting on
+// glass is never as still as a mouse.
+const SLOP = TOUCH ? 10 : 3;
+// Every pointer currently down, so a second one can turn a drag into a pinch.
+const ptrs = new Map();
+let pinch = null;
+
+const clampScale = v => Math.max(.0012, Math.min(v, 40));
+
+// No platform fires a long-press event, so it is a timer that a drag, a second
+// finger or an early lift all cancel.
+let pressTimer = 0, pressedEnd = false;
+function cancelPress(){ clearTimeout(pressTimer); pressTimer = 0; }
+function armPress(x, y){
+  cancelPress();
+  pressTimer = setTimeout(() => {
+    pressTimer = 0;
+    const target = pick(x, y) || pickGenerated(x, y);
+    if (!target) return;
+    pressedEnd = true;
+    // The hold has been spent; what follows is finger drift, not a pan. Left
+    // armed, the next stray pixel would scroll the map and hide the tooltip.
+    drag = null;
+    // A long press restarts the journey, the way a double click does.
+    routeTo = null;
+    document.getElementById("to").value = "";
+    setEnd("from", target);
+    navigator.vibrate?.(15);
+  }, 450);
+}
+
+function tipAt(mx, my){
+  const s = pick(mx, my);
+  if (s){ showTip(s, mx, my); return; }
+  const gen = pickGenerated(mx, my);
+  gen ? showGenTip(gen, mx, my) : (tip.style.display = "none");
+}
+
 cv.addEventListener("pointerdown", e => {
-  drag = {x: e.clientX, y: e.clientY, cx, cz, moved: false};
+  ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  if (ptrs.size === 2){
+    drag = null;
+    const [a, b] = [...ptrs.values()];
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    pinch = {d: Math.hypot(a.x - b.x, a.y - b.y) || 1, scale,
+             wx: wxOf(mx), wz: wzOf(my)};
+    tip.style.display = "none";
+  } else if (ptrs.size === 1){
+    drag = {x: e.clientX, y: e.clientY, cx, cz, moved: false};
+    if (TOUCH) armPress(e.clientX, e.clientY);
+  }
+  if (ptrs.size > 1) cancelPress();
   cv.setPointerCapture(e.pointerId);
 });
 cv.addEventListener("pointermove", e => {
+  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  if (pinch && ptrs.size >= 2){
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (!d) return;
+    // The point between the fingers holds still while the scale changes.
+    scale = clampScale(pinch.scale * d / pinch.d);
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    cx = pinch.wx - (mx - W / 2) / scale;
+    cz = pinch.wz + (my - H / 2) / scale;
+    draw();
+    return;
+  }
   if (drag){
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    if (Math.abs(dx) + Math.abs(dy) > SLOP){ drag.moved = true; cancelPress(); }
     cx = drag.cx - dx / scale; cz = drag.cz + dy / scale;
     tip.style.display = "none";
     draw();
     return;
   }
+  if (TOUCH) return;
   document.getElementById("cur").textContent =
     num(Math.round(wxOf(e.clientX))) + ", " + num(Math.round(wzOf(e.clientY)));
-  const s = pick(e.clientX, e.clientY);
-  if (s){ showTip(s, e.clientX, e.clientY); return; }
-  const gen = pickGenerated(e.clientX, e.clientY);
-  gen ? showGenTip(gen, e.clientX, e.clientY) : (tip.style.display = "none");
+  tipAt(e.clientX, e.clientY);
 });
+
 // A single click fills whichever end is next; a double click always sets the
 // origin, so the single action is held briefly to see if a second arrives.
 let clickTimer = 0;
-addEventListener("pointerup", e => {
+function endPointer(e){
+  cancelPress();
+  const many = ptrs.size > 1 || pinch;
+  ptrs.delete(e.pointerId);
+  if (ptrs.size < 2) pinch = null;
   const wasDrag = drag && drag.moved;
   drag = null;
-  if (wasDrag || e.target !== cv) return;
+  if (many || ptrs.size || wasDrag || e.type === "pointercancel") return;
+  if (e.target !== cv) return;
+  if (TOUCH){
+    // The lift that ends a long press is not also a tap.
+    if (pressedEnd){ pressedEnd = false; return; }
+    tipAt(e.clientX, e.clientY);
+    const hit = pick(e.clientX, e.clientY) || pickGenerated(e.clientX, e.clientY);
+    if (hit) setEnd(routeFrom == null ? "from" : "to", hit);
+    return;
+  }
   const target = pick(e.clientX, e.clientY) || pickGenerated(e.clientX, e.clientY);
   if (!target) return;
   if (clickTimer){
@@ -831,9 +986,19 @@ addEventListener("pointerup", e => {
     clickTimer = 0;
     setEnd(routeFrom == null ? "from" : "to", target);
   }, 220);
-});
+}
+addEventListener("pointerup", endPointer);
+addEventListener("pointercancel", endPointer);
 cv.addEventListener("dblclick", e => e.preventDefault());
-cv.addEventListener("pointerleave", () => { tip.style.display = "none"; });
+cv.addEventListener("contextmenu", e => e.preventDefault());
+// A tap on the tooltip dismisses it and goes no further.
+for (const el of [tip, document.getElementById("help")])
+  for (const type of ["pointerdown", "pointerup", "click"])
+    el.addEventListener(type, e => {
+      e.stopPropagation();
+      if (type === "pointerup") el.style.display = "none";
+    });
+cv.addEventListener("pointerleave", () => { if (!TOUCH) tip.style.display = "none"; });
 
 cv.addEventListener("wheel", e => {
   e.preventDefault();
@@ -846,7 +1011,12 @@ cv.addEventListener("wheel", e => {
   draw();
 }, {passive: false});
 
-function goto(x, z, sc){ cx = x; cz = z; scale = sc; draw(); }
+// The rail sits over the left edge of the map, so "centre" means the middle of
+// what is actually uncovered, not the middle of the window.
+const halfCover = () =>
+  Math.max(0, document.getElementById("rail").getBoundingClientRect().right) / 2;
+
+function goto(x, z, sc){ scale = sc; cx = x - halfCover() / scale; cz = z; draw(); }
 
 // Land close enough that the system is unmistakable, then flash the ring out.
 function focusOn(s){
@@ -933,19 +1103,43 @@ function showHelp(key, el){
   if (!h) return;
   helpBox.innerHTML = `<h4>${say(h.title)}</h4><dl>` +
     h.rows.map(([k, v]) => `<dt>${say(k)}</dt><dd>${say(v)}</dd>`).join("") + "</dl>";
+  tip.style.display = "none";
   helpBox.style.display = "block";
   const r = el.getBoundingClientRect(), b = helpBox.getBoundingClientRect();
+  if (TOUCH){
+    // Pinned clear of the rail rather than beside the control it explains:
+    // bottom left in portrait, bottom right in landscape.
+    helpBox.style.top = "auto"; helpBox.style.bottom = "8px";
+    helpBox.style.left = portrait() ? "8px" : "auto";
+    helpBox.style.right = portrait() ? "auto" : "8px";
+    return;
+  }
+  helpBox.style.right = ""; helpBox.style.bottom = "";
   helpBox.style.left = Math.min(r.right + 10, window.innerWidth - b.width - 10) + "px";
   helpBox.style.top = Math.max(8, Math.min(r.top, window.innerHeight - b.height - 10)) + "px";
 }
 function bindHelp(el, key){
   el.dataset.help = key;
+  if (TOUCH){
+    // Nothing hovers on a touch screen, so the panel is a toggle and the next
+    // tap anywhere else puts it away.
+    el.addEventListener("click", e => {
+      e.preventDefault();
+      const open = helpBox.style.display === "block" && helpBox.dataset.for === key;
+      helpBox.style.display = "none";
+      if (!open){ showHelp(key, el); helpBox.dataset.for = key; }
+    });
+    return;
+  }
   el.addEventListener("pointerenter", () => showHelp(key, el));
   el.addEventListener("pointerleave", () => { helpBox.style.display = "none"; });
   el.addEventListener("focus", () => showHelp(key, el));
   el.addEventListener("blur", () => { helpBox.style.display = "none"; });
 }
 for (const el of document.querySelectorAll("[data-help]")) bindHelp(el, el.dataset.help);
+if (TOUCH) addEventListener("pointerdown", e => {
+  if (!e.target.closest("[data-help]")) helpBox.style.display = "none";
+}, true);
 
 function pillGroup(hostId, items, bucket, perRow, keyOf = i => i, helpOf = null){
   const box = document.getElementById(hostId);
@@ -1561,6 +1755,13 @@ function setEnd(which, source){
   if (which === "from"){ routeFrom = p; document.getElementById("from").value = p.name; }
   else { routeTo = p; document.getElementById("to").value = p.name; }
   recomputeRoute();
+  // However the end was chosen, the system it names is described. Deferred a
+  // frame because callers may recentre the view around it first.
+  requestAnimationFrame(() => {
+    Array.isArray(source)
+      ? showTip(source, sx(source[X]), sy(source[Z]))
+      : showGenTip(source, sx(source.x), sy(source.z));
+  });
 }
 
 function clearRoute(){

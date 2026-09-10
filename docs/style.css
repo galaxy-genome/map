@@ -8,6 +8,7 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--void);color:var(--ink);font-family:var(--ui);overflow:hidden}
 canvas{display:block;cursor:crosshair;touch-action:none}
 canvas:active{cursor:grabbing}
@@ -71,7 +72,8 @@ label.f:has(#jump){justify-content:flex-start;gap:6px}
 .tip dt{color:var(--dim);text-transform:uppercase;font-size:11px}
 .tip dd{margin:0;color:var(--ink)}
 .tip dt.rule,.tip dd.rule{height:1px;background:var(--edge);margin:5px 0}
-.tip .ore{margin-top:6px;padding-top:6px;border-top:1px solid var(--edge);color:var(--amber)}
+.tip .ore{margin-top:6px;padding-top:6px;border-top:1px solid var(--edge);color:var(--amber);
+  display:grid;grid-template-columns:repeat(3,auto);gap:2px 14px;justify-content:start}
 
 .zoom{position:fixed;right:16px;top:16px;z-index:3;display:flex;flex-direction:column;gap:6px}
 .zoom button{width:38px;height:34px;background:rgba(8,18,34,.85);border:1px solid var(--edge);
@@ -141,3 +143,49 @@ label.f span{white-space:nowrap}
 #reset{width:100%;padding:7px;background:transparent;border:1px solid var(--edge);
   color:var(--dim);font-family:var(--mono);font-size:11px;cursor:pointer;border-radius:2px}
 #reset:hover{border-color:var(--danger);color:var(--danger)}
+
+
+/* Touch layout. Landscape phones are wide enough for the rail to stay put. */
+#menuBtn{display:none}
+@media (max-width:720px){
+  .rail{width:min(80vw,320px);background:var(--deep);padding-top:60px;
+    transform:translateX(-101%);transition:transform .22s ease;
+    box-shadow:0 0 40px rgba(0,0,0,.75)}
+  body.menu .rail{transform:none}
+  #menuBtn{display:flex;position:fixed;top:10px;left:10px;z-index:5;padding:0;
+    width:44px;height:44px;align-items:center;justify-content:center;border-radius:3px;
+    background:rgba(8,18,34,.92);border:1px solid var(--edge);color:var(--cyan);cursor:pointer}
+  body.menu #menuBtn{left:auto;right:10px}
+  #menuBtn:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  #menuBtn .bars,#menuBtn .bars::before,#menuBtn .bars::after{
+    display:block;width:18px;height:2px;background:currentColor;transition:transform .2s}
+  #menuBtn .bars{position:relative}
+  #menuBtn .bars::before,#menuBtn .bars::after{content:"";position:absolute;left:0}
+  #menuBtn .bars::before{top:-6px} #menuBtn .bars::after{top:6px}
+  body.menu #menuBtn .bars{background:transparent}
+  body.menu #menuBtn .bars::before{transform:translateY(6px) rotate(45deg)}
+  body.menu #menuBtn .bars::after{transform:translateY(-6px) rotate(-45deg)}
+  #menuBtn .badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;
+    border-radius:9px;background:var(--amber);color:var(--void);text-align:center;
+    font-family:var(--mono);font-size:10px;line-height:18px}
+  #menuBtn .badge:empty,body.menu #menuBtn .badge{display:none}
+
+  .readout{left:12px;bottom:10px;font-size:11px;line-height:1.6}
+  body.menu .readout{display:none}
+  .zoom{top:auto;bottom:10px;right:10px}
+  .zoom button{width:44px;height:40px;font-size:16px}
+  /* 16px keeps iOS from zooming the page when a field takes focus. */
+  .rail input,.rail select,#find{font-size:16px}
+  .chip,.hits li{padding:10px 9px}
+  .pill{padding:10px 6px}
+  details.grp>summary{padding:4px 0 12px}
+  .ask{display:inline-block;padding:4px 0}
+  .help{max-width:92vw}
+}
+@media (prefers-reduced-motion:reduce){.rail{transition:none}}
+
+/* Docked tooltip. A tap on it closes it rather than reaching what it covers. */
+body.touch .tip,body.touch .help{pointer-events:auto;max-height:45vh;overflow-y:auto}
+body.touch .tip{min-width:0}
+@media (orientation:portrait){body.touch .tip{max-width:none}}
+@media (orientation:landscape){body.touch .tip{max-width:min(46vw,380px)}}

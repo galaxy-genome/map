@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Galaxy Genome Map</title>
+<meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="rail">
+  <div class="brand"><span data-ui="title">Galaxy Genome Map</span><small id="count">— systems</small>
+    <small class="unofficial" data-ui="unofficial">Unofficial fan tool</small>
+    <select id="lang" data-ui-aria="language" aria-label="Language"></select>
+    <label class="spoil"><input type="checkbox" id="spoilers"> <span data-ui="spoilers">show spoilers</span></label>
+  </div>
+
+  <div class="grp">
+    <h2 data-ui="route">Route</h2>
+    <label class="f"><span data-ui="currentSystem">Current system</span></label>
+    <input id="from" type="search" data-ui-ph="findPlaceholder" placeholder="click a system, or type" autocomplete="off">
+    <ul class="hits" data-for="from"></ul>
+    <label class="f"><span data-ui="to">To</span></label>
+    <input id="to" type="search" data-ui-ph="toPlaceholder" placeholder="click a second system" autocomplete="off">
+    <ul class="hits" data-for="to"></ul>
+    <label class="f"><span data-ui="maxJump">Max jump</span><input type="number" id="jump" min="1" max="500" step="1" value="10"> <span data-ui-unit="ly">ly</span></label>
+    <button id="clearRoute" data-ui="clearRoute">Clear route</button>
+    <p class="note" id="routeNote"></p>
+  </div>
+
+  <details class="grp" open>
+    <summary data-ui="basics">Basics</summary>
+    <div class="body">
+      <button class="chip" data-f="fuel" data-help="basic:fuel" aria-pressed="false"><span class="box"></span><span data-ui="fuel">Fuel scoopable</span><span class="n" data-n="fuel"></span></button>
+      <button class="chip" data-f="station" data-help="basic:station" aria-pressed="false"><span class="box"></span><span data-ui="hasStation">Has station</span><span class="n" data-n="station"></span></button>
+      <button class="chip" data-f="belt" data-help="basic:belt" aria-pressed="false"><span class="box"></span><span data-ui="hasBelt">Has belt</span><span class="n" data-n="belt"></span></button>
+      <button class="chip" data-f="land" data-help="basic:land" aria-pressed="false"><span class="box"></span><span data-ui="landable">Landable planet</span><span class="n" data-n="land"></span></button>
+      <button class="chip" data-f="eng" data-help="basic:eng" aria-pressed="false"><span class="box"></span><span data-ui="engineer">Engineer</span><span class="n" data-n="eng"></span></button>
+      <button class="chip" data-f="gate" data-help="basic:gate" aria-pressed="false"><span class="box"></span><span data-ui="gate">Warp gate</span><span class="n" data-n="gate"></span></button>
+      <button class="chip" data-f="auth" data-help="basic:auth" aria-pressed="false"><span class="box"></span><span data-ui="authored">Hand-built</span><span class="n" data-n="auth"></span></button>
+    </div>
+  </details>
+
+  <details class="grp">
+    <summary data-ui="range">Range</summary>
+    <div class="body">
+      <label class="f"><span data-ui="minLy">Min ly</span><input type="number" id="lyMin" min="0" step="10" placeholder="0"></label>
+      <label class="f"><span data-ui="maxLy">Max ly</span><input type="number" id="lyMax" min="0" step="10" placeholder="any"></label>
+      <label class="f"><span data-ui="minScan">Min scan CR</span><input type="number" id="scanMin" min="0" step="50000" placeholder="0"></label>
+      <label class="f"><span data-ui="minPlanets">Min planets</span><input type="number" id="plMin" min="0" step="1" placeholder="0"></label>
+    </div>
+  </details>
+
+  <details class="grp">
+    <summary data-ui="security">Security</summary>
+    <div class="body" id="secRow"></div>
+  </details>
+
+  <details class="grp">
+    <summary data-ui="mining">Mining</summary>
+    <div class="body">
+      <label class="f"><span data-ui="orePresent">Ore present</span></label>
+      <select id="ore"><option value="">any</option></select>
+      <label class="f"><span data-ui="minPct">Min %</span><input type="number" id="pctMin" min="0" max="100" step="1" data-ui-ph="pickOre" placeholder="pick an ore" disabled></label>
+    </div>
+  </details>
+
+  <details class="grp">
+    <summary data-ui="exploration">Exploration</summary>
+    <div class="body">
+      <label class="f"><span data-ui="planetPresent">Planet type present</span></label>
+      <select id="ptype"><option value="">any</option></select>
+      <label class="f"><span data-ui="minLandable">Min landable</span><input type="number" id="laMin" min="0" step="1" placeholder="0"></label>
+    </div>
+  </details>
+
+  <details class="grp">
+    <summary data-ui="moduleSale">Module for sale</summary>
+    <div class="body">
+      <select id="module"><option value="">any</option></select>
+      <div class="row">
+        <button class="pill" id="fullOnly" type="button" aria-pressed="false" data-ui="fullGrade">Full grade only</button>
+      </div>
+      <p class="note" id="moduleNote"></p>
+    </div>
+  </details>
+
+  <details class="grp">
+    <summary data-ui="trade">Trade &amp; outfitting</summary>
+    <div class="body">
+      <label class="f"><span data-ui="shopPurpose">Shop purpose</span></label>
+      <div id="purpRow" class="body"></div>
+      <label class="f"><span data-ui="faction">Faction</span></label>
+      <div id="facRow" class="body"></div>
+    </div>
+  </details>
+
+  <details class="grp" data-spoiler>
+    <summary data-ui="expedition">Expedition targets</summary>
+    <div class="body">
+      <label class="f"><span class="ask" data-help="what:starhunter" tabindex="0" data-ui="starHunter">StarHunter class</span></label>
+      <select id="startype"><option value="">any</option></select>
+      <p class="note" id="huntNote">Counts are systems in reachable space.</p>
+    </div>
+  </details>
+
+  <div class="grp">
+    <button id="reset" data-ui="reset">Clear all filters</button>
+  </div>
+
+  <div class="grp">
+    <h2 data-ui="jumpTo">Jump to</h2>
+    <button class="chip" id="toSol"><span class="box" style="border-color:var(--cyan)"></span>Sol</button>
+    <button class="chip" id="toAll"><span class="box" style="border-color:var(--cyan)"></span><span data-ui="wholeGalaxy">Whole galaxy</span></button>
+  </div>
+
+  <div class="grp">
+    <h2 data-ui="marks">Marks</h2>
+    <div class="legend">
+      <div><i style="background:#cf3a38"></i><span data-ui="redDwarf">M - Red Dwarf</span></div>
+      <div><i style="background:#dbd670"></i><span data-ui="mainSequence">G / K main sequence</span></div>
+      <div><i style="background:#559cba"></i><span data-ui="blueWhite">B / A blue-white</span></div>
+      <div><i style="background:#c7dce0"></i><span data-ui="whiteDwarf">White Dwarf</span></div>
+      <div><i style="border:1px solid var(--cyan);border-radius:0"></i><span data-ui="stationPresent">Station present</span></div>
+      <div data-spoiler><i style="background:var(--amber);border-radius:0;height:2px"></i><span data-ui="gateLink">Warp gate link</span></div>
+      <div data-spoiler><i style="border:1px solid var(--amber);border-radius:0"></i><span data-ui="engineer">Engineer</span></div>
+    </div>
+  </div>
+  <footer class="credit">
+      <p data-ui="byDev">Galaxy Genome is made by SKV Games.</p>
+      <p class="stores">
+        <span data-ui="getTheGame">Get the game</span>
+        <a href="https://play.google.com/store/apps/details?id=com.skvgames.GalaxyGenome"
+           target="_blank" rel="noopener noreferrer">Google Play</a>
+        <a href="https://apps.apple.com/us/app/galaxy-genome/id1566857517"
+           target="_blank" rel="noopener noreferrer">App Store</a>
+      </p>
+      <p class="fine" data-ui="notAffiliated">Not affiliated with or endorsed by the
+        developer. All game data belongs to SKV Games.</p>
+    </footer>
+</nav>
+
+<canvas id="sky"></canvas>
+
+<div class="zoom">
+  <button id="zin" data-ui-title="zoomIn" title="Zoom in">+</button>
+  <button id="zout" data-ui-title="zoomOut" title="Zoom out">&minus;</button>
+  <button id="zreset" data-ui-title="resetView" title="Reset view">&#8226;</button>
+</div>
+
+<div class="readout">
+  <div><span data-ui="cursor">Cursor</span> <b id="cur">0, 0</b> <span data-ui-unit="ly">ly</span></div>
+  <div><span data-ui="scale">Scale</span> <b id="scl">—</b> <span data-ui="lyAcross">ly across</span></div>
+  <div><span data-ui="shown">Shown</span> <b id="shown">—</b></div>
+</div>
+
+<div class="tip" id="tip" role="status"></div>
+<div class="help" id="help"></div>
+
+<script>
+// Data lives beside the page rather than inside it, so a translation fix is a
+// one-file change and the page itself never has to be rebuilt.
+(async () => {
+  const load = async path => {
+    const r = await fetch(path);
+    if (!r.ok) throw new Error(`${path}: ${r.status}`);
+    return r.json();
+  };
+  try {
+    const galaxy = await load("data/galaxy.json");
+    const files = await Promise.all(
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json`)));
+    galaxy.langs = {};
+    galaxy.ui = {};
+    galaxy.langCodes.forEach((c, i) => {
+      galaxy.langs[c] = files[i].strings;
+      galaxy.ui[c] = files[i].ui;
+    });
+    window.__GG__ = galaxy;
+    const s = document.createElement("script");
+    s.src = "app.js";
+    document.body.append(s);
+  } catch (err) {
+    document.querySelector(".readout").innerHTML =
+      `<div style="color:#ff5a5a">Could not load map data.<br>${err.message}</div>`;
+  }
+})();
+</script>
+</body>
+</html>

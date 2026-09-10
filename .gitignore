@@ -1,0 +1,12 @@
+# The game's own files. These belong to SKV Games and are not redistributed.
+*.apk
+*.swf
+extracted/
+decompiled-all/
+saves/
+*.SOL
+
+# Build output
+galaxy.db
+__pycache__/
+*.pyc

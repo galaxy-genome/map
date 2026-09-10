@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=a6e1d8e308"), read("data/reachable.png?v=a6e1d8e308")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=01e8a59a74"), read("data/reachable.png?v=01e8a59a74")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -245,7 +245,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=a6e1d8e308", 1), read("data/zones.webp?v=a6e1d8e308", 3)]);
+    [read("data/side.webp?v=01e8a59a74", 1), read("data/zones.webp?v=01e8a59a74", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -682,6 +682,20 @@ function filterCount(){
       .filter(v => v != null).length;
 }
 
+// The rim of the galaxy: the hull of every cell the density map lights, which
+// is the outermost place a system can exist.
+function drawOutline(){
+  if (!D.outline) return;
+  ctx.save();
+  ctx.strokeStyle = "rgba(53,224,245,.18)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  for (const [x, z] of D.outline) ctx.lineTo(sx(x), sy(z));
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
 function draw(){
   const n = filterCount();
   document.getElementById("fCount").textContent = n ? n : "";
@@ -689,6 +703,7 @@ function draw(){
     num(Math.round(cx + halfCover() / scale)) + ", " + num(Math.round(cz));
   ctx.fillStyle = "#04060e"; ctx.fillRect(0, 0, W, H);
   drawGrid();
+  drawOutline();
 
   // warp gates first, so markers sit on top
   ctx.strokeStyle = "rgba(255,171,61,.7)"; ctx.lineWidth = 1.4;

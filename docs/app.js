@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png"), read("data/reachable.png")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=e9d5047e16"), read("data/reachable.png?v=e9d5047e16")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -245,7 +245,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp", 1), read("data/zones.webp", 3)]);
+    [read("data/side.webp?v=e9d5047e16", 1), read("data/zones.webp?v=e9d5047e16", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }

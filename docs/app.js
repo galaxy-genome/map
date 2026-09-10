@@ -361,6 +361,10 @@ document.getElementById("zout").onclick   = () => { scale = Math.max(scale / 1.6
 const clearFocus = () => { focused = null; cancelAnimationFrame(focusRAF); };
 document.getElementById("zreset").onclick = () => { clearFocus(); goto(0, 0, scaleFor(HOME_LY)); };
 document.getElementById("toSol").onclick  = () => { clearFocus(); goto(0, 0, scaleFor(HOME_LY)); };
+// Centre of the deep-space cluster: 21 systems and 35 stations inside about 60 ly.
+document.getElementById("toVoid").onclick = () => {
+  clearFocus(); goto(-2232, -3987, scaleFor(HOME_LY));
+};
 document.getElementById("toAll").onclick  = () => { clearFocus(); goto(-8000, 6000, .0022); };
 
 for (const b of document.querySelectorAll(".chip[data-f]")){
@@ -626,6 +630,129 @@ document.getElementById("count").textContent = S.length.toLocaleString() + " rea
 
 addEventListener("resize", resize);
 
+// ---- the populated-space grid ----------------------------------------------
+// The game fills the galaxy from a 2048x2048 density bitmap: a cell with any
+// density generates stars. Those stars are not in the catalogue, so routing on
+// catalogue systems alone reports "unreachable" for almost everywhere. The grid
+// is the real reachability graph, and one cell is one map pixel: 43.74 ly.
+const GRID = 2048, CELL_LY = 43.74, DIAG_LY = CELL_LY * Math.SQRT2;
+let cellBits = null;        // 1 = the cell generates stars
+let mainBits = null;        // 1 = the cell is in the component that contains Sol
+
+function bitAt(bits, x, y){
+  if (x < 0 || y < 0 || x >= GRID || y >= GRID) return 0;
+  const i = y * GRID + x;
+  return (bits[i >> 3] >> (i & 7)) & 1;
+}
+
+async function loadGrid(){
+  const read = async src => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const c = document.createElement("canvas");
+    c.width = c.height = GRID;
+    const g = c.getContext("2d", {willReadFrequently: true});
+    g.drawImage(img, 0, 0);
+    const px = g.getImageData(0, 0, GRID, GRID).data;
+    const bits = new Uint8Array((GRID * GRID) >> 3);
+    for (let i = 0; i < GRID * GRID; i++)
+      if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
+    return bits;
+  };
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png"), read("data/reachable.png")]);
+}
+
+const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
+const cellCentre = (cx, cy) => [(cx + 0.5 - 1025) * CELL_LY, -(cy + 0.5 - 1591) * CELL_LY];
+
+// Whether a jump range can step between neighbouring cells at all.
+const canStep = range => range >= CELL_LY;
+
+// A* across populated cells. Returns the cell path, or null.
+// `weight` inflates the heuristic. 1 is optimal; above that trades a slightly
+// longer path for a far smaller search, which across 40,000 ly is the difference
+// between milliseconds and giving up.
+function gridRoute(from, to, range, weight = 1.35, budget = 3000000){
+  if (!cellBits) return null;
+  const [sx, sy] = from, [tx, ty] = to;
+  if (!bitAt(cellBits, sx, sy) || !bitAt(cellBits, tx, ty)) return null;
+  const diagonal = range >= DIAG_LY;
+
+  const idx = (x, y) => y * GRID + x;
+  const came = new Int32Array(GRID * GRID).fill(-1);
+  const g = new Float64Array(GRID * GRID).fill(Infinity);
+  // Binary heap over (priority, cell). A linear scan for the minimum turns a
+  // cross-galaxy search into minutes; this keeps it in milliseconds.
+  const heapP = [], heapV = [];
+  const push = (p, v) => {
+    heapP.push(p); heapV.push(v);
+    let i = heapP.length - 1;
+    while (i > 0){
+      const parent = (i - 1) >> 1;
+      if (heapP[parent] <= heapP[i]) break;
+      [heapP[parent], heapP[i]] = [heapP[i], heapP[parent]];
+      [heapV[parent], heapV[i]] = [heapV[i], heapV[parent]];
+      i = parent;
+    }
+  };
+  const pop = () => {
+    const top = heapV[0], n = heapP.length - 1;
+    heapP[0] = heapP[n]; heapV[0] = heapV[n];
+    heapP.pop(); heapV.pop();
+    let i = 0;
+    for (;;){
+      const l = 2*i + 1, r = l + 1;
+      let m = i;
+      if (l < heapP.length && heapP[l] < heapP[m]) m = l;
+      if (r < heapP.length && heapP[r] < heapP[m]) m = r;
+      if (m === i) break;
+      [heapP[m], heapP[i]] = [heapP[i], heapP[m]];
+      [heapV[m], heapV[i]] = [heapV[i], heapV[m]];
+      i = m;
+    }
+    return top;
+  };
+
+  push(0, idx(sx, sy));
+  g[idx(sx, sy)] = 0;
+  const h = (x, y) => Math.hypot(x - tx, y - ty);
+  let visited = 0;
+
+  while (heapP.length){
+    const cur = pop();
+    if (cur === idx(tx, ty)) break;
+    if (++visited > budget) return null;
+    const cx = cur % GRID, cy = (cur / GRID) | 0;
+    for (let dy = -1; dy <= 1; dy++){
+      for (let dx = -1; dx <= 1; dx++){
+        if (!dx && !dy) continue;
+        if (!diagonal && dx && dy) continue;
+        const nx = cx + dx, ny = cy + dy;
+        if (!bitAt(cellBits, nx, ny)) continue;
+        const n = idx(nx, ny);
+        const step = g[cur] + (dx && dy ? Math.SQRT2 : 1);
+        if (step < g[n]){
+          g[n] = step; came[n] = cur;
+          push(step + weight * h(nx, ny), n);
+        }
+      }
+    }
+  }
+  const goal = idx(tx, ty);
+  if (came[goal] === -1 && goal !== idx(sx, sy)) return null;
+  const path = [];
+  for (let i = goal; i !== -1; i = came[i]) path.push([i % GRID, (i / GRID) | 0]);
+  return path.reverse();
+}
+
+// Is the destination in the same body of populated space as Sol? One lookup,
+// so an impossible trip is answered before any search runs.
+function inMainComponent(x, z){
+  const [cx, cy] = cellOf(x, z);
+  return !!bitAt(mainBits, cx, cy);
+}
+
 // ---- routing ---------------------------------------------------------------
 // Nodes are systems; an edge exists when two systems are within one jump.
 // Cost is jumps first, distance second, so the route takes the fewest jumps and
@@ -633,6 +760,8 @@ addEventListener("resize", resize);
 let jumpLy = +(localStorage.getItem("gg.jump") || 10);
 let routeFrom = null, routeTo = null, routePath = null, routePartial = false;
 let routeGates = null;
+let gridPath = null;          // fallback route across populated space
+let gridPending = false;
 let cellSize = 0, cells = null;
 
 // Warp gates are edges too: one jump, no distance flown. They only work once
@@ -720,7 +849,7 @@ function findRoute(a, b){
 
 function recomputeRoute(){
   const note = document.getElementById("routeNote");
-  routePath = null; routePartial = false;
+  routePath = null; routePartial = false; gridPath = null;
   if (routeFrom == null || routeTo == null){ note.textContent = ""; draw(); return; }
   if (routeFrom === routeTo){ note.textContent = ui("sameSystem"); draw(); return; }
   const r = findRoute(routeFrom, routeTo);
@@ -737,6 +866,10 @@ function recomputeRoute(){
   const viaGates = r.gates.reduce((a, b) => a + b, 0);
   const gateNote = viaGates ? " &middot; " + fmt("viaGate", {n: viaGates}) : "";
   if (r.partial){
+    // The catalogue is a thin sample of the galaxy. Most of it is generated from
+    // a density map, and those systems are what actually bridge long distances,
+    // so fall back to routing across populated space.
+    planAcrossGeneratedSpace(S[routeFrom], S[routeTo], note);
     const stop = S[r.path.at(-1)], dest = S[routeTo];
     const gap = Math.hypot(dest[X] - stop[X], dest[Z] - stop[Z]);
     const flown = Math.hypot(stop[X] - S[routeFrom][X], stop[Z] - S[routeFrom][Z]);
@@ -762,6 +895,7 @@ function setEnd(which, sysIndex){
 }
 
 function drawRoute(){
+  drawGridPath();
   if (!routePath || routePath.length < 2) return;
   ctx.save();
   ctx.lineWidth = 2.2; ctx.lineJoin = "round";
@@ -906,4 +1040,51 @@ resize();   // first paint, once route state exists
     apply();
   });
   apply();
+}
+
+
+// ---- long-distance routing -------------------------------------------------
+async function planAcrossGeneratedSpace(from, to, note){
+  if (gridPending) return;
+  gridPending = true;
+  try {
+    if (!cellBits) await loadGrid();
+    if (!inMainComponent(to[X], to[Z])){
+      note.innerHTML = `<b>${fmt("noRoute", {ly: jumpLy})}</b> ` + ui("isolated");
+      draw();
+      return;
+    }
+    if (!canStep(jumpLy)){
+      note.innerHTML += "<br>" + fmt("needRange", {ly: Math.ceil(CELL_LY)});
+      draw();
+      return;
+    }
+    const path = gridRoute(cellOf(from[X], from[Z]), cellOf(to[X], to[Z]), jumpLy);
+    if (!path) return;
+    gridPath = path;
+    const ly = Math.round(path.length * CELL_LY);
+    const jumps = Math.ceil(ly / jumpLy);
+    note.innerHTML += "<br>" + fmt("viaGenerated",
+      {jumps: plural("jumps", jumps), ly: num(ly)});
+    draw();
+  } finally {
+    gridPending = false;
+  }
+}
+
+// The generated-space route is drawn as a faint corridor: it is a path through
+// populated cells, not a list of named systems.
+function drawGridPath(){
+  if (!gridPath || gridPath.length < 2) return;
+  ctx.save();
+  ctx.strokeStyle = "rgba(79,195,255,.55)";
+  ctx.lineWidth = 3; ctx.lineJoin = "round"; ctx.setLineDash([2, 6]);
+  ctx.beginPath();
+  gridPath.forEach(([cx, cy], i) => {
+    const [wx, wz] = cellCentre(cx, cy);
+    const px = sx(wx), py = sy(wz);
+    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+  });
+  ctx.stroke();
+  ctx.restore();
 }

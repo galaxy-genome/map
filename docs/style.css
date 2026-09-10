@@ -64,7 +64,9 @@ label.f:has(#jump){justify-content:flex-start;gap:6px}
   font-family:var(--mono);font-size:12px;line-height:1.55;
   box-shadow:0 0 0 1px rgba(4,8,16,.9),0 8px 28px rgba(0,0,0,.6)}
 .tip h3{margin:0 0 5px;font-size:13px;color:#fff;font-family:var(--ui);font-weight:600;
-  letter-spacing:.03em}
+  letter-spacing:.03em;display:flex;align-items:baseline;gap:12px}
+.tip h3 .coords{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:400;
+  color:var(--dim);letter-spacing:0;white-space:nowrap}
 .tip dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:1px 10px}
 .tip dt{color:var(--dim);text-transform:uppercase;font-size:11px}
 .tip dd{margin:0;color:var(--ink)}

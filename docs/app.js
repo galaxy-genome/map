@@ -1,3 +1,461 @@
+// ---- the populated-space grid ----------------------------------------------
+// The game fills the galaxy from a 2048x2048 density bitmap: a cell with any
+// density generates stars. Those stars are not in the catalogue, so routing on
+// catalogue systems alone reports "unreachable" for almost everywhere. The grid
+// is the real reachability graph, and one cell is one map pixel: 43.74 ly.
+const GRID = 2048, CELL_LY = 43.74, DIAG_LY = CELL_LY * Math.SQRT2;
+let cellBits = null;        // 1 = the cell generates stars
+let mainBits = null;        // 1 = the cell is in the component that contains Sol
+
+function bitAt(bits, x, y){
+  if (x < 0 || y < 0 || x >= GRID || y >= GRID) return 0;
+  const i = y * GRID + x;
+  return (bits[i >> 3] >> (i & 7)) & 1;
+}
+
+async function loadGrid(){
+  const read = async src => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const c = document.createElement("canvas");
+    c.width = c.height = GRID;
+    const g = c.getContext("2d", {willReadFrequently: true});
+    g.drawImage(img, 0, 0);
+    const px = g.getImageData(0, 0, GRID, GRID).data;
+    const bits = new Uint8Array((GRID * GRID) >> 3);
+    for (let i = 0; i < GRID * GRID; i++)
+      if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
+    return bits;
+  };
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png"), read("data/reachable.png")]);
+}
+
+const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
+const cellCentre = (cx, cy) => [(cx + 0.5 - 1025) * CELL_LY, -(cy + 0.5 - 1591) * CELL_LY];
+
+// Whether a jump range can step between neighbouring cells at all.
+const canStep = range => range >= CELL_LY;
+
+// A* across populated cells. Returns the cell path, or null.
+// `weight` inflates the heuristic. 1 is optimal; above that trades a slightly
+// longer path for a far smaller search, which across 40,000 ly is the difference
+// between milliseconds and giving up.
+function gridRoute(from, to, range, weight = 1.35, budget = 3000000){
+  if (!cellBits) return null;
+  const [sx, sy] = from, [tx, ty] = to;
+  if (!bitAt(cellBits, sx, sy) || !bitAt(cellBits, tx, ty)) return null;
+  const diagonal = range >= DIAG_LY;
+
+  const idx = (x, y) => y * GRID + x;
+  const came = new Int32Array(GRID * GRID).fill(-1);
+  const g = new Float64Array(GRID * GRID).fill(Infinity);
+  // Binary heap over (priority, cell). A linear scan for the minimum turns a
+  // cross-galaxy search into minutes; this keeps it in milliseconds.
+  const heapP = [], heapV = [];
+  const push = (p, v) => {
+    heapP.push(p); heapV.push(v);
+    let i = heapP.length - 1;
+    while (i > 0){
+      const parent = (i - 1) >> 1;
+      if (heapP[parent] <= heapP[i]) break;
+      [heapP[parent], heapP[i]] = [heapP[i], heapP[parent]];
+      [heapV[parent], heapV[i]] = [heapV[i], heapV[parent]];
+      i = parent;
+    }
+  };
+  const pop = () => {
+    const top = heapV[0], n = heapP.length - 1;
+    heapP[0] = heapP[n]; heapV[0] = heapV[n];
+    heapP.pop(); heapV.pop();
+    let i = 0;
+    for (;;){
+      const l = 2*i + 1, r = l + 1;
+      let m = i;
+      if (l < heapP.length && heapP[l] < heapP[m]) m = l;
+      if (r < heapP.length && heapP[r] < heapP[m]) m = r;
+      if (m === i) break;
+      [heapP[m], heapP[i]] = [heapP[i], heapP[m]];
+      [heapV[m], heapV[i]] = [heapV[i], heapV[m]];
+      i = m;
+    }
+    return top;
+  };
+
+  push(0, idx(sx, sy));
+  g[idx(sx, sy)] = 0;
+  const h = (x, y) => Math.hypot(x - tx, y - ty);
+  let visited = 0;
+
+  while (heapP.length){
+    const cur = pop();
+    if (cur === idx(tx, ty)) break;
+    if (++visited > budget) return null;
+    const cx = cur % GRID, cy = (cur / GRID) | 0;
+    for (let dy = -1; dy <= 1; dy++){
+      for (let dx = -1; dx <= 1; dx++){
+        if (!dx && !dy) continue;
+        if (!diagonal && dx && dy) continue;
+        const nx = cx + dx, ny = cy + dy;
+        if (!bitAt(cellBits, nx, ny)) continue;
+        const n = idx(nx, ny);
+        const step = g[cur] + (dx && dy ? Math.SQRT2 : 1);
+        if (step < g[n]){
+          g[n] = step; came[n] = cur;
+          push(step + weight * h(nx, ny), n);
+        }
+      }
+    }
+  }
+  const goal = idx(tx, ty);
+  if (came[goal] === -1 && goal !== idx(sx, sy)) return null;
+  const path = [];
+  for (let i = goal; i !== -1; i = came[i]) path.push([i % GRID, (i / GRID) | 0]);
+  return path.reverse();
+}
+
+// Is the destination in the same body of populated space as Sol? One lookup,
+// so an impossible trip is answered before any search runs.
+function inMainComponent(x, z){
+  const [cx, cy] = cellOf(x, z);
+  return !!bitAt(mainBits, cx, cy);
+}
+
+// ---- generated systems ------------------------------------------------------
+// Most of the galaxy is not in the star catalogue. The game scatters stars
+// through it from a density map, seeded per cell, so the same cell always holds
+// the same stars. Nothing here is downloaded: it is regenerated on demand.
+
+const GEN = {
+  side: null,        // stars per side, 0..10, one byte per cell
+  zones: null,       // RGB gate per cell, three bytes
+  cache: new Map(),  // cell key -> generated stars, capped below
+  CAP: 3000,
+};
+
+// The game's own PRNG: BitmapData.noise seeded per cell, walked as a stream.
+class Rndm {
+  constructor(seed){
+    this.x = (seed <= 0 ? -seed + 1 : seed) >>> 0;
+    this.p = 0;
+    this.buf = [];
+  }
+  byte(){ this.x = (this.x * 16807) % 2147483647; return this.x % 256; }
+  random(){
+    this.p = (this.p + 1) % 200000;
+    while (this.buf.length <= this.p){
+      const r = this.byte(), g = this.byte(), b = this.byte(), a = this.byte();
+      this.buf.push(((a << 24) | (r << 16) | (g << 8) | b) >>> 0);
+    }
+    return (this.buf[this.p] * 0.999999999999998 + 1e-15) / 4294967295;
+  }
+  float(a, b){ return this.random() * (b - a) + a; }
+  integer(a, b){ return Math.floor(this.float(a, b)); }
+}
+
+let starTotal = 0;
+function starChanceTotal(){
+  if (!starTotal) starTotal = D.starTable.reduce((s, t) => s + t[1], 0);
+  return starTotal;
+}
+
+function starGetType(rng){
+  const roll = rng.float(0, starChanceTotal());
+  let low = 0, high = 0;
+  for (const t of D.starTable){
+    high += t[1];
+    if (roll >= low && roll <= high) return t;
+    low += t[1];
+  }
+  return D.starTable[D.starTable.length - 1];
+}
+
+// StarGroups.GetByZone: keep drawing until a type suits this part of the galaxy.
+function starByZone(rng, r, g, b){
+  for (;;){
+    const t = starGetType(rng);
+    const zone = t[2];
+    if (zone === "NoZone") return t;
+    const gate = zone === "Center" ? r : zone === "OuterArmSide" ? g
+               : zone === "AnomalyZones" ? b : -1;
+    if (rng.integer(0, 255) <= gate) return t;
+    if (rng.integer(0, 255) < 25) return t;
+  }
+}
+
+// ---- sector naming ----------------------------------------------------------
+const ZONE_LEN = 10000, ZONE_ANGLE = Math.PI / 6;
+
+function sectorId(cx, cy){
+  let a = Math.PI - Math.atan2(-(1591 - cy), 1025 - cx);
+  if (a < 0) a += Math.PI * 2;
+  const zone = Math.trunc(a / ZONE_ANGLE);
+  let r = Math.trunc(Math.hypot(1025 - cx, 1591 - cy));
+  r = Math.trunc(r / (ZONE_LEN / CELL_LY));
+  const i = zone * 8 + r;
+  return i >= D.sectorAnchors.sectors.length ? 0 : i;
+}
+
+function sectorName(cx, cy){
+  const i = sectorId(cx, cy);
+  const dx = D.sectorAnchors.x[i] - cx, dy = D.sectorAnchors.y[i] - cy;
+  const q = (dx < 0 && dy > 0) ? 4 : (dx > 0 && dy > 0) ? 1
+          : (dx < 0 && dy < 0) ? 3 : (dx > 0 && dy < 0) ? 2 : 1;
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  const pair = n => String.fromCharCode((n / 26 | 0) + 65) + String.fromCharCode(n % 26 + 97);
+  return {zone: D.sectorAnchors.sectors[i],
+          sector: `${pair(ax)}-${pair(ay)} ${String.fromCharCode(q + 65)}`};
+}
+
+// A name carries its own coordinates, so finding a system is arithmetic rather
+// than a search: decode the sector, the offsets and the quadrant.
+function cellFromName(name){
+  const m = /^(.+?)\s+([A-Z][a-z])-([A-Z][a-z])\s+([A-E])(\d+)$/.exec(name.trim());
+  if (!m) return null;
+  const [, zone, ax, ay, quad, n] = m;
+  const i = D.sectorAnchors.sectors.findIndex(
+    s => s.toLowerCase() === zone.toLowerCase());
+  if (i < 0 || D.sectorAnchors.x[i] === -1) return null;
+  const val = p => (p.charCodeAt(0) - 65) * 26 + (p.charCodeAt(1) - 97);
+  // The quadrant letter says which side of its anchor the cell sits on:
+  // B dx>0 dy>0, C dx>0 dy<0, D dx<0 dy<0, E dx<0 dy>0.
+  const q = quad.charCodeAt(0) - 65;
+  const sx = q >= 3 ? 1 : -1;
+  const sy = (q === 2 || q === 3) ? 1 : -1;
+  return {cx: D.sectorAnchors.x[i] + sx * val(ax),
+          cy: D.sectorAnchors.y[i] + sy * val(ay),
+          index: +n};
+}
+
+// ---- generating a cell ------------------------------------------------------
+async function loadGenerationMaps(){
+  if (GEN.side) return;
+  const read = async (src, channels) => {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const c = document.createElement("canvas");
+    c.width = c.height = GRID;
+    const g = c.getContext("2d", {willReadFrequently: true});
+    g.drawImage(img, 0, 0);
+    const px = g.getImageData(0, 0, GRID, GRID).data;
+    const out = new Uint8Array(GRID * GRID * channels);
+    for (let i = 0; i < GRID * GRID; i++)
+      for (let ch = 0; ch < channels; ch++) out[i * channels + ch] = px[i * 4 + ch];
+    return out;
+  };
+  const [side, zones] = await Promise.all(
+    [read("data/side.webp", 1), read("data/zones.webp", 3)]);
+  GEN.side = side;
+  GEN.zones = zones;
+}
+
+// The stars inside one cell. Deterministic, so the cache is only about speed.
+function cellStars(cx, cy){
+  if (!GEN.side || cx < 0 || cy < 0 || cx >= GRID || cy >= GRID) return [];
+  const key = cy * GRID + cx;
+  const hit = GEN.cache.get(key);
+  if (hit) return hit;
+
+  const side = GEN.side[key];
+  if (!side) return [];
+  const rng = new Rndm(cx * 10000 + cy);                 // GetSectorId
+  const r = GEN.zones[key * 3], g = GEN.zones[key * 3 + 1], b = GEN.zones[key * 3 + 2];
+  const step = 1 / side;
+  const real = catalogueInCell(cx, cy);
+  const name = sectorName(cx, cy);
+
+  let gx = cx + step / 2, gy = cy, out = [];
+  for (let i = 0; i < side * side; i++){
+    const x = gx + rng.float(0, step / 1.3);
+    const y = gy + rng.float(0, step / 1.3);
+    let clash = false;
+    for (const [rx, ry] of real)
+      if (step * step / 2 > (rx - x) ** 2 + (ry - y) ** 2){ clash = true; break; }
+    if (!clash){
+      const t = starByZone(rng, r, g, b);
+      out.push({
+        x: (x - 1025) * CELL_LY, z: (1591 - y) * CELL_LY,
+        type: t[4], colour: t[3], fuel: !!t[5], raw: t[0],
+        name: `${name.zone} ${name.sector}${i}`,
+        seed: (((cx & 0xFFF) << 20) + ((cy & 0xFFF) << 8) + ((real.length + i) & 0xFF)) >>> 0,
+      });
+    }
+    gx += step;
+    if (gx > cx + 1){ gx = cx + step / 2; gy += step; }
+  }
+  if (GEN.cache.size > GEN.CAP) GEN.cache.clear();
+  GEN.cache.set(key, out);
+  return out;
+}
+
+// Catalogue stars occupy their cell, and generated ones are not placed on top.
+let catalogueCells = null;
+function catalogueInCell(cx, cy){
+  if (!catalogueCells){
+    catalogueCells = new Map();
+    for (const s of S){
+      const px = s[X] / CELL_LY + 1025, py = 1591 - s[Z] / CELL_LY;
+      const k = (py | 0) * GRID + (px | 0);
+      let bucket = catalogueCells.get(k);
+      if (!bucket) catalogueCells.set(k, bucket = []);
+      bucket.push([px, py]);
+    }
+  }
+  return catalogueCells.get(cy * GRID + cx) || [];
+}
+
+
+
+// ---- a system's bodies ------------------------------------------------------
+// StarSystemGenerator, as the game runs it. Every system that has no hand-built
+// entry gets its planets and belts this way, catalogued or not, so this is what
+// lets a generated system carry the same detail as a named one.
+const SEGMENTS = 500, SEGMENT_LEN = 10;
+
+function genGetRandomStar(rng, starType){
+  const rows = D.gen.luminosity[starType] || [];
+  const i = rng.integer(0, rows.length);
+  return rows[i] !== undefined ? rows[i] : 1;
+}
+
+function genBodyType(rng){
+  const table = D.gen.bodies;
+  const total = table.reduce((s, b) => s + b[1], 0);
+  const roll = rng.float(0, total);
+  let low = 0, high = 0;
+  for (const b of table){
+    high += b[1];
+    if (roll >= low && roll <= high) return b;
+    low += b[1];
+  }
+  return table[table.length - 1];
+}
+
+function genStarPairs(rng, starType, includeSelf){
+  const list = D.gen.binaries;
+  const stars = includeSelf ? [starType] : [];
+  let low = 0, total = 0;
+  for (const [name, chance] of list){
+    if (name === starType) low = total;
+    total += chance;
+  }
+  while (rng.float(0, 100) < 100 / (Math.max(0.5, stars.length) * 6) && stars.length < 3){
+    const roll = rng.integer(low, total);
+    let acc = 0;
+    for (const [name, chance] of list){
+      acc += chance;
+      if (roll < acc){ genGetRandomStar(rng, name); stars.push(name); low = acc; break; }
+    }
+  }
+  return stars;
+}
+
+function genMaterials(rng){
+  const all = D.gen.minerals;
+  const pool = all.length - D.gen.uncommon;
+  const idx = [...Array(pool).keys()];
+  const picked = [];
+  while (picked.length < 3) picked.push(all[idx.splice(rng.integer(0, idx.length), 1)[0]]);
+  return picked;
+}
+
+// Cheap ore takes the larger share; the percentages follow from the prices.
+function orePercents(triple){
+  const costs = triple.map(t => t[1]);
+  const hi = Math.max(...costs), lo = Math.min(...costs);
+  const w = costs.map(c => hi - c + lo);
+  const sum = w.reduce((a, b) => a + b, 0);
+  return w.map(v => Math.floor(100 * v / sum));
+}
+
+function systemBodies(seed, starType){
+  const rng = new Rndm(seed);
+  rng.integer(0, 1);                      // MakePlanetsFromDB bails after two draws
+  rng.float(0, Math.PI * 2);
+  const lum = genGetRandomStar(rng, starType);
+  return generateBodies(rng, starType, lum, 0, -1, {planets: [], belts: []});
+}
+
+function generateBodies(rng, starType, lum, group, budget, out){
+  rng.float(0, Math.PI * 2);
+  const stars = genStarPairs(rng, starType, true);
+  for (const _ of stars) rng.integer(-2147483647, 2147483646);
+  if (rng.integer(0, 100) < 10) return out;
+
+  let count;
+  if (budget === -1){ count = rng.integer(1, 15); budget = 15; }
+  else count = rng.integer(1, budget);
+
+  const L = lum * 3.846e26;
+  const occupied = new Array(SEGMENTS), temps = new Array(SEGMENTS);
+  for (let i = 0; i < SEGMENTS; i++){
+    const d = SEGMENT_LEN * (i + 1) * 299792000;
+    temps[i] = Math.trunc((L * 0.7 / (16 * Math.PI * d * d * (5.67 / 1e8))) ** 0.25 + 40);
+    occupied[i] = i < 3;
+  }
+
+  let belts = 0;
+  for (let n = 0; n < count; n++){
+    const body = genBodyType(rng);
+    const minWidth = 100 / SEGMENT_LEN + 2;
+    let width = Math.trunc(rng.integer(100, 3000) / SEGMENT_LEN), run = 0;
+    const slots = [];
+    for (let j = 4; j < SEGMENTS; j++)
+      if (!occupied[j] && temps[j] > body[2] && temps[j] < body[3]) slots.push(j);
+    if (!slots.length) continue;
+    const pick = rng.integer(0, slots.length);
+    const isBelt = body[0] === "Asteroids";
+    if (isBelt){
+      if (belts > 1 || group > 0) continue;
+      while (run < width && pick + run < SEGMENTS && occupied[pick + run] === false) run++;
+      run -= 8;
+      if (run < minWidth) continue;
+      belts++;
+      while (run > 0){ run--; occupied[pick + run] = true; }
+    }
+    const slot = slots[pick];
+    occupied[slot] = true;
+    budget--;
+    rng.float(0, Math.PI * 2);
+    rng.integer(-2147483647, 2147483646);
+    const orbit = slot * SEGMENT_LEN + 25;
+    if (isBelt){
+      const triple = genMaterials(rng);
+      out.belts.push({orbit, ores: triple.map((t, i) =>
+        ({name: t[0], pct: orePercents(triple)[i]}))});
+    } else {
+      out.planets.push({orbit, type: body[4], scan: body[5], landable: !!body[6]});
+    }
+  }
+
+  if (group < 3){
+    const companions = genStarPairs(rng, starType, false);
+    if (companions.length){
+      const l2 = genGetRandomStar(rng, companions[0]);
+      generateBodies(rng, companions[0], l2, group + 1, budget, out);
+    }
+  }
+  return out;
+}
+
+
+// Bodies are only produced when something asks for them, and remembered after.
+const bodyCache = new Map();
+function starBodies(star){
+  let b = bodyCache.get(star.seed);
+  if (!b){
+    b = systemBodies(star.seed, star.raw);
+    b.scan = b.planets.reduce((s, p) => s + p.scan, 0);
+    b.landable = b.planets.filter(p => p.landable).length;
+    // A screenful can be tens of thousands of systems, so the cache has to be
+    // bigger than one screen or it thrashes and nothing is ever reused.
+    if (bodyCache.size > 120000) bodyCache.clear();
+    bodyCache.set(star.seed, b);
+  }
+  return b;
+}
+
 const D = window.__GG__;
 const [NAME,X,Z,LY,TY,FUEL,SEC,PL,BE,LA,ST,EN,SCAN,AUTH,ORE,PTY,PUR,FAC,GATE,OP] =
   [...Array(20).keys()];
@@ -161,6 +619,8 @@ function hex(px, py, r, colour){
 }
 
 let visible = [], focused = null, focusStart = 0, focusRAF = 0;
+let genVisible = [];              // generated stars currently on screen
+const GEN_SCALE = 0.6;            // px per ly at which generated stars appear
 const FLASH_MS = 1500, FLASHES = 3;
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function draw(){
@@ -225,6 +685,7 @@ function draw(){
     ctx.fillText(desc.toUpperCase(), px + 8, py - 6);
   }
 
+  drawGenerated();
   drawRoute();
 
   if (focused){
@@ -247,6 +708,35 @@ function draw(){
     num(visible.filter(passes).length) + " " + ui("of") + " " + num(S.length);
 }
 
+function pickGenerated(mx, my){
+  let best = null, bd = 12 * 12;
+  for (const st of genVisible){
+    const dx = sx(st.x) - mx, dy = sy(st.z) - my, d = dx*dx + dy*dy;
+    if (d < bd){ bd = d; best = st; }
+  }
+  return best;
+}
+
+function showGenTip(st, mx, my){
+  const b = starBodies(st);
+  const ore = b.belts.flatMap(belt =>
+    belt.ores.map(o => `${t("Goods" + o.name) || o.name} ${o.pct}%`));
+  tip.innerHTML = `<h3>${st.name}${coords(st.x, st.z)}</h3><dl>` +
+    row("starType", st.type) +
+    row("security", ui("secAnarchy")) +
+    (st.fuel ? row("fuel", "\u2713") : "") +
+    row("distance", `${num(Math.round(Math.hypot(st.x, st.z)))} ly`) +
+    (b.planets.length
+      ? row("planets", b.planets.length + (b.landable ? ` (${b.landable})` : "")) : "") +
+    (b.belts.length ? row("belts", b.belts.length) : "") +
+    (b.scan ? row("fullScan", `${num(b.scan)} CR`) : "") +
+    `</dl>` + (ore.length ? `<div class="ore">${ore.join(" &middot; ")}</div>` : "");
+  tip.style.display = "block";
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(mx + 16, window.innerWidth - r.width - 10) + "px";
+  tip.style.top  = Math.min(my + 16, window.innerHeight - r.height - 10) + "px";
+}
+
 function pick(mx, my){
   let best = null, bd = 14 * 14;
   for (const s of visible){
@@ -257,6 +747,18 @@ function pick(mx, my){
   return best;
 }
 
+// Which factions hold stations here, in the game's own words.
+function factionsOf(s){
+  const out = [];
+  D.factionKeys.forEach((key, i) => { if (s[FAC] >> i & 1) out.push(t(key)); });
+  return out.join(", ");
+}
+
+const row = (slot, value) => `<dt>${ui(slot)}</dt><dd>${value}</dd>`;
+// The map's own coordinates, which is how the game labels its grid.
+const coords = (x, z) =>
+  `<span class="coords">${num(Math.round(x))}, ${num(Math.round(z))}</span>`;
+
 function showTip(s, mx, my){
   const ore = D.oreDetail[s[NAME]];
   const alias = aliasBySystem.get(indexOfName.get(s[NAME])) || {};
@@ -265,16 +767,19 @@ function showTip(s, mx, my){
     .map(k => `<dt>${ui(ALIAS_SLOT[k])}</dt><dd>${alias[k].slice(0, 6).join(", ")}` +
               `${alias[k].length > 6 ? ` +${alias[k].length - 6}` : ""}</dd>`)
     .join("");
+  // A row is only worth its line when it says something. Nothing the system
+  // does not have is listed.
   tip.innerHTML =
-    `<h3>${s[NAME]}</h3><dl>` +
-    `<dt>${ui("starType")}</dt><dd>${TYPES[s[TY]]}</dd>` +
-    `<dt>${ui("security")}</dt><dd>${s[SEC] ? ui(SEC_SLOT[s[SEC]]) : "—"}</dd>` +
-    `<dt>${ui("fuel")}</dt><dd>${s[FUEL] ? "\u2713" : "\u2014"}</dd>` +
-    `<dt>${ui("distance")}</dt><dd>${num(s[LY])} ly</dd>` +
-    `<dt>${ui("planets")}</dt><dd>${s[PL]}${s[LA] ? ` (${s[LA]})` : ""}</dd>` +
-    `<dt>${ui("belts")}</dt><dd>${s[BE] || "—"}</dd>` +
-    `<dt>${ui("stations")}</dt><dd>${s[ST] || "—"}</dd>` +
-    (s[SCAN] ? `<dt>${ui("fullScan")}</dt><dd>${num(s[SCAN])} CR</dd>` : "") +
+    `<h3>${s[NAME]}${coords(s[X], s[Z])}</h3><dl>` +
+    row("starType", TYPES[s[TY]]) +
+    row("security", ui(SEC_SLOT[s[SEC]] || "secAnarchy")) +
+    (s[FUEL] ? row("fuel", "\u2713") : "") +
+    row("distance", `${num(s[LY])} ly`) +
+    (s[PL] ? row("planets", s[PL] + (s[LA] ? ` (${s[LA]})` : "")) : "") +
+    (s[BE] ? row("belts", s[BE]) : "") +
+    (s[ST] ? row("stations", s[ST]) : "") +
+    (factionsOf(s) ? row("faction", factionsOf(s)) : "") +
+    (s[SCAN] ? row("fullScan", `${num(s[SCAN])} CR`) : "") +
     (aliasRows ? `<dt class="rule"></dt><dd class="rule"></dd>` + aliasRows : "") +
     `</dl>` +
     (ore ? `<div class="ore">${ore.join(" &middot; ")}</div>` : "");
@@ -301,7 +806,9 @@ cv.addEventListener("pointermove", e => {
   document.getElementById("cur").textContent =
     num(Math.round(wxOf(e.clientX))) + ", " + num(Math.round(wzOf(e.clientY)));
   const s = pick(e.clientX, e.clientY);
-  s ? showTip(s, e.clientX, e.clientY) : (tip.style.display = "none");
+  if (s){ showTip(s, e.clientX, e.clientY); return; }
+  const gen = pickGenerated(e.clientX, e.clientY);
+  gen ? showGenTip(gen, e.clientX, e.clientY) : (tip.style.display = "none");
 });
 // A single click fills whichever end is next; a double click always sets the
 // origin, so the single action is held briefly to see if a second arrives.
@@ -310,20 +817,19 @@ addEventListener("pointerup", e => {
   const wasDrag = drag && drag.moved;
   drag = null;
   if (wasDrag || e.target !== cv) return;
-  const s = pick(e.clientX, e.clientY);
-  if (!s) return;
-  const i = indexOfName.get(s[NAME]);
+  const target = pick(e.clientX, e.clientY) || pickGenerated(e.clientX, e.clientY);
+  if (!target) return;
   if (clickTimer){
     // Double click restarts the journey: new origin, no destination, no route.
     clearTimeout(clickTimer); clickTimer = 0;
     routeTo = null;
     document.getElementById("to").value = "";
-    setEnd("from", i);
+    setEnd("from", target);
     return;
   }
   clickTimer = setTimeout(() => {
     clickTimer = 0;
-    setEnd(routeFrom == null ? "from" : "to", i);
+    setEnd(routeFrom == null ? "from" : "to", target);
   }, 220);
 });
 cv.addEventListener("dblclick", e => e.preventDefault());
@@ -589,10 +1095,30 @@ function bindSearch(id){
       add(si, [label, kind]);
     }
 
+    // A generated name is self-describing, so resolve it directly instead of
+    // searching two and a half million of them.
+    const decoded = cellFromName(q);
+    if (decoded){
+      const star = (cellStars(decoded.cx, decoded.cy) || [])
+        .find(st => st.name.toLowerCase() === q);
+      if (star){
+        const li = document.createElement("li");
+        li.innerHTML = `${star.name}<span class="ly">${num(Math.round(
+          Math.hypot(star.x, star.z)))} ly</span>`;
+        li.onclick = () => {
+          list.innerHTML = "";
+          clearFocus();
+          goto(star.x, star.z, Math.max(scale, 6));
+          setEnd(id, star);
+        };
+        list.append(li);
+      }
+    }
+
     for (const [si, hits] of groups){
       const head = document.createElement("li");
       head.innerHTML = `${S[si][NAME]}<span class="ly">${num(S[si][LY])} ly</span>`;
-      head.onclick = () => { list.innerHTML = ""; setEnd(id, si); focusOn(S[si]); };
+      head.onclick = () => { list.innerHTML = ""; setEnd(id, S[si]); focusOn(S[si]); };
       list.append(head);
       for (const [label, kind] of hits.slice(0, 8)){
         const sub = document.createElement("li");
@@ -614,7 +1140,8 @@ addEventListener("keydown", e => {
   if (e.key === "0") document.getElementById("zreset").click();
 });
 
-const counts = {fuel:0, station:0, belt:0, land:0, eng:0, gate:0, auth:0};
+const counts = {catalogue:0, fuel:0, station:0, belt:0, land:0, eng:0, gate:0, auth:0};
+counts.catalogue = S.length;
 for (const s of S){
   if (s[FUEL]) counts.fuel++;
   if (s[ST]) counts.station++;
@@ -630,296 +1157,441 @@ document.getElementById("count").textContent = S.length.toLocaleString() + " rea
 
 addEventListener("resize", resize);
 
-// ---- the populated-space grid ----------------------------------------------
-// The game fills the galaxy from a 2048x2048 density bitmap: a cell with any
-// density generates stars. Those stars are not in the catalogue, so routing on
-// catalogue systems alone reports "unreachable" for almost everywhere. The grid
-// is the real reachability graph, and one cell is one map pixel: 43.74 ly.
-const GRID = 2048, CELL_LY = 43.74, DIAG_LY = CELL_LY * Math.SQRT2;
-let cellBits = null;        // 1 = the cell generates stars
-let mainBits = null;        // 1 = the cell is in the component that contains Sol
 
-function bitAt(bits, x, y){
-  if (x < 0 || y < 0 || x >= GRID || y >= GRID) return 0;
-  const i = y * GRID + x;
-  return (bits[i >> 3] >> (i & 7)) & 1;
+// Generated stars are produced from their cell's seed as the view needs them.
+// Below GEN_SCALE a cell is a few pixels wide and drawing 100 stars into it is
+// noise, so the catalogue alone is shown.
+let genLoading = false;
+function drawGenerated(){
+  genVisible = [];
+  // Generated systems can never host a mission, a station or an engineer, so
+  // that filter simply hides them.
+  if (scale < GEN_SCALE || filters.has("catalogue")) return;
+  if (!GEN.side){
+    // The two generation maps are about 1 MB and only matter once you are
+    // zoomed in far enough to see individual stars, so they load on demand.
+    if (!genLoading){
+      genLoading = true;
+      loadGenerationMaps().then(draw).catch(() => {}).finally(() => { genLoading = false; });
+    }
+    return;
+  }
+  const pad = 40;
+  const x0 = Math.floor((wxOf(-pad) / CELL_LY) + 1025);
+  const x1 = Math.ceil((wxOf(W + pad) / CELL_LY) + 1025);
+  const y0 = Math.floor(1591 - (wzOf(-pad) / CELL_LY));
+  const y1 = Math.ceil(1591 - (wzOf(H + pad) / CELL_LY));
+  const deep = needsBodies();
+  if ((x1 - x0) * (y1 - y0) > 1600) return;
+  // Answering a planet-level filter costs about 50us per system, which is more
+  // than a frame's worth over a wide view. So the work is time-boxed and the
+  // rest is picked up on the next frame, filling in rather than blanking out.
+  const deadline = deep ? performance.now() + 90 : Infinity;
+  let ranOut = false;
+
+  for (let cy = y0; cy <= y1 && !ranOut; cy++){
+    for (let cx = x0; cx <= x1; cx++){
+      if (deep && performance.now() > deadline){ ranOut = true; break; }
+      for (const st of cellStars(cx, cy)){
+        const px = sx(st.x), py = sy(st.z);
+        if (px < -pad || px > W + pad || py < -pad || py > H + pad) continue;
+        if (!passesGenerated(st, deep)) continue;
+        genVisible.push(st);
+        ctx.fillStyle = st.colour;
+        ctx.beginPath(); ctx.arc(px, py, 2.0, 0, 6.283); ctx.fill();
+      }
+    }
+  }
+  // With an ore selected the percentage leads, exactly as it does for the
+  // catalogued systems, so the two read the same way.
+  if (F.ore >= 0){
+    ctx.font = '10px "JetBrains Mono", monospace';
+    for (const st of genVisible){
+      const pct = generatedOrePct(st, F.ore);
+      if (!pct) continue;
+      const px = sx(st.x) + 8, py = sy(st.z) + 3;
+      ctx.fillStyle = "#ffab3d";
+      ctx.fillText(pct + "%", px, py);
+      ctx.fillStyle = "rgba(150,180,195,.6)";
+      ctx.fillText(st.name, px + ctx.measureText(pct + "%  ").width, py);
+    }
+  } else if (scale > 4){
+    ctx.font = '10px "JetBrains Mono", monospace';
+    ctx.fillStyle = "rgba(150,180,195,.55)";
+    for (const st of genVisible) ctx.fillText(st.name, sx(st.x) + 8, sy(st.z) + 3);
+  }
+  if (ranOut) requestAnimationFrame(draw);
 }
 
-async function loadGrid(){
-  const read = async src => {
-    const img = new Image();
-    img.src = src;
-    await img.decode();
-    const c = document.createElement("canvas");
-    c.width = c.height = GRID;
-    const g = c.getContext("2d", {willReadFrequently: true});
-    g.drawImage(img, 0, 0);
-    const px = g.getImageData(0, 0, GRID, GRID).data;
-    const bits = new Uint8Array((GRID * GRID) >> 3);
-    for (let i = 0; i < GRID * GRID; i++)
-      if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
-    return bits;
+// The richest showing of an ore in a generated system, 0 when it has none.
+function generatedOrePct(st, oreIndex){
+  const want = D.oreRaw[oreIndex];
+  let best = 0;
+  for (const belt of starBodies(st).belts)
+    for (const o of belt.ores) if (o.name === want && o.pct > best) best = o.pct;
+  return best;
+}
+
+
+// Which filters a generated system can be judged on at all. It never has a
+// station, an engineer, a gate or a hand-built body, so those simply exclude it.
+const IMPOSSIBLE = ["catalogue", "station", "eng", "gate", "auth"];
+
+function needsBodies(){
+  return F.ore >= 0 || F.ptype >= 0 || F.scanMin != null || F.plMin != null ||
+         F.laMin != null || filters.has("belt") || filters.has("land");
+}
+
+function passesGenerated(st, deep){
+  for (const f of IMPOSSIBLE) if (filters.has(f)) return false;
+  if (F.purp.size || F.fac.size || F.module >= 0) return false;
+  if (filters.has("fuel") && !st.fuel) return false;
+  if (F.startype >= 0 && TYPES[F.startype] !== st.type) return false;
+  if (F.sec.size && !F.sec.has("A")) return false;          // generated space is Anarchy
+  const ly = Math.hypot(st.x, st.z);
+  if (F.lyMin != null && ly < F.lyMin) return false;
+  if (F.lyMax != null && ly > F.lyMax) return false;
+  if (!deep) return true;
+
+  const b = starBodies(st);
+  if (filters.has("belt") && !b.belts.length) return false;
+  if (filters.has("land") && !b.landable) return false;
+  if (F.plMin != null && b.planets.length < F.plMin) return false;
+  if (F.laMin != null && b.landable < F.laMin) return false;
+  if (F.scanMin != null && b.scan < F.scanMin) return false;
+  if (F.ptype >= 0 && !b.planets.some(p => p.type === PTYPES[F.ptype])) return false;
+  if (F.ore >= 0){
+    const best = generatedOrePct(st, F.ore);
+    if (!best) return false;
+    if (F.pctMin != null && best < F.pctMin) return false;
+  }
+  return true;
+}
+
+// ---- routing ---------------------------------------------------------------
+// A route is a sequence of systems, and a system is a system: whether it came
+// from the star catalogue or from the galaxy's generator makes no difference to
+// how you fly between them.
+//
+// Two tiers, because the galaxy holds millions of systems and a cross-galaxy
+// trip is thousands of jumps:
+//
+//   coarse  A* over populated cells (43.74 ly each) to find the corridor
+//   fine    generate the systems inside that corridor and route through them
+//
+// A short trip skips the coarse tier: the corridor is just the cells around the
+// two ends.
+
+let jumpLy = +(localStorage.getItem("gg.jump") || 10);
+let routeFrom = null, routeTo = null;      // {name, x, z}
+let routePath = null, routeGates = null, routePartial = false;
+let routeBusy = false;
+
+const MAX_CORRIDOR_CELLS = 8000;           // beyond this the fine tier is refused
+const CORRIDOR_PAD = 0;                    // the jump range already widens it
+
+function endpointOf(source){
+  return Array.isArray(source)
+    ? {name: source[NAME], x: source[X], z: source[Z], row: source}
+    : {name: source.name, x: source.x, z: source.z};
+}
+
+// ---- the corridor ----------------------------------------------------------
+function corridorCells(from, to, range){
+  const a = cellOf(from.x, from.z), b = cellOf(to.x, to.z);
+  const reach = Math.max(1, Math.ceil(range / CELL_LY)) + CORRIDOR_PAD;
+  const cells = new Set();
+  const add = (cx, cy) => {
+    for (let dy = -reach; dy <= reach; dy++)
+      for (let dx = -reach; dx <= reach; dx++)
+        if (bitAt(cellBits, cx + dx, cy + dy)) cells.add((cy + dy) * GRID + cx + dx);
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png"), read("data/reachable.png")]);
+  // Near neighbours need no coarse search; the box around both ends is enough.
+  if (Math.abs(a[0] - b[0]) <= reach * 2 && Math.abs(a[1] - b[1]) <= reach * 2){
+    for (let cy = Math.min(a[1], b[1]) - reach; cy <= Math.max(a[1], b[1]) + reach; cy++)
+      for (let cx = Math.min(a[0], b[0]) - reach; cx <= Math.max(a[0], b[0]) + reach; cx++)
+        if (bitAt(cellBits, cx, cy)) cells.add(cy * GRID + cx);
+    return {cells, coarse: null};
+  }
+  const coarse = gridRoute(a, b, range);
+  if (!coarse) return {cells: null, coarse: null};
+  for (const [cx, cy] of coarse) add(cx, cy);
+  add(a[0], a[1]); add(b[0], b[1]);
+  return {cells, coarse};
 }
 
-const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
-const cellCentre = (cx, cy) => [(cx + 0.5 - 1025) * CELL_LY, -(cy + 0.5 - 1591) * CELL_LY];
+// Every system inside the corridor, catalogued and generated alike.
+let nodeByName = new Map();
+function corridorSystems(cells){
+  const nodes = [];
+  const byCell = new Map();
+  nodeByName = new Map();
+  for (const key of cells){
+    const cx = key % GRID, cy = (key / GRID) | 0;
+    const bucket = [];
+    for (const s of catalogueByCell(cx, cy)) bucket.push(nodes.push(
+      {name: s[NAME], x: s[X], z: s[Z], row: s}) - 1);
+    for (const st of cellStars(cx, cy)) bucket.push(nodes.push(
+      {name: st.name, x: st.x, z: st.z, gen: st}) - 1);
+    byCell.set(key, bucket);
+  }
+  nodes.forEach((nd, i) => nodeByName.set(nd.name, i));
+  return {nodes, byCell};
+}
 
-// Whether a jump range can step between neighbouring cells at all.
-const canStep = range => range >= CELL_LY;
+let catalogueCellIndex = null;
+function catalogueByCell(cx, cy){
+  if (!catalogueCellIndex){
+    catalogueCellIndex = new Map();
+    for (const s of S){
+      const [x, y] = cellOf(s[X], s[Z]);
+      const k = y * GRID + x;
+      let b = catalogueCellIndex.get(k);
+      if (!b) catalogueCellIndex.set(k, b = []);
+      b.push(s);
+    }
+  }
+  return catalogueCellIndex.get(cy * GRID + cx) || [];
+}
 
-// A* across populated cells. Returns the cell path, or null.
-// `weight` inflates the heuristic. 1 is optimal; above that trades a slightly
-// longer path for a far smaller search, which across 40,000 ly is the difference
-// between milliseconds and giving up.
-function gridRoute(from, to, range, weight = 1.35, budget = 3000000){
-  if (!cellBits) return null;
-  const [sx, sy] = from, [tx, ty] = to;
-  if (!bitAt(cellBits, sx, sy) || !bitAt(cellBits, tx, ty)) return null;
-  const diagonal = range >= DIAG_LY;
+// ---- the search ------------------------------------------------------------
+// Fewest jumps first, shortest distance among equals. A layered walk gives both
+// without a priority queue, because every edge costs exactly one jump.
+function searchSystems(nodes, byCell, startIdx, goalIdx, range){
+  const n = nodes.length;
+  const jumps = new Int32Array(n).fill(-1);
+  const dist = new Float64Array(n).fill(Infinity);
+  const prev = new Int32Array(n).fill(-1);
+  const gate = new Uint8Array(n);
+  const done = new Uint8Array(n);
+  const reach = Math.max(1, Math.ceil(range / CELL_LY));
+  const r2 = range * range;
+  const goal = nodes[goalIdx];
 
-  const idx = (x, y) => y * GRID + x;
-  const came = new Int32Array(GRID * GRID).fill(-1);
-  const g = new Float64Array(GRID * GRID).fill(Infinity);
-  // Binary heap over (priority, cell). A linear scan for the minimum turns a
-  // cross-galaxy search into minutes; this keeps it in milliseconds.
-  const heapP = [], heapV = [];
-  const push = (p, v) => {
-    heapP.push(p); heapV.push(v);
-    let i = heapP.length - 1;
+  // Every edge costs one jump, so the fewest jumps that can still remain is the
+  // straight-line distance over the jump range. That heuristic is admissible,
+  // which keeps the answer optimal while steering the search down the corridor
+  // instead of expanding every system in it.
+  // A slight inflation breaks the ties that otherwise spread the frontier across
+  // the whole corridor. The path stays within a jump or two of optimal.
+  const W = 1.2;
+  const heur = i => W * Math.hypot(nodes[i].x - goal.x, nodes[i].z - goal.z) / range;
+
+  const heapF = [], heapV = [];
+  const push = (f, v) => {
+    heapF.push(f); heapV.push(v);
+    let i = heapF.length - 1;
     while (i > 0){
-      const parent = (i - 1) >> 1;
-      if (heapP[parent] <= heapP[i]) break;
-      [heapP[parent], heapP[i]] = [heapP[i], heapP[parent]];
-      [heapV[parent], heapV[i]] = [heapV[i], heapV[parent]];
-      i = parent;
+      const p = (i - 1) >> 1;
+      if (heapF[p] <= heapF[i]) break;
+      [heapF[p], heapF[i]] = [heapF[i], heapF[p]];
+      [heapV[p], heapV[i]] = [heapV[i], heapV[p]];
+      i = p;
     }
   };
   const pop = () => {
-    const top = heapV[0], n = heapP.length - 1;
-    heapP[0] = heapP[n]; heapV[0] = heapV[n];
-    heapP.pop(); heapV.pop();
+    const top = heapV[0], last = heapF.length - 1;
+    heapF[0] = heapF[last]; heapV[0] = heapV[last];
+    heapF.pop(); heapV.pop();
     let i = 0;
     for (;;){
-      const l = 2*i + 1, r = l + 1;
+      const l = 2 * i + 1, r = l + 1;
       let m = i;
-      if (l < heapP.length && heapP[l] < heapP[m]) m = l;
-      if (r < heapP.length && heapP[r] < heapP[m]) m = r;
+      if (l < heapF.length && heapF[l] < heapF[m]) m = l;
+      if (r < heapF.length && heapF[r] < heapF[m]) m = r;
       if (m === i) break;
-      [heapP[m], heapP[i]] = [heapP[i], heapP[m]];
+      [heapF[m], heapF[i]] = [heapF[i], heapF[m]];
       [heapV[m], heapV[i]] = [heapV[i], heapV[m]];
       i = m;
     }
     return top;
   };
 
-  push(0, idx(sx, sy));
-  g[idx(sx, sy)] = 0;
-  const h = (x, y) => Math.hypot(x - tx, y - ty);
-  let visited = 0;
-
-  while (heapP.length){
-    const cur = pop();
-    if (cur === idx(tx, ty)) break;
-    if (++visited > budget) return null;
-    const cx = cur % GRID, cy = (cur / GRID) | 0;
-    for (let dy = -1; dy <= 1; dy++){
-      for (let dx = -1; dx <= 1; dx++){
-        if (!dx && !dy) continue;
-        if (!diagonal && dx && dy) continue;
-        const nx = cx + dx, ny = cy + dy;
-        if (!bitAt(cellBits, nx, ny)) continue;
-        const n = idx(nx, ny);
-        const step = g[cur] + (dx && dy ? Math.SQRT2 : 1);
-        if (step < g[n]){
-          g[n] = step; came[n] = cur;
-          push(step + weight * h(nx, ny), n);
+  jumps[startIdx] = 0; dist[startIdx] = 0;
+  push(heur(startIdx), startIdx);
+  let reached = false;
+  while (heapF.length){
+    const i = pop();
+    if (done[i]) continue;
+    done[i] = 1;
+    if (i === goalIdx){ reached = true; break; }
+    const node = nodes[i];
+    const [cx, cy] = cellOf(node.x, node.z);
+    for (let dy = -reach; dy <= reach; dy++){
+      for (let dx = -reach; dx <= reach; dx++){
+        const bucket = byCell.get((cy + dy) * GRID + cx + dx);
+        if (!bucket) continue;
+        for (const j of bucket){
+          if (j === i || done[j]) continue;
+          const ddx = nodes[j].x - node.x, ddz = nodes[j].z - node.z;
+          const d2 = ddx * ddx + ddz * ddz;
+          if (d2 > r2) continue;
+          const nj = jumps[i] + 1, nd = dist[i] + Math.sqrt(d2);
+          if (jumps[j] === -1 || nj < jumps[j] || (nj === jumps[j] && nd < dist[j])){
+            jumps[j] = nj; dist[j] = nd; prev[j] = i; gate[j] = 0;
+            push(nj + heur(j), j);
+          }
         }
       }
     }
-  }
-  const goal = idx(tx, ty);
-  if (came[goal] === -1 && goal !== idx(sx, sy)) return null;
-  const path = [];
-  for (let i = goal; i !== -1; i = came[i]) path.push([i % GRID, (i / GRID) | 0]);
-  return path.reverse();
-}
-
-// Is the destination in the same body of populated space as Sol? One lookup,
-// so an impossible trip is answered before any search runs.
-function inMainComponent(x, z){
-  const [cx, cy] = cellOf(x, z);
-  return !!bitAt(mainBits, cx, cy);
-}
-
-// ---- routing ---------------------------------------------------------------
-// Nodes are systems; an edge exists when two systems are within one jump.
-// Cost is jumps first, distance second, so the route takes the fewest jumps and
-// then the shortest path among those.
-let jumpLy = +(localStorage.getItem("gg.jump") || 10);
-let routeFrom = null, routeTo = null, routePath = null, routePartial = false;
-let routeGates = null;
-let gridPath = null;          // fallback route across populated space
-let gridPending = false;
-let cellSize = 0, cells = null;
-
-// Warp gates are edges too: one jump, no distance flown. They only work once
-// both ends are repaired, which the route note says out loud.
-const gateAdj = new Map();
-for (const [a, b] of D.gates){
-  const ia = indexOfName.get(a), ib = indexOfName.get(b);
-  if (ia == null || ib == null) continue;
-  if (!gateAdj.has(ia)) gateAdj.set(ia, []);
-  if (!gateAdj.has(ib)) gateAdj.set(ib, []);
-  gateAdj.get(ia).push(ib);
-  gateAdj.get(ib).push(ia);
-}
-
-function buildGrid(){
-  cellSize = Math.max(jumpLy, 0.5);
-  cells = new Map();
-  S.forEach((s, i) => {
-    const k = ((s[X] / cellSize) | 0) + "," + ((s[Z] / cellSize) | 0);
-    let bucket = cells.get(k);
-    if (!bucket) cells.set(k, bucket = []);
-    bucket.push(i);
-  });
-}
-
-function neighbours(i){
-  const s = S[i], gx = (s[X] / cellSize) | 0, gz = (s[Z] / cellSize) | 0, out = [];
-  for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++){
-    const bucket = cells.get((gx + dx) + "," + (gz + dz));
-    if (!bucket) continue;
-    for (const j of bucket){
-      if (j === i) continue;
-      const d = Math.hypot(S[j][X] - s[X], S[j][Z] - s[Z]);
-      if (d <= jumpLy) out.push([j, d]);
-    }
-  }
-  if (spoilers) for (const j of gateAdj.get(i) || []) out.push([j, 0, true]);
-  return out;
-}
-
-function findRoute(a, b){
-  if (!cells) buildGrid();
-  const n = S.length;
-  const jumps = new Int32Array(n).fill(-1);
-  const dist = new Float64Array(n).fill(Infinity);
-  const prev = new Int32Array(n).fill(-1);
-  const gateLeg = new Uint8Array(n);          // arrived at this node through a gate
-  jumps[a] = 0; dist[a] = 0;
-  // Layered BFS: every edge costs one jump, so a queue keeps jumps optimal and
-  // the distance tie-break only ever improves a node inside its own layer.
-  let frontier = [a];
-  while (frontier.length){
-    const next = [];
-    for (const i of frontier){
-      for (const [j, d, viaGate] of neighbours(i)){
-        const nd = dist[i] + d;
-        if (jumps[j] === -1){
-          jumps[j] = jumps[i] + 1; dist[j] = nd; prev[j] = i;
-          gateLeg[j] = viaGate ? 1 : 0; next.push(j);
-        } else if (jumps[j] === jumps[i] + 1 && nd < dist[j]){
-          dist[j] = nd; prev[j] = i; gateLeg[j] = viaGate ? 1 : 0;
-        }
+    for (const name of (gateLinks.get(node.name) || [])){
+      const j = nodeByName.get(name);
+      if (j === undefined || done[j]) continue;
+      const nj = jumps[i] + 1;
+      if (jumps[j] === -1 || nj < jumps[j]){
+        jumps[j] = nj; dist[j] = dist[i]; prev[j] = i; gate[j] = 1;
+        push(nj + heur(j), j);
       }
     }
-    frontier = next;
   }
-  let target = b, partial = false;
-  if (jumps[b] === -1){
-    // Nothing reaches the destination at this range: stop at whichever reachable
-    // system gets closest to it, so the user can see how far they can get.
+
+  let target = goalIdx, partial = false;
+  if (!reached){
     partial = true;
     let best = -1, bd = Infinity;
     for (let i = 0; i < n; i++){
       if (jumps[i] === -1) continue;
-      const d = Math.hypot(S[i][X] - S[b][X], S[i][Z] - S[b][Z]);
+      const d = Math.hypot(nodes[i].x - goal.x, nodes[i].z - goal.z);
       if (d < bd){ bd = d; best = i; }
     }
     target = best;
   }
+  if (target < 0) return null;
   const path = [], gates = [];
-  for (let i = target; i !== -1; i = prev[i]){ path.push(i); gates.push(gateLeg[i]); }
+  for (let i = target; i !== -1; i = prev[i]){ path.push(nodes[i]); gates.push(gate[i]); }
   path.reverse(); gates.reverse();
   return {path, gates, partial, total: dist[target]};
 }
 
-function recomputeRoute(){
-  const note = document.getElementById("routeNote");
-  routePath = null; routePartial = false; gridPath = null;
-  if (routeFrom == null || routeTo == null){ note.textContent = ""; draw(); return; }
-  if (routeFrom === routeTo){ note.textContent = ui("sameSystem"); draw(); return; }
-  const r = findRoute(routeFrom, routeTo);
-  routePath = r.path; routePartial = r.partial; routeGates = r.gates;
-  const jumpsN = r.path.length - 1;
-  if (jumpsN === 0){
-    // Nothing at all is within range of the origin, so there is no line to draw.
-    routePath = null;
-    note.innerHTML = "<b>" +
-      fmt("nothingInRange", {ly: jumpLy, sys: S[routeFrom][NAME]}) + "</b>";
-    draw();
-    return;
-  }
-  const viaGates = r.gates.reduce((a, b) => a + b, 0);
-  const gateNote = viaGates ? " &middot; " + fmt("viaGate", {n: viaGates}) : "";
-  if (r.partial){
-    // The catalogue is a thin sample of the galaxy. Most of it is generated from
-    // a density map, and those systems are what actually bridge long distances,
-    // so fall back to routing across populated space.
-    planAcrossGeneratedSpace(S[routeFrom], S[routeTo], note);
-    const stop = S[r.path.at(-1)], dest = S[routeTo];
-    const gap = Math.hypot(dest[X] - stop[X], dest[Z] - stop[Z]);
-    const flown = Math.hypot(stop[X] - S[routeFrom][X], stop[Z] - S[routeFrom][Z]);
-    note.innerHTML =
-      `<b>${fmt("noRoute", {ly: jumpLy})}</b> ` +
-      fmt("stopsAt", {sys: stop[NAME], jumps: plural("jumps", jumpsN), ly: num(Math.round(r.total))}) +
-      `<br><b>` + fmt("short", {ly: num(Math.round(gap)), sys: dest[NAME]}) + `</b>` +
-      (flown + gap > 0
-        ? ` &middot; ` + fmt("percentOfWay", {pct: Math.round(100 * flown / (flown + gap))})
-        : ".");
-    draw();
-    return;
-  }
-  note.innerHTML = `${jumpsN} jump${jumpsN === 1 ? "" : "s"} &middot; ` +
-      `${Math.round(r.total).toLocaleString()} ly flown${gateNote}.`;
-  draw();
+// Warp gates join two named systems; they are edges like any other.
+const gateLinks = new Map();
+for (const [a, b] of D.gates){
+  if (!gateLinks.has(a)) gateLinks.set(a, []);
+  if (!gateLinks.has(b)) gateLinks.set(b, []);
+  gateLinks.get(a).push(b);
+  gateLinks.get(b).push(a);
 }
 
-function setEnd(which, sysIndex){
-  if (which === "from"){ routeFrom = sysIndex; document.getElementById("from").value = S[sysIndex][NAME]; }
-  else { routeTo = sysIndex; document.getElementById("to").value = S[sysIndex][NAME]; }
+function nearestNode(nodes, p){
+  let best = -1, bd = Infinity;
+  for (let i = 0; i < nodes.length; i++){
+    const d = Math.hypot(nodes[i].x - p.x, nodes[i].z - p.z);
+    if (d < bd){ bd = d; best = i; }
+  }
+  return best;
+}
+
+// ---- driving it ------------------------------------------------------------
+async function recomputeRoute(){
+  const note = document.getElementById("routeNote");
+  routePath = null; routeGates = null; routePartial = false;
+  if (!routeFrom || !routeTo){ note.textContent = ""; draw(); return; }
+  if (routeFrom.name === routeTo.name){ note.textContent = ui("sameSystem"); draw(); return; }
+  if (routeBusy) return;
+  routeBusy = true;
+  note.textContent = ui("plotting");
+  try {
+    if (!cellBits) await loadGrid();
+    if (!GEN.side) await loadGenerationMaps();
+
+    if (!inMainComponent(routeTo.x, routeTo.z) &&
+        inMainComponent(routeFrom.x, routeFrom.z)){
+      note.innerHTML = "<b>" + ui("isolated") + "</b>";
+      draw();
+      return;
+    }
+    const {cells, coarse} = corridorCells(routeFrom, routeTo, jumpLy);
+    if (!cells){
+      note.innerHTML = "<b>" + fmt("noRoute", {ly: jumpLy}) + "</b> " + ui("isolated");
+      draw();
+      return;
+    }
+    if (cells.size > MAX_CORRIDOR_CELLS){
+      // Too far to trace system by system; report the corridor instead.
+      const ly = Math.round(coarse.length * CELL_LY);
+      routePath = coarse.map(([cx, cy]) => {
+        const [x, z] = cellCentre(cx, cy);
+        return {x, z, name: "", coarse: true};
+      });
+      routeGates = routePath.map(() => 0);
+      note.innerHTML = fmt("approxRoute",
+        {jumps: plural("jumps", Math.ceil(ly / jumpLy)), ly: num(ly)});
+      draw();
+      return;
+    }
+    const {nodes, byCell} = corridorSystems(cells);
+    const a = nearestNode(nodes, routeFrom), b = nearestNode(nodes, routeTo);
+    if (a < 0 || b < 0){ note.textContent = ui("sameSystem"); draw(); return; }
+    const r = searchSystems(nodes, byCell, a, b, jumpLy);
+    if (!r){ note.innerHTML = "<b>" + fmt("noRoute", {ly: jumpLy}) + "</b>"; draw(); return; }
+
+    routePath = r.path; routeGates = r.gates; routePartial = r.partial;
+    const jumpsN = r.path.length - 1;
+    if (jumpsN === 0){
+      routePath = null;
+      note.innerHTML = "<b>" +
+        fmt("nothingInRange", {ly: jumpLy, sys: routeFrom.name}) + "</b>";
+      draw();
+      return;
+    }
+    const viaGates = r.gates.reduce((s, g) => s + g, 0);
+    const gateNote = viaGates ? " &middot; " + fmt("viaGate", {n: viaGates}) : "";
+    if (r.partial){
+      const stop = r.path[r.path.length - 1];
+      const gap = Math.hypot(routeTo.x - stop.x, routeTo.z - stop.z);
+      note.innerHTML =
+        `<b>${fmt("noRoute", {ly: jumpLy})}</b> ` +
+        fmt("stopsAt", {sys: stop.name, jumps: plural("jumps", jumpsN),
+                        ly: num(Math.round(r.total))}) +
+        `<br><b>${fmt("short", {ly: num(Math.round(gap)), sys: routeTo.name})}</b>`;
+    } else {
+      note.innerHTML = fmt("routeOk",
+        {jumps: plural("jumps", jumpsN), ly: num(Math.round(r.total))}) + gateNote;
+    }
+  } finally {
+    routeBusy = false;
+    draw();
+  }
+}
+
+function setEnd(which, source){
+  const p = endpointOf(source);
+  if (which === "from"){ routeFrom = p; document.getElementById("from").value = p.name; }
+  else { routeTo = p; document.getElementById("to").value = p.name; }
   recomputeRoute();
 }
 
+function clearRoute(){
+  routeFrom = routeTo = routePath = routeGates = null;
+  document.getElementById("from").value = "";
+  document.getElementById("to").value = "";
+  document.getElementById("routeNote").textContent = "";
+  draw();
+}
+
+// ---- drawing ---------------------------------------------------------------
 function drawRoute(){
-  drawGridPath();
   if (!routePath || routePath.length < 2) return;
   ctx.save();
   ctx.lineWidth = 2.2; ctx.lineJoin = "round";
   for (let k = 1; k < routePath.length; k++){
-    const a = S[routePath[k - 1]], b = S[routePath[k]];
-    const gate = routeGates && routeGates[k];
-    ctx.strokeStyle = gate ? "#4fc3ff" : "#ffab3d";
-    ctx.setLineDash(gate ? [3, 4] : routePartial ? [7, 5] : []);
+    const a = routePath[k - 1], b = routePath[k];
+    const viaGate = routeGates && routeGates[k];
+    ctx.strokeStyle = b.coarse ? "rgba(79,195,255,.55)"
+                    : viaGate ? "#4fc3ff" : "#ffab3d";
+    ctx.setLineDash(b.coarse ? [2, 6] : viaGate ? [3, 4] : routePartial ? [7, 5] : []);
     ctx.beginPath();
-    ctx.moveTo(sx(a[X]), sy(a[Z])); ctx.lineTo(sx(b[X]), sy(b[Z]));
+    ctx.moveTo(sx(a.x), sy(a.z)); ctx.lineTo(sx(b.x), sy(b.z));
     ctx.stroke();
   }
   ctx.setLineDash([]);
-
-  // waypoint rings
-  ctx.lineWidth = 1.5; ctx.strokeStyle = "rgba(255,171,61,.9)";
-  for (let k = 1; k < routePath.length - 1; k++){
-    const s = S[routePath[k]];
-    hex(sx(s[X]), sy(s[Z]), 6, "rgba(255,171,61,.9)");
+  if (!routePath[0].coarse){
+    for (let k = 1; k < routePath.length - 1; k++)
+      hex(sx(routePath[k].x), sy(routePath[k].z), 6, "rgba(255,171,61,.9)");
+    marker(sx(routePath[0].x), sy(routePath[0].z), "#ff9f2e", -1);
+    const e = routePath[routePath.length - 1];
+    marker(sx(e.x), sy(e.z), "#4fc3ff", 1);
   }
-
-  const a = S[routePath[0]], b = S[routePath.at(-1)];
-  marker(sx(a[X]), sy(a[Z]), "#ff9f2e", -1);      // origin, pointing down
-  marker(sx(b[X]), sy(b[Z]), "#4fc3ff", 1);       // destination, pointing up
   ctx.restore();
 }
 
@@ -935,6 +1607,11 @@ function marker(px, py, colour, dir){
   ctx.fillStyle = colour; ctx.fill();
 }
 
+
+// ---- controls --------------------------------------------------------------
+addEventListener("keydown", e => { if (e.key === "Escape"){ clearRoute(); focused = null; } });
+document.getElementById("clearRoute").onclick = clearRoute;
+
 const jumpBox = document.getElementById("jump");
 jumpBox.value = jumpLy;
 jumpBox.addEventListener("input", () => {
@@ -942,27 +1619,10 @@ jumpBox.addEventListener("input", () => {
   if (!(v > 0)) return;
   jumpLy = v;
   try { localStorage.setItem("gg.jump", String(v)); } catch (_) {}
-  cells = null;                       // the grid is sized to the jump range
+  cells = null;                       // the coarse grid is sized to the jump range
   recomputeRoute();
 });
 
-function clearRoute(){
-  routeFrom = routeTo = routePath = routeGates = null;
-  document.getElementById("from").value = "";
-  document.getElementById("to").value = "";
-  document.getElementById("routeNote").textContent = "";
-  draw();
-}
-addEventListener("keydown", e => {
-  if (e.key === "Escape"){ clearRoute(); focused = null; }
-});
-document.getElementById("clearRoute").onclick = () => {
-  clearRoute();
-};
-
-
-
-// Language picker. Switching rewrites the labels and redraws; nothing reloads.
 {
   const sel = document.getElementById("lang");
   for (const code of D.langCodes){
@@ -996,15 +1656,9 @@ document.getElementById("clearRoute").onclick = () => {
       const el = document.getElementById(id);
       [...el.options].forEach((o, i) => { if (i) o.textContent = list[i - 1]; });
     }
-    document.querySelectorAll("#secRow .pill").forEach((b, i) => {
-      b.textContent = ui(SECS[i][1]);
-    });
-    document.querySelectorAll("#purpRow .pill").forEach((b, i) => {
-      b.textContent = ui(D.purposeSlots[i]);
-    });
-    document.querySelectorAll("#facRow .pill").forEach((b, i) => {
-      b.textContent = t(D.factionKeys[i]);
-    });
+    document.querySelectorAll("#secRow .pill").forEach((b, i) => b.textContent = ui(SECS[i][1]));
+    document.querySelectorAll("#purpRow .pill").forEach((b, i) => b.textContent = ui(D.purposeSlots[i]));
+    document.querySelectorAll("#facRow .pill").forEach((b, i) => b.textContent = t(D.factionKeys[i]));
     applyUI();
     draw();
   });
@@ -1013,7 +1667,7 @@ document.getElementById("clearRoute").onclick = () => {
 
 resize();   // first paint, once route state exists
 
-// Spoiler toggle: landmarks, gates and engineers, plus the filters that name them.
+// Spoiler toggle: landmarks, gates, engineers and expedition targets.
 {
   const box = document.getElementById("spoilers");
   const hideable = [...document.querySelectorAll(
@@ -1027,8 +1681,8 @@ resize();   // first paint, once route state exists
         filters.delete(el.dataset.f);
       }
       if (!spoilers && el.hasAttribute("data-spoiler")){
-        const sel = el.querySelector("select");
-        if (sel && sel.value !== ""){ sel.value = ""; F.startype = -1; }
+        const sel2 = el.querySelector("select");
+        if (sel2 && sel2.value !== ""){ sel2.value = ""; F.startype = -1; }
       }
     }
     recomputeRoute();
@@ -1040,51 +1694,4 @@ resize();   // first paint, once route state exists
     apply();
   });
   apply();
-}
-
-
-// ---- long-distance routing -------------------------------------------------
-async function planAcrossGeneratedSpace(from, to, note){
-  if (gridPending) return;
-  gridPending = true;
-  try {
-    if (!cellBits) await loadGrid();
-    if (!inMainComponent(to[X], to[Z])){
-      note.innerHTML = `<b>${fmt("noRoute", {ly: jumpLy})}</b> ` + ui("isolated");
-      draw();
-      return;
-    }
-    if (!canStep(jumpLy)){
-      note.innerHTML += "<br>" + fmt("needRange", {ly: Math.ceil(CELL_LY)});
-      draw();
-      return;
-    }
-    const path = gridRoute(cellOf(from[X], from[Z]), cellOf(to[X], to[Z]), jumpLy);
-    if (!path) return;
-    gridPath = path;
-    const ly = Math.round(path.length * CELL_LY);
-    const jumps = Math.ceil(ly / jumpLy);
-    note.innerHTML += "<br>" + fmt("viaGenerated",
-      {jumps: plural("jumps", jumps), ly: num(ly)});
-    draw();
-  } finally {
-    gridPending = false;
-  }
-}
-
-// The generated-space route is drawn as a faint corridor: it is a path through
-// populated cells, not a list of named systems.
-function drawGridPath(){
-  if (!gridPath || gridPath.length < 2) return;
-  ctx.save();
-  ctx.strokeStyle = "rgba(79,195,255,.55)";
-  ctx.lineWidth = 3; ctx.lineJoin = "round"; ctx.setLineDash([2, 6]);
-  ctx.beginPath();
-  gridPath.forEach(([cx, cy], i) => {
-    const [wx, wz] = cellCentre(cx, cy);
-    const px = sx(wx), py = sy(wz);
-    i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
-  });
-  ctx.stroke();
-  ctx.restore();
 }

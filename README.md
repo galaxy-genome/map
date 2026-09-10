@@ -12,11 +12,13 @@ belong to SKV Games.
 
 ## What it shows
 
-- **5,340 systems** — every one the galaxy map can reach
+- **The whole galaxy** — the 5,340 catalogued systems, and the millions the game
+  generates around them, produced in your browser from the same seeds it uses
 - **Ores** — all three minerals in every asteroid belt, with percentages
 - **Planets** — type, scan value, and whether you can land
 - **Stations** — which modules each one sells, and at what grade
-- **Routes** — fewest jumps between two systems at your jump range, warp gates included
+- **Routes** — fewest jumps between any two systems at your jump range, warp gates
+  included, across the whole galaxy rather than the catalogue alone
 - **Five languages**, using the game's own words
 
 A **spoilers** switch hides the things the game means you to discover: named
@@ -48,9 +50,13 @@ will fail the check. Missing keys are only a warning.
 `docs/data/galaxy.json` holds every system, belt, station and route the map draws.
 It is generated from the game's own files, which are not in this repository.
 
-The numbers reproduce the game's own generator. Ore composition was checked against
-54 belts recorded in game and 52 match exactly. Planet listings for procedurally
-generated systems are unverified, so trust those less than the belt data.
+The numbers reproduce the game's own generator: the same seeded sequence, cell by
+cell, so a system holds what it holds in game. Ore composition was checked against
+54 belts recorded in game and 52 match exactly, and generated system names and
+positions were checked against in-game readings around Rakdos.
+
+Planet listings are the least verified part. Treat belt data as reliable and
+planet layouts as a good estimate.
 
 ## Licence
 

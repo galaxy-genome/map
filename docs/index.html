@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=4372227a74">
+<link rel="stylesheet" href="style.css?v=9dce5498d6">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -51,7 +51,7 @@
     <div class="body">
       <label class="f"><span data-ui="minLy">Min ly</span><input type="number" id="lyMin" min="0" step="10" placeholder="0"></label>
       <label class="f"><span data-ui="maxLy">Max ly</span><input type="number" id="lyMax" min="0" step="10" placeholder="any"></label>
-      <label class="f"><span data-ui="minScan">Min scan CR</span><input type="number" id="scanMin" min="0" step="50000" placeholder="0"></label>
+      <label class="f"><span class="ask" data-help="what:noscan" tabindex="0" data-ui="minScan">Min scan CR</span><input type="number" id="scanMin" min="0" step="50000" placeholder="0"></label>
       <label class="f"><span data-ui="minPlanets">Min planets</span><input type="number" id="plMin" min="0" step="1" placeholder="0"></label>
     </div>
   </details>
@@ -100,8 +100,8 @@
     </div>
   </details>
 
-  <details class="grp" data-spoiler>
-    <summary data-ui="expedition">Expedition targets</summary>
+  <details class="grp">
+    <summary data-ui="starType">Star type</summary>
     <div class="body">
       <label class="f"><span class="ask" data-help="what:starhunter" tabindex="0" data-ui="starHunter">StarHunter class</span></label>
       <select id="startype"><option value="">any</option></select>
@@ -128,10 +128,24 @@
       <div><i style="background:#559cba"></i><span data-ui="blueWhite">B / A blue-white</span></div>
       <div><i style="background:#c7dce0"></i><span data-ui="whiteDwarf">White Dwarf</span></div>
       <div><i style="border:1px solid var(--cyan);border-radius:0"></i><span data-ui="stationPresent">Station present</span></div>
-      <div data-spoiler><i style="background:var(--amber);border-radius:0;height:2px"></i><span data-ui="gateLink">Warp gate link</span></div>
+      <div><i style="background:var(--amber);border-radius:0;height:2px"></i><span data-ui="gateLink">Warp gate link</span></div>
       <div data-spoiler><i style="border:1px solid var(--amber);border-radius:0"></i><span data-ui="engineer">Engineer</span></div>
     </div>
   </div>
+  <details class="grp">
+    <summary data-ui="calculators">Calculators</summary>
+    <div class="body">
+      <label class="f"><span class="ask" data-help="what:calcmass" tabindex="0" data-ui="calcMass">Ship mass</span><input type="number" id="calcMass" min="1" step="10" placeholder="0"></label>
+      <label class="f"><span data-ui="calcWarp">Warp drive</span></label>
+      <select id="calcWarp"></select>
+      <label class="f"><span data-ui="calcShield">Shields</span></label>
+      <select id="calcShield"></select>
+      <label class="f"><span data-ui="calcThruster">Thrusters</span></label>
+      <select id="calcThruster"></select>
+      <dl class="calcOut" id="calcOut"></dl>
+    </div>
+  </details>
+
   <footer class="credit">
       <p data-ui="byDev">Galaxy Genome is made by SKV Games.</p>
       <p class="stores">
@@ -174,9 +188,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=4372227a74");
+    const galaxy = await load("data/galaxy.json?v=9dce5498d6");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=4372227a74`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=9dce5498d6`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -185,7 +199,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=4372227a74";
+    s.src = "app.js?v=9dce5498d6";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

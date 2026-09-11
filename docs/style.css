@@ -113,6 +113,11 @@ label.f:has(#jump){justify-content:flex-start;gap:6px}
   line-height:12px;text-align:center;border:1px solid var(--grid-strong);border-radius:50%;
   font-size:9px;color:var(--grid-strong)}
 .ask:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.calcOut{margin:8px 0 0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;
+  font-family:var(--mono);font-size:11px}
+.calcOut dt{color:var(--dim)}
+.calcOut dd{margin:0;color:var(--cyan);text-align:right;font-variant-numeric:tabular-nums}
+.calcOut .muted{color:var(--dim)}
 .note{margin:2px 0 0;font-family:var(--mono);font-size:10px;line-height:1.5;color:var(--dim)}
 .note b{color:var(--danger);font-weight:400}
 

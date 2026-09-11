@@ -5,7 +5,7 @@ An unofficial map of every reachable star system in
 the space sim by SKV Games. Pan and zoom, hover a system for its ores, planets
 and stations, and plan a route at your ship's jump range.
 
-**[Open the map](https://tagprobbben.github.io/galaxy-genome-map/)**
+**[Open the map](https://galaxy-genome.github.io/map/)**
 
 Published with the developer's permission. Galaxy Genome and all of its data
 belong to SKV Games.

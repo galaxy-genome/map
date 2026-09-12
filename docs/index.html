@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=9dce5498d6">
+<link rel="stylesheet" href="style.css?v=3b74a3612b">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -24,35 +24,75 @@
     <label class="f"><span data-ui="currentSystem">Current system</span></label>
     <input id="from" type="search" data-ui-ph="findPlaceholder" placeholder="click a system, or type" autocomplete="off">
     <ul class="hits" data-for="from"></ul>
-    <label class="f"><span data-ui="to">To</span></label>
-    <input id="to" type="search" data-ui-ph="toPlaceholder" placeholder="click a second system" autocomplete="off">
-    <ul class="hits" data-for="to"></ul>
+    <div id="toBox" hidden>
+      <label class="f"><span data-ui="to">To</span></label>
+      <input id="to" type="search" data-ui-ph="toPlaceholder" placeholder="click a second system" autocomplete="off">
+      <ul class="hits" data-for="to"></ul>
+    </div>
     <label class="f"><span data-ui="maxJump">Max jump</span><input type="number" id="jump" min="1" max="500" step="1" value="10"> <span data-ui-unit="ly">ly</span></label>
     <button id="clearRoute" data-ui="clearRoute">Clear route</button>
+    <button class="resetFilters" data-ui="reset">Clear all filters</button>
     <p class="note" id="routeNote"></p>
   </div>
 
   <details class="grp" open>
-    <summary data-ui="basics">Basics</summary>
+    <summary data-ui="showMe">Show me…</summary>
+    <div class="body" id="presetRow"></div>
+    <p class="note" data-ui="presetNote">Counts are named systems. Generated space holds far more of everything except stations, engineers and gates, which it never holds at all.</p>
+  </details>
+
+  <details class="grp">
+    <summary data-ui="exploration">Exploration</summary>
     <div class="body">
-      <button class="chip" data-f="catalogue" data-help="basic:catalogue" aria-pressed="false"><span class="box"></span><span data-ui="missionTarget">Can host missions</span><span class="n" data-n="catalogue"></span></button>
-      <button class="chip" data-f="fuel" data-help="basic:fuel" aria-pressed="false"><span class="box"></span><span data-ui="fuel">Fuel scoopable</span><span class="n" data-n="fuel"></span></button>
-      <button class="chip" data-f="station" data-help="basic:station" aria-pressed="false"><span class="box"></span><span data-ui="hasStation">Has station</span><span class="n" data-n="station"></span></button>
-      <button class="chip" data-f="belt" data-help="basic:belt" aria-pressed="false"><span class="box"></span><span data-ui="hasBelt">Has belt</span><span class="n" data-n="belt"></span></button>
-      <button class="chip" data-f="land" data-help="basic:land" aria-pressed="false"><span class="box"></span><span data-ui="landable">Landable planet</span><span class="n" data-n="land"></span></button>
-      <button class="chip" data-f="eng" data-help="basic:eng" aria-pressed="false"><span class="box"></span><span data-ui="engineer">Engineer</span><span class="n" data-n="eng"></span></button>
-      <button class="chip" data-f="gate" data-help="basic:gate" aria-pressed="false"><span class="box"></span><span data-ui="gate">Warp gate</span><span class="n" data-n="gate"></span></button>
-      <button class="chip" data-f="auth" data-help="basic:auth" aria-pressed="false"><span class="box"></span><span data-ui="authored">Hand-built</span><span class="n" data-n="auth"></span></button>
+      <label class="f"><span class="ask" data-help="what:scanner" tabindex="0" data-ui="scanner">Planet Scanner</span></label>
+      <select id="scanner"></select>
+      <label class="f"><span class="ask" data-help="what:value" tabindex="0" data-ui="minValue">Min value</span><input type="number" id="valMin" min="500000" step="50000" placeholder="0"></label>
+      <label class="spoil"><input type="checkbox" id="oneHop"> <span data-ui="useOneHop">Use one-hop value</span></label>
+      <label class="f"><span class="ask" data-help="what:ptype" tabindex="0" data-ui="planetPresent">Planet type present</span></label>
+      <select id="ptype"><option value="">any</option></select>
+      <label class="f"><span data-ui="minPlanets">Min planets</span><input type="number" id="plMin" min="0" step="1" placeholder="0"></label>
+      <label class="f"><span class="ask" data-help="what:starhunter" tabindex="0" data-ui="starHunter">StarHunter class</span></label>
+      <select id="startype"><option value="">any</option></select>
+      <p class="note" id="huntNote">Counts are systems in reachable space.</p>
     </div>
   </details>
 
   <details class="grp">
-    <summary data-ui="range">Range</summary>
+    <summary data-ui="mining">Mining</summary>
     <div class="body">
-      <label class="f"><span data-ui="minLy">Min ly</span><input type="number" id="lyMin" min="0" step="10" placeholder="0"></label>
-      <label class="f"><span data-ui="maxLy">Max ly</span><input type="number" id="lyMax" min="0" step="10" placeholder="any"></label>
-      <label class="f"><span class="ask" data-help="what:noscan" tabindex="0" data-ui="minScan">Min scan CR</span><input type="number" id="scanMin" min="0" step="50000" placeholder="0"></label>
-      <label class="f"><span data-ui="minPlanets">Min planets</span><input type="number" id="plMin" min="0" step="1" placeholder="0"></label>
+      <label class="f"><span class="ask" data-help="what:ore" tabindex="0" data-ui="orePresent">Ore present</span></label>
+      <select id="ore"><option value="">any</option></select>
+      <label class="f"><span data-ui="minPct">Min %</span><input type="number" id="pctMin" min="0" max="100" step="1" data-ui-ph="pickOre" placeholder="pick an ore" disabled></label>
+      <button class="chip" data-f="belt" data-help="basic:belt" aria-pressed="false"><span class="box"></span><span data-ui="hasBelt">Has belt</span><span class="n" data-n="belt"></span></button>
+    </div>
+  </details>
+
+  <details class="grp">
+    <summary data-ui="trading">Trading</summary>
+    <div class="body">
+      <button class="chip" data-f="sellsBlack" data-help="trade:sells" aria-pressed="false"><span class="box"></span><span data-ui="sellsBlack">Sells contraband</span><span class="n" data-n="sellsBlack"></span></button>
+      <button class="chip" data-f="buysBlack" data-help="trade:buys" aria-pressed="false"><span class="box"></span><span data-ui="buysBlack">Buys contraband</span><span class="n" data-n="buysBlack"></span></button>
+      <button class="chip" data-f="oreBuyer" data-help="trade:ore" aria-pressed="false"><span class="box"></span><span data-ui="oreBuyer">Best ore price</span><span class="n" data-n="oreBuyer"></span></button>
+      <button class="chip" data-f="trophyBuyer" data-help="trade:trophy" aria-pressed="false"><span class="box"></span><span data-ui="trophyBuyer">Buys trophies</span><span class="n" data-n="trophyBuyer"></span></button>
+      <button class="chip" data-f="noMarket" data-help="trade:none" aria-pressed="false"><span class="box"></span><span data-ui="noMarket">No market at all</span><span class="n" data-n="noMarket"></span></button>
+      <p class="note" data-ui="hTradeNote"></p>
+    </div>
+  </details>
+
+  <details class="grp">
+    <summary data-ui="outfitting">Outfitting</summary>
+    <div class="body">
+      <label class="f"><span class="ask" data-help="what:module" tabindex="0" data-ui="moduleSale">Module for sale</span></label>
+      <select id="module"><option value="">any</option></select>
+      <div class="row">
+        <button class="pill" id="fullOnly" type="button" aria-pressed="false" data-ui="fullGrade">Full grade only</button>
+      </div>
+      <p class="note" id="moduleNote"></p>
+      <label class="f"><span data-ui="shopPurpose">Shop purpose</span></label>
+      <div id="purpRow" class="body"></div>
+      <label class="f"><span data-ui="faction">Faction</span></label>
+      <div id="facRow" class="body"></div>
+      <button class="chip" data-f="station" data-help="basic:station" aria-pressed="false"><span class="box"></span><span data-ui="hasStation">Has station</span><span class="n" data-n="station"></span></button>
     </div>
   </details>
 
@@ -62,55 +102,23 @@
   </details>
 
   <details class="grp">
-    <summary data-ui="mining">Mining</summary>
+    <summary data-ui="crafting">Crafting</summary>
     <div class="body">
-      <label class="f"><span data-ui="orePresent">Ore present</span></label>
-      <select id="ore"><option value="">any</option></select>
-      <label class="f"><span data-ui="minPct">Min %</span><input type="number" id="pctMin" min="0" max="100" step="1" data-ui-ph="pickOre" placeholder="pick an ore" disabled></label>
+      <label class="f"><span class="ask" data-help="what:landable" tabindex="0" data-ui="minLandable">Min landable</span><input type="number" id="laMin" min="0" step="1" placeholder="0"></label>
+      <button class="chip" data-f="land" data-help="basic:land" aria-pressed="false"><span class="box"></span><span data-ui="landable">Landable planet</span><span class="n" data-n="land"></span></button>
     </div>
   </details>
 
   <details class="grp">
-    <summary data-ui="exploration">Exploration</summary>
+    <summary data-ui="navLimits">Navigation limits</summary>
     <div class="body">
-      <label class="f"><span data-ui="planetPresent">Planet type present</span></label>
-      <select id="ptype"><option value="">any</option></select>
-      <label class="f"><span data-ui="minLandable">Min landable</span><input type="number" id="laMin" min="0" step="1" placeholder="0"></label>
-    </div>
-  </details>
-
-  <details class="grp">
-    <summary data-ui="moduleSale">Module for sale</summary>
-    <div class="body">
-      <select id="module"><option value="">any</option></select>
-      <div class="row">
-        <button class="pill" id="fullOnly" type="button" aria-pressed="false" data-ui="fullGrade">Full grade only</button>
-      </div>
-      <p class="note" id="moduleNote"></p>
-    </div>
-  </details>
-
-  <details class="grp">
-    <summary data-ui="trade">Trade &amp; outfitting</summary>
-    <div class="body">
-      <label class="f"><span data-ui="shopPurpose">Shop purpose</span></label>
-      <div id="purpRow" class="body"></div>
-      <label class="f"><span data-ui="faction">Faction</span></label>
-      <div id="facRow" class="body"></div>
-    </div>
-  </details>
-
-  <details class="grp">
-    <summary data-ui="starType">Star type</summary>
-    <div class="body">
-      <label class="f"><span class="ask" data-help="what:starhunter" tabindex="0" data-ui="starHunter">StarHunter class</span></label>
-      <select id="startype"><option value="">any</option></select>
-      <p class="note" id="huntNote">Counts are systems in reachable space.</p>
+      <label class="f"><span data-ui="minLy">Min ly</span><input type="number" id="lyMin" min="0" step="10" placeholder="0"></label>
+      <label class="f"><span data-ui="maxLy">Max ly</span><input type="number" id="lyMax" min="0" step="10" placeholder="any"></label>
     </div>
   </details>
 
   <div class="grp">
-    <button id="reset" data-ui="reset">Clear all filters</button>
+    <button id="reset" class="resetFilters" data-ui="reset">Clear all filters</button>
   </div>
 
   <div class="grp">
@@ -121,15 +129,24 @@
   </div>
 
   <div class="grp">
-    <h2 data-ui="marks">Marks</h2>
+    <h2 data-ui="highlights">Highlights</h2>
+    <button class="chip" id="hlRich" aria-pressed="true"><span class="box"
+      style="border-color:#ffd666"></span><span data-ui="hlRich">Million-credit scans</span><span
+      class="n" id="hlRichN"></span></button>
+    <button class="chip" id="hlSectors" aria-pressed="true"><span class="box"
+      style="border-color:#4fc3ff"></span><span data-ui="hlSectors">Sectors</span></button>
+  </div>
+
+  <div class="grp">
+    <h2 data-ui="marks">Legend</h2>
     <div class="legend">
-      <div><i style="background:#cf3a38"></i><span data-ui="redDwarf">M - Red Dwarf</span></div>
-      <div><i style="background:#dbd670"></i><span data-ui="mainSequence">G / K main sequence</span></div>
-      <div><i style="background:#559cba"></i><span data-ui="blueWhite">B / A blue-white</span></div>
-      <div><i style="background:#c7dce0"></i><span data-ui="whiteDwarf">White Dwarf</span></div>
-      <div><i style="border:1px solid var(--cyan);border-radius:0"></i><span data-ui="stationPresent">Station present</span></div>
-      <div><i style="background:var(--amber);border-radius:0;height:2px"></i><span data-ui="gateLink">Warp gate link</span></div>
-      <div data-spoiler><i style="border:1px solid var(--amber);border-radius:0"></i><span data-ui="engineer">Engineer</span></div>
+      <div data-layer="station"><i style="border:1px solid var(--cyan);border-radius:0"></i><span data-ui="stationPresent">Station present</span></div>
+      <div data-layer="gate"><i style="background:var(--amber);border-radius:0;height:2px"></i><span data-ui="gateLink">Warp gate link</span></div>
+      <div id="facLegend"></div>
+      <div data-layer="explored"><i style="border:1px dashed rgba(95,127,142,.8);border-radius:50%"></i><span data-ui="exploredRing">Already explored</span></div>
+      <div data-layer="rich"><i style="background:#ffd666"></i><span data-ui="richSystems">Worth 2m+</span></div>
+            <div id="chevLegend" data-layer="chev" hidden><i style="background:none;color:#6ee7a8;font:700 12px/1 monospace">››</i><span data-ui="sellsFull">…at every class</span></div>
+      <div data-layer="eng" data-spoiler><i style="border:1px solid var(--amber);border-radius:0"></i><span data-ui="engineer">Engineer</span></div>
     </div>
   </div>
   <details class="grp">
@@ -188,9 +205,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=9dce5498d6");
+    const galaxy = await load("data/galaxy.json?v=3b74a3612b");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=9dce5498d6`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=3b74a3612b`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -199,7 +216,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=9dce5498d6";
+    s.src = "app.js?v=3b74a3612b";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

@@ -51,7 +51,10 @@ globalThis.__GG__ = galaxy;
 
 // expose the functions worth exercising
 const src = read("app.js") + `
-;globalThis.__T__ = { cellStars, starBodies, cellFromName, showGenTip, passesGenerated };`;
+;globalThis.__T__ = { cellStars, starBodies, cellFromName, showGenTip, passesGenerated, passes,
+                      systemValue, setScanner: i => { scanner = i; },
+                      fitToMatches, currentParams, F, filters,
+                      view: () => ({ cx, cz, scale, W, focused }) };`;
 
 let fail = 0;
 const ok = (label, fn) => {
@@ -68,18 +71,115 @@ ok("cellFromName decodes a generated name", () => {
 });
 // The generation bitmaps cannot be decoded here, so build a star by hand. This
 // is the path that only runs on hover, where a syntax check proves nothing.
+// Placed well outside both pre-explored radii, or every body would scan for
+// nothing and the value assertions below would pass vacuously.
 const star = { seed: 1075197696, raw: "Quarkstar", type: "Quark star",
-               name: "Test AA-AA A1", x: 100, z: 200, fuel: false };
+               name: "Test AA-AA A1", x: 4000, z: 6000, fuel: false };
+const nearSol = { ...star, seed: star.seed + 2, x: 100, z: 200 };
+const nearVoid = { ...star, seed: star.seed + 3, x: -2274, z: -3980 };
 ok("starBodies on a generated star", () => {
   const b = T.starBodies(star);
   if (typeof b.scan !== "number" || Number.isNaN(b.scan)) throw new Error("bad scan");
   return `scan ${b.scan.toLocaleString()} CR, ${b.planets.length} planets`;
 });
-ok("the star's own value is counted", () => {
+ok("every star in the system is counted, not just the primary", () => {
   const b = T.starBodies({ ...star, seed: star.seed + 1 });
   const planets = b.planets.reduce((s, p) => s + p.scan, 0);
-  if (b.scan - planets !== 1800000) throw new Error(`star value ${b.scan - planets}`);
-  return "Quark star adds 1,800,000";
+  const cost = globalThis.__GG__.starCost || {};
+  const stars = b.stars.reduce((s, t) => s + (cost[t] || 0), 0);
+  if (b.scan !== planets + stars)
+    throw new Error(`scan ${b.scan} != ${planets} planets + ${stars} stars`);
+  if (!b.stars.length) throw new Error("no stars recorded");
+  return `${b.stars.length} star(s) worth ${stars.toLocaleString()}`;
+});
+ok("a system near Sol is explored and pays nothing", () => {
+  const b = T.starBodies(nearSol);
+  if (!b.explored || b.scan !== 0) throw new Error(`explored ${b.explored}, scan ${b.scan}`);
+  return "0 CR inside 300 ly of Sol";
+});
+ok("a system near The Void is explored too", () => {
+  const b = T.starBodies(nearVoid);
+  if (!b.explored || b.scan !== 0) throw new Error(`explored ${b.explored}, scan ${b.scan}`);
+  return "0 CR inside 150 ly of The Void";
+});
+// The generator exists twice: gen.py builds the database, app.js draws the map.
+// Nothing forces them to agree, and when they silently disagreed the map showed
+// a galaxy the game does not have. gen_cases.json is what Python produces.
+ok("the JS generator matches the Python one", () => {
+  const cases = JSON.parse(read("../src/gen_cases.json"));
+  const wrong = [];
+  for (const c of cases){
+    const b = T.starBodies({ seed: c.seed, raw: c.raw, x: 9e4, z: 9e4,
+                             name: "x", type: "x", fuel: false });
+    const got = JSON.stringify({
+      stars: b.stars,
+      planets: b.planets.map(p => [p.type.replace(/ /g, ""), p.orbit]),
+      belts: b.belts.map(t => t.ores.map(o => o.name)),
+    });
+    const want = JSON.stringify({
+      stars: c.stars, planets: c.planets, belts: c.belts,
+    });
+    if (got !== want) wrong.push({ seed: c.seed, got, want });
+  }
+  if (wrong.length)
+    throw new Error(`${wrong.length}/${cases.length} differ, first: `
+      + `seed ${wrong[0].seed}\n    js  ${wrong[0].got}\n    py  ${wrong[0].want}`);
+  return `${cases.length} systems identical`;
+});
+// The scanner is the one input that changes what a system is worth, and four
+// filters, two tooltips and nine chip counts read the same function for it.
+ok("the scanner moves value from the trip to the arrival", () => {
+  const at = i => { T.setScanner(i); return T.systemValue(star); };
+  const none = at(0), best = at(4);
+  T.setScanner(1);
+  if (none.full !== best.full) throw new Error("the full value must not depend on the scanner");
+  if (best.arrival < none.arrival) throw new Error("a longer scanner cannot bank less");
+  if (none.arrival > none.full || best.arrival > best.full)
+    throw new Error("arrival exceeds the system total");
+  return `none ${none.arrival.toLocaleString()} / 1A ${best.arrival.toLocaleString()} `
+       + `of ${none.full.toLocaleString()} CR, ${none.hops} vs ${best.hops} hops`;
+});
+ok("a catalogue row values the same way a generated one does", () => {
+  const G = globalThis.__GG__;
+  const [SCAN, STARV, PB] = [12, 20, 21];
+  const rich = G.systems.filter(s => s[SCAN] > 0).sort((a, b) => b[SCAN] - a[SCAN]);
+  let checked = 0;
+  for (const s of rich.slice(0, 400)){
+    const v = T.systemValue(s);
+    let want = s[STARV];
+    for (let i = 0; i < s[PB].length; i += 2)
+      if (s[PB][i] <= G.scanners[1][1]) want += s[PB][i + 1];
+    if (v.arrival !== want)
+      throw new Error(`${s[0]}: arrival ${v.arrival} != ${want}`);
+    if (v.arrival > v.full || v.reach > v.full)
+      throw new Error(`${s[0]}: ${v.arrival}/${v.reach} exceeds ${v.full}`);
+    checked++;
+  }
+  return `${checked} systems agree at the 1D`;
+});
+// A filter answers with a set. Landing on one member of it was the old bug, and
+// it is invisible to every other check here.
+ok("a filter frames its whole answer, not one system", () => {
+  const G = globalThis.__GG__;
+  T.F.valMin = 1000000;
+  T.fitToMatches();
+  const v = T.view();
+  const hit = G.systems.filter(s => T.passes(s));
+  const ly = hit.map(s => s[3]).sort((a, b) => a - b);
+  const want = Math.max(ly[ly.length >> 1] * 4, 300);
+  const across = v.W / v.scale;
+  T.F.valMin = null;
+  if (Math.abs(across - want) > 1)
+    throw new Error(`framed ${across.toFixed(0)} ly, expected ${want}`);
+  if (Math.abs(v.cz) > 1) throw new Error(`not centred on Sol: z ${v.cz}`);
+  if (!v.focused.length) throw new Error("nothing flashed");
+  return `${hit.length} matches, ${across.toFixed(0)} ly across, `
+       + `${v.focused.length} flashed`;
+});
+ok("the address bar carries the view", () => {
+  const p = T.currentParams();
+  if (!p.has("at") || !p.has("ly")) throw new Error("no centre or zoom in the URL");
+  return `at=${p.get("at")} ly=${p.get("ly")}`;
 });
 ok("showGenTip renders", () => T.showGenTip(star, 100, 100));
 ok("passesGenerated with a star filter", () => T.passesGenerated(star));

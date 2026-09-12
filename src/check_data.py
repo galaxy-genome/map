@@ -29,9 +29,28 @@ def main():
     for label, index, kind in d["aliases"]:
         need(0 <= index < len(d["systems"]), f"alias '{label}' points outside the systems list")
 
+    SCAN, STARV, PB, ST = 12, 20, 21, 10
     for s in d["systems"]:
-        need(len(s) == 20, f"system row for {s[0]} has {len(s)} fields, expected 20")
+        need(len(s) == 22, f"system row for {s[0]} has {len(s)} fields, expected 22")
         break
+
+    # A system is worth its stars plus its planets, and a pre-explored one is
+    # worth nothing at all. Every consumer derives both halves from these, so a
+    # row that breaks the relation breaks the tooltips and the filters alike.
+    for s in d["systems"]:
+        need(s[STARV] <= s[SCAN],
+             f"{s[0]}: star value {s[STARV]} exceeds the system total {s[SCAN]}")
+        need(len(s[PB]) % 2 == 0, f"{s[0]}: planet payload is not orbit/value pairs")
+        need(s[SCAN] or not (s[STARV] or s[PB]),
+             f"{s[0]} is explored but still carries value")
+        need(bool(s[ST]) == (s[0] in d["stations"]),
+             f"{s[0]}: station count and station list disagree")
+
+    need(len(d["purposeStock"]) == len(d["purposes"]),
+         "purpose stock lists disagree with the purpose list")
+    need(len(d["sectorBounds"]) == len(d["sectorAnchors"]["sectors"]),
+         "sector bounds and sector names disagree")
+    need(len(d["scanners"]) >= 2, "scanner table is missing")
 
     belts = sum(1 for s in d["systems"] if s[8])
     print(f"{len(d['systems']):,} systems, {belts:,} with belts, "

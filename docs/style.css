@@ -54,7 +54,10 @@ label.f:has(#jump){justify-content:flex-start;gap:6px}
 
 .legend{display:flex;flex-direction:column;gap:5px;font-family:var(--mono);font-size:11px}
 .legend div{display:flex;align-items:center;gap:8px;color:var(--dim)}
+.legend div[hidden]{display:none}
 .legend i{width:10px;height:10px;flex:none;border-radius:50%}
+/* the faction rows are built into a holder; it must not become a row itself */
+#facLegend{display:contents}
 
 .readout{position:fixed;left:266px;bottom:16px;font-family:var(--mono);font-size:12px;
   color:var(--dim);z-index:3;line-height:1.7;pointer-events:none}
@@ -74,6 +77,10 @@ label.f:has(#jump){justify-content:flex-start;gap:6px}
 .tip dt.rule,.tip dd.rule{height:1px;background:var(--edge);margin:5px 0}
 .tip .ore{margin-top:6px;padding-top:6px;border-top:1px solid var(--edge);color:var(--amber);
   display:grid;grid-template-columns:repeat(3,auto);gap:2px 14px;justify-content:start}
+.tip .muted{color:var(--dim)}
+.tip dd.stn{grid-column:2}
+.tip .chev{color:#6ee7a8;font-weight:700}
+.legend i.diamond{border-radius:2px;transform:rotate(45deg);width:8px;height:8px}
 
 .zoom{position:fixed;right:16px;top:16px;z-index:3;display:flex;flex-direction:column;gap:6px}
 .zoom button{width:38px;height:34px;background:rgba(8,18,34,.85);border:1px solid var(--edge);

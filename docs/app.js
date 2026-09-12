@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=527f3816fa"), read("data/reachable.png?v=527f3816fa")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=36c93011d5"), read("data/reachable.png?v=36c93011d5")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=527f3816fa", 1), read("data/zones.webp?v=527f3816fa", 3)]);
+    [read("data/side.webp?v=36c93011d5", 1), read("data/zones.webp?v=36c93011d5", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1039,7 +1039,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=527f3816fa").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=36c93011d5").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2977,7 +2977,8 @@ addEventListener("keydown", e => {
   if (e.key === "0") document.getElementById("zreset").click();
 });
 
-const counts = {catalogue:0, fuel:0, station:0, belt:0, land:0, eng:0, gate:0, auth:0};
+const counts = {catalogue:0, fuel:0, station:0, belt:0, land:0, eng:0, gate:0,
+                auth:0, wreck:0};
 for (const k in TRADE_BIT) counts[k] = 0;
 counts.catalogue = S.length;
 for (const s of S){
@@ -2989,6 +2990,7 @@ for (const s of S){
   if (s[EN]) counts.eng++;
   if (s[GATE]) counts.gate++;
   if (s[AUTH]) counts.auth++;
+  if (WRECKS.has(s[NAME])) counts.wreck++;
 }
 for (const [k, v] of Object.entries(counts))
   for (const el of document.querySelectorAll(`[data-n="${k}"]`))
@@ -3779,8 +3781,15 @@ async function applyParams(){
 
   // Chips, by the same names the sidebar uses.
   for (const f of (p.get("filters") || "").split(",").filter(Boolean)){
-    const b = document.querySelector(`[data-f="${CSS.escape(f.trim())}"]`);
-    if (b && b.getAttribute("aria-pressed") !== "true"){ b.click(); touched.push(b); }
+    const name = f.trim();
+    const b = document.querySelector(`[data-f="${CSS.escape(name)}"]`);
+    if (b){
+      if (b.getAttribute("aria-pressed") !== "true"){ b.click(); touched.push(b); }
+    // Not every filter has a chip of its own: the ones a preset turns on are
+    // still filters, and a link may ask for them directly.
+    } else if (name in counts || name === "wreck"){
+      filters.add(name);
+    }
   }
 
   // A dropdown is matched on the game's own key first, then on what it shows,

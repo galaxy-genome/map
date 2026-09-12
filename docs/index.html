@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=459996046a">
+<link rel="stylesheet" href="style.css?v=1edf184a69">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -23,10 +23,12 @@
     <h2 data-ui="route">Route</h2>
     <label class="f"><span data-ui="currentSystem">Current system</span></label>
     <input id="from" type="search" data-ui-ph="findPlaceholder" placeholder="click a system, or type" autocomplete="off">
+    <p class="note" id="fromNote" hidden data-ui="fromNote">Double-click to change</p>
     <ul class="hits" data-for="from"></ul>
     <div id="toBox" hidden>
       <label class="f"><span data-ui="to">To</span></label>
       <input id="to" type="search" data-ui-ph="toPlaceholder" placeholder="click a second system" autocomplete="off">
+      <p class="note" id="dowseNote" hidden data-ui="dowseNote">Hover to plot a course</p>
       <ul class="hits" data-for="to"></ul>
     </div>
     <label class="f"><span data-ui="maxJump">Max jump</span><input type="number" id="jump" min="1" max="500" step="1" value="10"> <span data-ui-unit="ly">ly</span></label>
@@ -203,9 +205,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=459996046a");
+    const galaxy = await load("data/galaxy.json?v=1edf184a69");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=459996046a`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=1edf184a69`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -214,7 +216,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=459996046a";
+    s.src = "app.js?v=1edf184a69";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

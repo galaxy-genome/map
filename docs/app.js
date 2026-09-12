@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=459996046a"), read("data/reachable.png?v=459996046a")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=1edf184a69"), read("data/reachable.png?v=1edf184a69")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=459996046a", 1), read("data/zones.webp?v=459996046a", 3)]);
+    [read("data/side.webp?v=1edf184a69", 1), read("data/zones.webp?v=1edf184a69", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1039,7 +1039,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=459996046a").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=1edf184a69").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1475,6 +1475,27 @@ const QUAD = (dx, dy) => (dx < 0 && dy > 0) ? "E" : (dx > 0 && dy > 0) ? "B"
 const QUAD_TINT = {B: "rgba(79,195,255,.05)", C: "rgba(255,171,61,.05)",
                    D: "rgba(110,231,168,.05)", E: "rgba(214,120,255,.05)"};
 
+// No pointer on a touch screen, so the middle of the map area stands in for one:
+// pan the map and whatever lands under the cross becomes the destination.
+function drawDowseCross(){
+  if (!dowsingTouch()) return;
+  const mx = halfCover() * 2 + mapW() / 2, my = H / 2;
+  ctx.save();
+  ctx.strokeStyle = "rgba(79,195,255,.65)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(mx - 14, my); ctx.lineTo(mx - 4, my);
+  ctx.moveTo(mx + 4, my); ctx.lineTo(mx + 14, my);
+  ctx.moveTo(mx, my - 14); ctx.lineTo(mx, my - 4);
+  ctx.moveTo(mx, my + 4); ctx.lineTo(mx, my + 14);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(mx, my, 20, 0, 6.283);
+  ctx.strokeStyle = "rgba(79,195,255,.25)";
+  ctx.stroke();
+  ctx.restore();
+}
+
 // Where the pointer is, under and left of it: the tooltip opens down and right,
 // and a name sits to the right of its own dot, so this is the one corner that
 // stays clear.
@@ -1638,6 +1659,7 @@ function draw(){
   }
   if (!chart) drawNaming();
   drawCursorPlace();
+  drawDowseCross();
 
   drawGates();
 
@@ -2012,6 +2034,8 @@ function tipAt(mx, my){
 }
 
 cv.addEventListener("pointerdown", e => {
+  // The keyboard is in the way of a map being panned.
+  if (TOUCH) document.getElementById("to").blur();
   flyStop();   // the map never fights the hand on it
   ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY});
   if (ptrs.size === 2){
@@ -2028,11 +2052,55 @@ cv.addEventListener("pointerdown", e => {
   if (ptrs.size > 1) cancelPress();
   cv.setPointerCapture(e.pointerId);
 });
+// A route that follows the pointer, while the destination box is focused and
+// still empty: whatever is under the cursor becomes the destination. Typing
+// anything ends it, because then the box is the one choosing.
+let dowseAt = 0, dowseTimer = 0;
+// With an origin set and no destination settled, the map plots to whatever the
+// pointer is over -- the crosshair at the centre, on a touch screen, since a pan
+// is what a hover is there. A destination chosen this way is provisional: it
+// keeps the gesture armed until a click or a tap settles on one.
+let dowseProvisional = false;
+let showNotes = () => {};
+const dowsing = () => !!routeFrom && (!routeTo || dowseProvisional);
+const dowsingTouch = () => TOUCH && dowsing();
+
+function dowseCross(){
+  // Held to the same rate as the pointer version, because a pan fires a move a
+  // frame and the search is not free.
+  if (performance.now() - dowseAt < 100) return;
+  dowseAt = performance.now();
+  const mx = halfCover() * 2 + mapW() / 2, my = H / 2;
+  const hit = pick(mx, my) || pickRich(mx, my) || pickGenerated(mx, my);
+  if (!hit) return;
+  const end = endpointOf(hit);
+  if (routeTo && routeTo.name === end.name) return;
+  routeTo = end;
+  dowseProvisional = true;
+  recomputeRoute();
+}
+
+function dowse(x, y){
+  if (TOUCH || !dowsing()) return;
+  clearTimeout(dowseTimer);
+  const wait = Math.max(0, 100 - (performance.now() - dowseAt));
+  dowseTimer = setTimeout(() => {
+    const hit = pick(x, y) || pickRich(x, y) || pickGenerated(x, y);
+    if (!hit) return;
+    const end = endpointOf(hit);
+    if (routeTo && routeTo.name === end.name) return;
+    dowseAt = performance.now();
+    routeTo = end;
+    dowseProvisional = true;
+    recomputeRoute();
+  }, wait);
+}
+
 cv.addEventListener("pointermove", e => {
   // Before the drag and pinch branches, which return early: the pointer is where
   // it is whether or not it is dragging, and everything that follows it would
   // otherwise stay where the drag began.
-  if (!TOUCH){ hoverX = e.clientX; hoverY = e.clientY; }
+  if (!TOUCH){ hoverX = e.clientX; hoverY = e.clientY; dowse(e.clientX, e.clientY); }
   if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY});
   if (pinch && ptrs.size >= 2){
     const [a, b] = [...ptrs.values()];
@@ -2050,9 +2118,10 @@ cv.addEventListener("pointermove", e => {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > SLOP){ drag.moved = true; cancelPress(); }
     cx = drag.cx - dx / scale; cz = drag.cz + dy / scale;
-    if (!TOUCH) tip.style.display = "none";
     tip.style.display = "none";
     draw();
+    // The cross is the pointer here, and it has just moved over new ground.
+    if (dowsingTouch()) dowseCross();
     return;
   }
   if (TOUCH) return;
@@ -2069,6 +2138,10 @@ function endPointer(e){
   if (ptrs.size < 2) pinch = null;
   const wasDrag = drag && drag.moved;
   drag = null;
+  // A pan is the touch version of hovering: the cross is the pointer, and the
+  // pan is over, so this is the moment to plot.
+  // A pan has been plotting all along, and the last frame of it is the answer.
+  if (wasDrag && dowsingTouch()){ dowseAt = 0; dowseCross(); }
   if (many || ptrs.size || wasDrag || e.type === "pointercancel") return;
   if (e.target !== cv) return;
   if (TOUCH){
@@ -2078,7 +2151,9 @@ function endPointer(e){
   }
   const hit = pick(e.clientX, e.clientY) || pickRich(e.clientX, e.clientY)
             || pickGenerated(e.clientX, e.clientY);
-  if (hit) setEnd(routeFrom == null ? "from" : "to", hit);
+  // A tap is a decision: the destination stops being provisional and the
+  // gesture stands down.
+  if (hit){ dowseProvisional = false; setEnd(routeFrom == null ? "from" : "to", hit); }
 }
 addEventListener("pointerup", endPointer);
 addEventListener("pointercancel", endPointer);
@@ -3006,6 +3081,21 @@ for (const [id, get] of [["from", () => routeFrom], ["to", () => routeTo]]){
     box.addEventListener(ev, () => describeEnd(get()));
 }
 
+// The two notes the route boxes carry: how to replace an origin, once there is
+// one, and the gesture that plots a destination, while one is still wanted. Both
+// name what this device actually does.
+{
+  const from = document.getElementById("fromNote");
+  const dowse = document.getElementById("dowseNote");
+  if (TOUCH){ from.dataset.ui = "fromNoteTouch"; dowse.dataset.ui = "dowseTouch"; }
+  from.textContent = ui(from.dataset.ui);
+  dowse.textContent = ui(dowse.dataset.ui);
+  showNotes = () => {
+    from.hidden = !routeFrom;
+    dowse.hidden = !dowsing();
+  };
+}
+
 addEventListener("keydown", e => {
   if (e.target instanceof HTMLInputElement) return;
   if (e.key === "+" || e.key === "=") document.getElementById("zin").click();
@@ -3588,6 +3678,7 @@ function setEnd(which, source){
   if (which === "from"){ routeFrom = p; document.getElementById("from").value = p.name; }
   else { routeTo = p; document.getElementById("to").value = p.name; }
   syncToBox();
+  showNotes();
   recomputeRoute();
   // However the end was chosen, the system it names is described. Deferred a
   // frame because callers may recentre the view around it first.
@@ -3596,6 +3687,8 @@ function setEnd(which, source){
 
 function clearRoute(){
   routeFrom = routeTo = routePath = routeGates = null;
+  dowseProvisional = false;
+  showNotes();
   syncToBox();
   document.getElementById("from").value = "";
   document.getElementById("to").value = "";

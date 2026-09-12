@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=a66fa2364d"), read("data/reachable.png?v=a66fa2364d")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=4eda3591b0"), read("data/reachable.png?v=4eda3591b0")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=a66fa2364d", 1), read("data/zones.webp?v=a66fa2364d", 3)]);
+    [read("data/side.webp?v=4eda3591b0", 1), read("data/zones.webp?v=4eda3591b0", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -809,8 +809,13 @@ const sy = wz => (cz - wz) * scale + H / 2;
 const wxOf = px => (px - W / 2) / scale + cx;
 const wzOf = py => cz - (py - H / 2) / scale;
 
+// The five systems a save's abandoned station can be waiting in. Which one it is
+// differs per save, so the map can only show the shortlist.
+const WRECKS = new Set(D.wrecks);
+
 function passes(s){
   if (filters.has("fuel")    && !s[FUEL]) return false;
+  if (filters.has("wreck")   && !WRECKS.has(s[NAME])) return false;
   for (const k in TRADE_BIT)
     if (filters.has(k) && !(tradeOf(s) & TRADE_BIT[k])) return false;
   if (filters.has("station") && !s[ST])   return false;
@@ -1034,7 +1039,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=a66fa2364d").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=4eda3591b0").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2526,7 +2531,7 @@ const PRESETS = [
   {slot: "pMillion",   set: {valMin: 1000000},  scanner: "1D", show: "#valMin"},
   {slot: "pArrival",   set: {valMin: 500000},   show: "#valMin"},
   {slot: "pOutfit",    purp: "HiTech",           show: '#purpRow .pill[aria-pressed="true"]'},
-  {slot: "pEarth",     ptype: "EarthLikePlanet", show: "#ptype"},
+  {slot: "pStation",   on: ["wreck"]},
   {slot: "pMining",    on: ["belt", "station"],  show: '[data-f="belt"]'},
   {slot: "pBlackMarket", on: ["sellsBlack"],     show: '[data-f="sellsBlack"]'},
   {slot: "pEngineers", on: ["eng"], spoil: true},
@@ -3109,7 +3114,7 @@ function generatedOrePct(st, oreIndex){
 // Which filters a generated system can be judged on at all. It never has a
 // station, an engineer, a gate or a hand-built body, so those simply exclude it.
 // A generated system never has a station, so no trade rule can apply to one.
-const IMPOSSIBLE = ["catalogue", "station", "eng", "gate", "auth",
+const IMPOSSIBLE = ["catalogue", "station", "eng", "gate", "auth", "wreck",
                     ...Object.keys(TRADE_BIT)];
 
 function needsBodies(){

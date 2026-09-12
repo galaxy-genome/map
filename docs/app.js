@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=36c93011d5"), read("data/reachable.png?v=36c93011d5")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=459996046a"), read("data/reachable.png?v=459996046a")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=36c93011d5", 1), read("data/zones.webp?v=36c93011d5", 3)]);
+    [read("data/side.webp?v=459996046a", 1), read("data/zones.webp?v=459996046a", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -811,7 +811,7 @@ const wzOf = py => cz - (py - H / 2) / scale;
 
 // The five systems a save's abandoned station can be waiting in. Which one it is
 // differs per save, so the map can only show the shortlist.
-const WRECKS = new Set(D.wrecks);
+const WRECKS = new Map(Object.entries(D.wrecks));
 
 function passes(s){
   if (filters.has("fuel")    && !s[FUEL]) return false;
@@ -1039,7 +1039,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=36c93011d5").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=459996046a").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1475,6 +1475,21 @@ const QUAD = (dx, dy) => (dx < 0 && dy > 0) ? "E" : (dx > 0 && dy > 0) ? "B"
 const QUAD_TINT = {B: "rgba(79,195,255,.05)", C: "rgba(255,171,61,.05)",
                    D: "rgba(110,231,168,.05)", E: "rgba(214,120,255,.05)"};
 
+// Where the pointer is, under and left of it: the tooltip opens down and right,
+// and a name sits to the right of its own dot, so this is the one corner that
+// stays clear.
+function drawCursorPlace(){
+  if (hoverX == null || TOUCH) return;
+  ctx.save();
+  ctx.font = '10px "JetBrains Mono", monospace';
+  ctx.textAlign = "right";
+  ctx.fillStyle = "rgba(188,219,230,.40)";
+  ctx.fillText(`${Math.round(wxOf(hoverX)).toLocaleString()}, `
+               + `${Math.round(wzOf(hoverY)).toLocaleString()}`,
+               hoverX - 12, hoverY + 16);
+  ctx.restore();
+}
+
 function drawNaming(){
   const x0 = Math.floor(wxOf(0) / CELL_LY + 1025), x1 = Math.ceil(wxOf(W) / CELL_LY + 1025);
   const y0 = Math.floor(1591 - wzOf(0) / CELL_LY), y1 = Math.ceil(1591 - wzOf(H) / CELL_LY);
@@ -1500,6 +1515,8 @@ function drawNaming(){
     ctx.fillText(`${Math.round(wx).toLocaleString()}, ${Math.round(wz).toLocaleString()}`
                  + `  \u00b7  ${ly} ly from Sol`, px + wide + 6, py + 28);
     // The outlined blocks: every name in them shares the pointer's pair prefix.
+    // It describes the blocks, so it goes when they do.
+    if (!HL.sectors){ ctx.restore(); return; }
     const j = sectorId(mx, my);
     const pair = n => String.fromCharCode((n / 26 | 0) + 65) + String.fromCharCode(n % 26 + 97);
     const band = v => Math.floor(Math.abs(v) / LETTER_STEP) * LETTER_STEP;
@@ -1620,6 +1637,7 @@ function draw(){
     if (!chart && cellGridOn()) drawCells();
   }
   if (!chart) drawNaming();
+  drawCursorPlace();
 
   drawGates();
 
@@ -1654,6 +1672,18 @@ function draw(){
     value: systemValue,
     // Only the catalogue has stations, engineers and shops to draw.
     mark(s, px, py, a){
+      // One of these five holds the wreck, and which is not knowable from
+      // outside the save: a ring around all of them, sized by the odds.
+      if (filters.has("wreck") && WRECKS.has(s[NAME])){
+        const odds = WRECKS.get(s[NAME]);
+        ctx.save();
+        ctx.strokeStyle = "#ffab3d";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(px, py, 6 + odds / 5, 0, 6.283);
+        ctx.stroke();
+        ctx.restore();
+      }
       const flagEng = s[EN] && spoilers;
       if (solo) ctx.globalAlpha = solo === "station" || solo === "eng"
                                 || solo.startsWith("fac:") ? a : DIM;
@@ -1676,6 +1706,12 @@ function draw(){
       if (F.ore >= 0){
         const pct = orePct(s, F.ore);
         if (pct) label(px, py, r, key, [[pct + "%  ", ORE_INK], [s[NAME], INK]]);
+      // Which of the five it is was decided when the save was made, so the odds
+      // are the only thing the map can say, and they are worth saying at any
+      // width the chip is on.
+      } else if (filters.has("wreck") && WRECKS.has(s[NAME])){
+        label(px, py, -1, key,
+              [[s[NAME] + "  ", INK], [WRECKS.get(s[NAME]) + "%", ORE_INK]]);
       // Asking where the contraband is asks which half of the turnover it is in.
       } else if (filters.has("sellsBlack") && (tradeOf(s) & 1)){
         label(px, py, r, key,

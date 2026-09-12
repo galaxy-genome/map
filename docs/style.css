@@ -10,7 +10,9 @@
 html,body{height:100%}
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{margin:0;background:var(--void);color:var(--ink);font-family:var(--ui);overflow:hidden}
-canvas{display:block;cursor:crosshair;touch-action:none}
+/* The map sits beside the sidebar rather than under it: `left` is set from the
+   rail's real width, which is zero while the rail is an overlay on a phone. */
+canvas{display:block;cursor:crosshair;touch-action:none;position:fixed;top:0;left:0}
 canvas:active{cursor:grabbing}
 
 .rail{position:fixed;top:0;left:0;bottom:0;width:250px;padding:18px 16px;

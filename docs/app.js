@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=1edf184a69"), read("data/reachable.png?v=1edf184a69")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=975aa32e2e"), read("data/reachable.png?v=975aa32e2e")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=1edf184a69", 1), read("data/zones.webp?v=1edf184a69", 3)]);
+    [read("data/side.webp?v=975aa32e2e", 1), read("data/zones.webp?v=975aa32e2e", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -710,12 +710,11 @@ const HOME_LY = TOUCH ? 75 : 150;
 const GALAXY_LY = 170000;
 // Inside this radius the game treats every planet as already scanned and pays
 // nothing, so a scan-value filter has to leave that space out.
-// Everything is measured across the map area, which is the canvas minus the
-// sidebar sitting on top of it: that is the width a reader actually sees, so it
-// is the width the scale readout, the zoom parameter and every breakpoint mean.
-const mapW = () => W - halfCover() * 2;
-const acrossLy = () => mapW() / scale;
-const scaleFor = lyAcross => mapW() / lyAcross;
+// The canvas is the map area: it starts where the sidebar ends, so its width is
+// the width a reader actually sees, and its centre is the centre they mean.
+const mapW = () => W;
+const acrossLy = () => W / scale;
+const scaleFor = lyAcross => W / lyAcross;
 const filters = new Set();
 // Hand-placed discoveries stay hidden until asked for: named landmarks, warp
 // gates and engineer postings are things the game means you to find.
@@ -795,15 +794,26 @@ function orePct(s, oi){
   return 0;
 }
 
+// How much of the window the sidebar takes from the map.
+let inset = 0;
+
 function resize(){
   dpr = Math.min(window.devicePixelRatio || 1, 2);
-  W = window.innerWidth; H = window.innerHeight;
+  // On a phone the rail is an overlay: off-screen until opened, and covering the
+  // map on purpose when it is. Only a rail that sits beside the map takes room
+  // away from it.
+  const rail = document.getElementById("rail").getBoundingClientRect();
+  inset = TOUCH ? 0 : Math.max(0, Math.min(rail.right, window.innerWidth / 2));
+  W = window.innerWidth - inset; H = window.innerHeight;
+  cv.style.left = inset + "px";
   cv.style.width = W + "px"; cv.style.height = H + "px";
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   if (!scaleSet){ scale = scaleFor(HOME_LY); scaleSet = true; }
   draw();
 }
+// Pointer coordinates arrive in window space; the canvas starts at `inset`.
+const evX = e => e.clientX - inset;
 const sx = wx => (wx - cx) * scale + W / 2;
 const sy = wz => (cz - wz) * scale + H / 2;
 const wxOf = px => (px - W / 2) / scale + cx;
@@ -877,7 +887,7 @@ function drawGrid(){
     ctx.strokeStyle = z === 0 ? "rgba(30,147,166,.55)" : "rgba(23,113,128,.22)";
     ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(W, p); ctx.stroke();
     // Just clear of the sidebar, whatever width it happens to be.
-    ctx.fillText(String(Math.round(z)), halfCover() * 2 + 6, p - 5);
+    ctx.fillText(String(Math.round(z)), 6, p - 5);
   }
 }
 
@@ -1039,7 +1049,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=1edf184a69").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=975aa32e2e").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1479,7 +1489,7 @@ const QUAD_TINT = {B: "rgba(79,195,255,.05)", C: "rgba(255,171,61,.05)",
 // pan the map and whatever lands under the cross becomes the destination.
 function drawDowseCross(){
   if (!dowsingTouch()) return;
-  const mx = halfCover() * 2 + mapW() / 2, my = H / 2;
+  const mx = W / 2, my = H / 2;
   ctx.save();
   ctx.strokeStyle = "rgba(79,195,255,.65)";
   ctx.lineWidth = 1;
@@ -1646,7 +1656,7 @@ function draw(){
   const n = filterCount();
   document.getElementById("fCount").textContent = n ? n : "";
   document.getElementById("ctr").textContent =
-    num(Math.round(cx + halfCover() / scale)) + ", " + num(Math.round(cz));
+    num(Math.round(cx)) + ", " + num(Math.round(cz));
   ctx.fillStyle = "#04060e"; ctx.fillRect(0, 0, W, H);
   labelCells.clear();
   const chart = chartOnly();
@@ -1807,7 +1817,8 @@ function placeTip(mx, my){
   }
   tip.style.right = ""; tip.style.bottom = "";
   const r = tip.getBoundingClientRect();
-  const left = TOUCH ? mx - r.width / 2 : mx + 16;
+  // The tooltip is positioned in the window; its caller works in canvas space.
+  const left = (TOUCH ? mx - r.width / 2 : mx + 16) + inset;
   const top  = TOUCH ? my - r.height - 22 : my + 16;
   tip.style.left = Math.max(8, Math.min(left, window.innerWidth - r.width - 10)) + "px";
   tip.style.top  = Math.max(8, Math.min(top, window.innerHeight - r.height - 10)) + "px";
@@ -1986,10 +1997,8 @@ const MAX_OUT_LY = 200000;
 const WORLD = {x0: -1025 * CELL_LY, x1: (GRID - 1 - 1025) * CELL_LY,
                z0: (1591 - (GRID - 1)) * CELL_LY, z1: 1591 * CELL_LY};
 function clampView(){
-  const mid = cx + halfCover() / scale;
-  const x = Math.min(WORLD.x1, Math.max(WORLD.x0, mid));
+  cx = Math.min(WORLD.x1, Math.max(WORLD.x0, cx));
   cz = Math.min(WORLD.z1, Math.max(WORLD.z0, cz));
-  cx = x - halfCover() / scale;
 }
 
 const clampScale = v => Math.max(mapW() / MAX_OUT_LY, Math.min(v, 40));
@@ -2037,7 +2046,7 @@ cv.addEventListener("pointerdown", e => {
   // The keyboard is in the way of a map being panned.
   if (TOUCH) document.getElementById("to").blur();
   flyStop();   // the map never fights the hand on it
-  ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  ptrs.set(e.pointerId, {x: evX(e), y: e.clientY});
   if (ptrs.size === 2){
     drag = null;
     const [a, b] = [...ptrs.values()];
@@ -2046,8 +2055,8 @@ cv.addEventListener("pointerdown", e => {
              wx: wxOf(mx), wz: wzOf(my)};
     tip.style.display = "none";
   } else if (ptrs.size === 1){
-    drag = {x: e.clientX, y: e.clientY, cx, cz, moved: false};
-    if (TOUCH) armPress(e.clientX, e.clientY);
+    drag = {x: evX(e), y: e.clientY, cx, cz, moved: false};
+    if (TOUCH) armPress(evX(e), e.clientY);
   }
   if (ptrs.size > 1) cancelPress();
   cv.setPointerCapture(e.pointerId);
@@ -2070,7 +2079,7 @@ function dowseCross(){
   // frame and the search is not free.
   if (performance.now() - dowseAt < 100) return;
   dowseAt = performance.now();
-  const mx = halfCover() * 2 + mapW() / 2, my = H / 2;
+  const mx = W / 2, my = H / 2;
   const hit = pick(mx, my) || pickRich(mx, my) || pickGenerated(mx, my);
   if (!hit) return;
   const end = endpointOf(hit);
@@ -2100,8 +2109,8 @@ cv.addEventListener("pointermove", e => {
   // Before the drag and pinch branches, which return early: the pointer is where
   // it is whether or not it is dragging, and everything that follows it would
   // otherwise stay where the drag began.
-  if (!TOUCH){ hoverX = e.clientX; hoverY = e.clientY; dowse(e.clientX, e.clientY); }
-  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, {x: e.clientX, y: e.clientY});
+  if (!TOUCH){ hoverX = evX(e); hoverY = e.clientY; dowse(evX(e), e.clientY); }
+  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, {x: evX(e), y: e.clientY});
   if (pinch && ptrs.size >= 2){
     const [a, b] = [...ptrs.values()];
     const d = Math.hypot(a.x - b.x, a.y - b.y);
@@ -2115,7 +2124,7 @@ cv.addEventListener("pointermove", e => {
     return;
   }
   if (drag){
-    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    const dx = evX(e) - drag.x, dy = e.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > SLOP){ drag.moved = true; cancelPress(); }
     cx = drag.cx - dx / scale; cz = drag.cz + dy / scale;
     tip.style.display = "none";
@@ -2127,8 +2136,8 @@ cv.addEventListener("pointermove", e => {
   if (TOUCH) return;
   draw();
   document.getElementById("cur").textContent =
-    num(Math.round(wxOf(e.clientX))) + ", " + num(Math.round(wzOf(e.clientY)));
-  tipAt(e.clientX, e.clientY);
+    num(Math.round(wxOf(evX(e)))) + ", " + num(Math.round(wzOf(e.clientY)));
+  tipAt(evX(e), e.clientY);
 });
 
 function endPointer(e){
@@ -2147,10 +2156,10 @@ function endPointer(e){
   if (TOUCH){
     // The lift that ends a long press is not also a tap.
     if (pressedEnd){ pressedEnd = false; return; }
-    tipAt(e.clientX, e.clientY);
+    tipAt(evX(e), e.clientY);
   }
-  const hit = pick(e.clientX, e.clientY) || pickRich(e.clientX, e.clientY)
-            || pickGenerated(e.clientX, e.clientY);
+  const hit = pick(evX(e), e.clientY) || pickRich(evX(e), e.clientY)
+            || pickGenerated(evX(e), e.clientY);
   // A tap is a decision: the destination stops being provisional and the
   // gesture stands down.
   if (hit){ dowseProvisional = false; setEnd(routeFrom == null ? "from" : "to", hit); }
@@ -2161,8 +2170,8 @@ addEventListener("pointercancel", endPointer);
 // runs after the single click has already filled an end, and overwrites it.
 cv.addEventListener("dblclick", e => {
   e.preventDefault();
-  const target = pick(e.clientX, e.clientY) || pickRich(e.clientX, e.clientY)
-               || pickGenerated(e.clientX, e.clientY);
+  const target = pick(evX(e), e.clientY) || pickRich(evX(e), e.clientY)
+               || pickGenerated(evX(e), e.clientY);
   if (!target) return;
   routeTo = null;
   document.getElementById("to").value = "";
@@ -2181,24 +2190,19 @@ cv.addEventListener("pointerleave", () => { if (!TOUCH) tip.style.display = "non
 cv.addEventListener("wheel", e => {
   flyStop();
   e.preventDefault();
-  const wx = wxOf(e.clientX), wz = wzOf(e.clientY);
+  const wx = wxOf(evX(e)), wz = wzOf(e.clientY);
   scale *= Math.exp(-e.deltaY * .0016);
   scale = clampScale(scale);
   // The pointer has not moved but what is under it has, so the tooltip is about
   // to describe a system that is no longer there.
-  if (!TOUCH) requestAnimationFrame(() => tipAt(e.clientX, e.clientY));
-  cx = wx - (e.clientX - W / 2) / scale;
+  if (!TOUCH) requestAnimationFrame(() => tipAt(evX(e), e.clientY));
+  cx = wx - (evX(e) - W / 2) / scale;
   cz = wz + (e.clientY - H / 2) / scale;
   tip.style.display = "none";
   draw();
 }, {passive: false});
 
-// The rail sits over the left edge of the map, so "centre" means the middle of
-// what is actually uncovered, not the middle of the window.
-const halfCover = () =>
-  Math.max(0, document.getElementById("rail").getBoundingClientRect().right) / 2;
-
-function goto(x, z, sc){ scale = sc; cx = x - halfCover() / scale; cz = z; draw(); }
+function goto(x, z, sc){ scale = sc; cx = x; cz = z; draw(); }
 
 // Flying the view somewhere, as a critically damped spring rather than a timed
 // ease. A spring carries velocity, so a new destination mid-flight curves into
@@ -2319,7 +2323,7 @@ const FILL = 0.5;
 // What a sector arrives at, in light years across the map area.
 const SECTOR_VIEW_LY = 30000;
 function flyToBounds(x0, z0, x1, z1, fill = FILL){
-  const wide = W - halfCover() * 2;
+  const wide = W;
   const span = Math.max(Math.abs(x1 - x0), Math.abs(z1 - z0), CELL_LY);
   flyView((x0 + x1) / 2, (z0 + z1) / 2, Math.min(wide, H) * fill / span);
 }
@@ -2384,7 +2388,7 @@ function flyStep(now){
   if (!flyTo) return;
   const dt = Math.min(0.05, (now - flyLast) / 1000);
   flyLast = now;
-  const at = [cx + halfCover() / scale, cz, Math.log(scale)];
+  const at = [cx, cz, Math.log(scale)];
   // Critically damped: one pole at 1/tau, integrated semi-implicitly so it stays
   // stable when a frame is late.
   const zoomingIn = flyTo[2] > at[2];
@@ -2397,10 +2401,10 @@ function flyStep(now){
     rest = Math.max(rest, Math.abs(at[i] - flyTo[i]) / (i === 2 ? 0.0005 : 0.5 / scale));
   }
   scale = Math.exp(at[2]);
-  cx = at[0] - halfCover() / scale; cz = at[1];
+  cx = at[0]; cz = at[1];
   if (rest <= 1){
     scale = Math.exp(flyTo[2]);
-    cx = flyTo[0] - halfCover() / scale; cz = flyTo[1];
+    cx = flyTo[0]; cz = flyTo[1];
     flyStop();
     draw();
     return;
@@ -2851,13 +2855,13 @@ const ESCAPE_LY = 1000;
 function escapeEmptyView(){
   if (F.valMin == null) return;
   if (acrossLy() >= ESCAPE_LY) return;
-  const x0 = halfCover() * 2;
+  const x0 = 0;
   for (const s of S){
     const px = sx(s[X]), py = sy(s[Z]);
     if (px < x0 || px > W || py < 0 || py > H) continue;
     if (passes(s)) return;
   }
-  goto(cx + halfCover() / scale, cz, scaleFor(ESCAPE_LY));
+  goto(cx, cz, scaleFor(ESCAPE_LY));
 }
 {
   const el = document.getElementById("valMin");
@@ -4021,7 +4025,7 @@ async function applyParams(){
   const at = (p.get("at") || "").split(",").map(Number);
   const placed = at.length === 2 && at.every(Number.isFinite);
   const ly = +p.get("ly");
-  if (ly > 0) goto(placed ? at[0] : cx + halfCover() / scale, placed ? at[1] : cz,
+  if (ly > 0) goto(placed ? at[0] : cx, placed ? at[1] : cz,
                    scaleFor(ly));
   else if (placed) goto(at[0], at[1], scale);
   else if (p.get("view") === "galaxy") document.getElementById("toAll").click();
@@ -4093,7 +4097,7 @@ function currentParams(){
   // it is the middle of what you are looking at, in the same words the readout
   // uses. Picking never moves the view — it only changes where a reader lands.
   const [ax, az] = routeFrom ? [routeFrom.x, routeFrom.z]
-                             : [cx + halfCover() / scale, cz];
+                             : [cx, cz];
   put("at", `${Math.round(ax)},${Math.round(az)}`);
   put("ly", Math.round(acrossLy()));
   return p;

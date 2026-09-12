@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=3b74a3612b">
+<link rel="stylesheet" href="style.css?v=a66fa2364d">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -189,7 +189,6 @@
   <div><span data-ui="cursor">Cursor</span> <b id="cur">0, 0</b> <span data-ui-unit="ly">ly</span></div>
   <div><span data-ui="center">Center</span> <b id="ctr">0, 0</b></div>
   <div><span data-ui="scale">Scale</span> <b id="scl">—</b> <span data-ui="lyAcross">ly across</span></div>
-  <div><span data-ui="shown">Shown</span> <b id="shown">—</b></div>
 </div>
 
 <div class="tip" id="tip" role="status"></div>
@@ -205,9 +204,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=3b74a3612b");
+    const galaxy = await load("data/galaxy.json?v=a66fa2364d");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=3b74a3612b`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=a66fa2364d`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -216,7 +215,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=3b74a3612b";
+    s.src = "app.js?v=a66fa2364d";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

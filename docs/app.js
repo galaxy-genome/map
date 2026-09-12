@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=3b74a3612b"), read("data/reachable.png?v=3b74a3612b")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=a66fa2364d"), read("data/reachable.png?v=a66fa2364d")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=3b74a3612b", 1), read("data/zones.webp?v=3b74a3612b", 3)]);
+    [read("data/side.webp?v=a66fa2364d", 1), read("data/zones.webp?v=a66fa2364d", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1034,7 +1034,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=3b74a3612b").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=a66fa2364d").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1452,8 +1452,10 @@ const CELL_GRID_LY = 1000;
 // the view is where the map happens to be looking; the pointer is where they are
 // looking, and the cell and the letter lines belong to that.
 let hoverX = null, hoverY = null;
+// A cell is the square from its own corner outwards, so the index is the floor
+// of the position, not the nearest one.
 const hoverCell = () => hoverX == null ? null
-  : [Math.round(wxOf(hoverX) / CELL_LY + 1025), Math.round(1591 - wzOf(hoverY) / CELL_LY)];
+  : [Math.floor(wxOf(hoverX) / CELL_LY + 1025), Math.floor(1591 - wzOf(hoverY) / CELL_LY)];
 // The widest band. Above this the map is a chart of the galaxy rather than of
 // its stars: where the sectors are, where the game marks a place, where you
 // cannot earn anything, and which systems a gate joins. Nothing else.
@@ -1502,25 +1504,6 @@ function drawNaming(){
                  + `  in all four quadrants`, px + wide + 6, py + 43);
     ctx.restore();
   }
-  // Close in, every cell carries its own name: the offset pair a system in it
-  // would use, and the quadrant that pair is counted in. A value filter is
-  // asking about systems, and its figures get the ground instead.
-  if (acrossLy() > 500 || valueAsked()) return;
-  ctx.font = '10px "JetBrains Mono", monospace';
-  ctx.textAlign = "center";
-  const A2 = D.sectorAnchors;
-  for (let ccy = y0; ccy <= y1; ccy++)
-    for (let ccx = x0; ccx <= x1; ccx++){
-      const px = sx((ccx - 1025) * CELL_LY), py = sy((1591 - ccy) * CELL_LY);
-      const wide = CELL_LY * scale;
-      const j = sectorId(ccx, ccy);
-      const odx = A2.x[j] - ccx, ody = A2.y[j] - ccy;
-      ctx.fillStyle = "rgba(140,190,210,.85)";
-      ctx.fillText(sectorName(ccx, ccy).sector, px + wide / 2, py + wide / 2 - 4);
-      ctx.fillStyle = "rgba(120,150,170,.6)";
-      ctx.fillText(`${Math.abs(odx)},${Math.abs(ody)}`, px + wide / 2, py + wide / 2 + 10);
-    }
-  ctx.textAlign = "left";
 }
 
 function drawCells(){
@@ -1616,6 +1599,7 @@ function drawGates(){
 }
 
 function draw(){
+  clampView();
   const n = filterCount();
   document.getElementById("fCount").textContent = n ? n : "";
   document.getElementById("ctr").textContent =
@@ -1687,6 +1671,10 @@ function draw(){
       if (F.ore >= 0){
         const pct = orePct(s, F.ore);
         if (pct) label(px, py, r, key, [[pct + "%  ", ORE_INK], [s[NAME], INK]]);
+      // Asking where the contraband is asks which half of the turnover it is in.
+      } else if (filters.has("sellsBlack") && (tradeOf(s) & 1)){
+        label(px, py, r, key,
+              [[blackHalf(tradeOf(s)) + "  ", ORE_INK], [s[NAME], INK]]);
       // Stations, engineers and Sol earn a name early; everything else gets one
       // at the zoom where generated stars are named too. Asking about value is
       // asking it of every match.
@@ -1739,8 +1727,6 @@ function draw(){
 function finish(){
   syncURL();
   document.getElementById("scl").textContent = num(Math.round(acrossLy()));
-  document.getElementById("shown").textContent =
-    num(visible.length) + " " + ui("of") + " " + num(S.length);
 }
 
 const portrait = () => matchMedia("(orientation: portrait)").matches;
@@ -1858,11 +1844,16 @@ function fromHereRow(x, z){
 
 // The standing trade facts, where a system has any. The rotating stock is the
 // game's own map's job; these are the things it never says.
-const TRADE_SLOT = [[1, "sellsBlack"], [4, "oreBuyer"], [8, "trophyBuyer"],
-                    [16, "noMarket"]];
+const TRADE_SLOT = [[4, "oreBuyer"], [8, "trophyBuyer"], [16, "noMarket"]];
+// Which half of the named stations is holding contraband turns over every 4,000
+// units of goods moved, so the map says which half a station is in rather than
+// pretending to know the count.
+const blackHalf = m => (m & 32) && (m & 64) ? ui("blackAlways")
+                     : (m & 32) ? ui("blackEven") : ui("blackOdd");
 function tradeRow(s){
   const m = tradeOf(s);
   const said = TRADE_SLOT.filter(([bit]) => m & bit).map(([, slot]) => ui(slot));
+  if (m & 1) said.unshift(`${ui("sellsBlack")} (${blackHalf(m)})`);
   return said.length ? row("trading", said.join(", ")) : "";
 }
 
@@ -1924,7 +1915,21 @@ const SLOP = TOUCH ? 10 : 3;
 const ptrs = new Map();
 let pinch = null;
 
-const clampScale = v => Math.max(.0012, Math.min(v, 40));
+// Zooming out stops where the galaxy does: past this the view is mostly the
+// black around it.
+const MAX_OUT_LY = 200000;
+// The lattice the galaxy is generated on, in light years: panning stops where
+// the stars do rather than out in the black.
+const WORLD = {x0: -1025 * CELL_LY, x1: (GRID - 1 - 1025) * CELL_LY,
+               z0: (1591 - (GRID - 1)) * CELL_LY, z1: 1591 * CELL_LY};
+function clampView(){
+  const mid = cx + halfCover() / scale;
+  const x = Math.min(WORLD.x1, Math.max(WORLD.x0, mid));
+  cz = Math.min(WORLD.z1, Math.max(WORLD.z0, cz));
+  cx = x - halfCover() / scale;
+}
+
+const clampScale = v => Math.max(mapW() / MAX_OUT_LY, Math.min(v, 40));
 
 // A destination only means something once there is somewhere to leave from, so
 // the box is not there until the origin resolves to a real system.
@@ -2061,7 +2066,7 @@ cv.addEventListener("wheel", e => {
   e.preventDefault();
   const wx = wxOf(e.clientX), wz = wzOf(e.clientY);
   scale *= Math.exp(-e.deltaY * .0016);
-  scale = Math.max(.0012, Math.min(scale, 40));
+  scale = clampScale(scale);
   cx = wx - (e.clientX - W / 2) / scale;
   cz = wz + (e.clientY - H / 2) / scale;
   tip.style.display = "none";
@@ -2286,7 +2291,7 @@ function flyStep(now){
 
 // Land close enough that the system is unmistakable, then flash the ring out.
 function focusOn(s, sc = 14){
-  goto(s[X], s[Z], sc);
+  flyView(s[X], s[Z], sc);
   flashMatches([s]);
 }
 
@@ -2306,8 +2311,8 @@ function flashMatches(list){
   };
   focusRAF = requestAnimationFrame(step);
 }
-document.getElementById("zin").onclick    = () => { scale = Math.min(scale * 1.6, 40); draw(); };
-document.getElementById("zout").onclick   = () => { scale = Math.max(scale / 1.6, .0012); draw(); };
+document.getElementById("zin").onclick    = () => { scale = clampScale(scale * 1.6); draw(); };
+document.getElementById("zout").onclick   = () => { scale = clampScale(scale / 1.6); draw(); };
 const clearFocus = () => { focused = []; cancelAnimationFrame(focusRAF); };
 document.getElementById("zreset").onclick = () => { clearFocus(); goto(0, 0, scaleFor(HOME_LY)); };
 document.getElementById("toSol").onclick  = () => { clearFocus(); goto(0, 0, scaleFor(HOME_LY)); };
@@ -2924,6 +2929,16 @@ function bindSearch(id){
     }
   });
 }
+// Enter takes the first thing offered, which is what the list is ordered for.
+for (const id of ["from", "to"])
+  document.getElementById(id).addEventListener("keydown", e => {
+    if (e.key !== "Enter") return;
+    const first = document.querySelector(`.hits[data-for="${id}"] li`);
+    if (!first) return;
+    e.preventDefault();
+    first.click();
+  });
+
 bindSearch("from");
 bindSearch("to");
 
@@ -3072,8 +3087,9 @@ function drawGenerated(){
     } else if (valueAsked() && deep){
       label(px, py, r, st.name, [[worthLabel(systemValue(st)), VALUE_INK]]);
     } else if (scale > 4 || onRoute.has(st.name)){
-      // The cell beneath it already carries the rest of the name.
-      const shown = cellGridOn() ? st.name.replace(/^.*[A-E]/, "") : st.name;
+      // The cell beneath it already carries the pairs; the quadrant letter and
+      // the index are what tell two systems in that cell apart.
+      const shown = cellGridOn() ? st.name.replace(/^.*?([A-E]\d+)$/, "$1") : st.name;
       label(px, py, r, st.name, [[shown, INK]]);
     }
   }

@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=4eda3591b0"), read("data/reachable.png?v=4eda3591b0")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=527f3816fa"), read("data/reachable.png?v=527f3816fa")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=4eda3591b0", 1), read("data/zones.webp?v=4eda3591b0", 3)]);
+    [read("data/side.webp?v=527f3816fa", 1), read("data/zones.webp?v=527f3816fa", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1039,7 +1039,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=4eda3591b0").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=527f3816fa").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2014,6 +2014,7 @@ cv.addEventListener("pointermove", e => {
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     if (Math.abs(dx) + Math.abs(dy) > SLOP){ drag.moved = true; cancelPress(); }
     cx = drag.cx - dx / scale; cz = drag.cz + dy / scale;
+    if (!TOUCH) tip.style.display = "none";
     tip.style.display = "none";
     draw();
     return;
@@ -2072,6 +2073,9 @@ cv.addEventListener("wheel", e => {
   const wx = wxOf(e.clientX), wz = wzOf(e.clientY);
   scale *= Math.exp(-e.deltaY * .0016);
   scale = clampScale(scale);
+  // The pointer has not moved but what is under it has, so the tooltip is about
+  // to describe a system that is no longer there.
+  if (!TOUCH) requestAnimationFrame(() => tipAt(e.clientX, e.clientY));
   cx = wx - (e.clientX - W / 2) / scale;
   cz = wz + (e.clientY - H / 2) / scale;
   tip.style.display = "none";
@@ -2538,6 +2542,16 @@ const PRESETS = [
   {slot: "pGates",     on: ["gate"], spoil: true},
 ];
 
+// A chip states what the galaxy answers. Generated space never holds a station,
+// an engineer, a gate or the wreck, so those chips are complete already; the two
+// that ask about value are not, and the sweep answered them for all 72 million.
+function genCount(pre){
+  const cr = pre.set && pre.set.valMin;
+  if (cr == null) return 0;
+  const sc = pre.scanner || D.scanners[scanner][0];
+  return D.genCounts[sc + ":" + cr] || 0;
+}
+
 function presetCount(pre){
   const keep = new Set(filters);
   const kf = {...F, sec: new Set(F.sec), purp: new Set(F.purp), fac: new Set(F.fac)};
@@ -2586,6 +2600,7 @@ function syncPills(host, i){
     b.setAttribute("aria-pressed", "false");
     b.innerHTML = `<span class="box"></span><span data-ui="${pre.slot}">${ui(pre.slot)}</span>` +
                   `<span class="n"></span>`;
+    if (D.help["preset:" + pre.slot]) bindHelp(b, "preset:" + pre.slot);
     b.onclick = () => {
       // Pressed already: the chip is the only filter state there is, so clearing
       // everything is what turning it off means.
@@ -2617,7 +2632,7 @@ function refreshCounts(){
     num(S.reduce((n, s) => n + (worth(s) >= RICH_MIN ? 1 : 0), 0));
   for (const pre of PRESETS){
     const el = document.querySelector(`[data-preset="${pre.slot}"] .n`);
-    if (el) el.textContent = num(presetCount(pre));
+    if (el) el.textContent = num(presetCount(pre) + genCount(pre));
   }
 }
 

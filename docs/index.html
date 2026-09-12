@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=4eda3591b0">
+<link rel="stylesheet" href="style.css?v=527f3816fa">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -38,7 +38,6 @@
   <details class="grp" open>
     <summary data-ui="showMe">Show me…</summary>
     <div class="body" id="presetRow"></div>
-    <p class="note" data-ui="presetNote">Counts are named systems. Generated space holds far more of everything except stations, engineers and gates, which it never holds at all.</p>
   </details>
 
   <details class="grp">
@@ -204,9 +203,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=4eda3591b0");
+    const galaxy = await load("data/galaxy.json?v=527f3816fa");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=4eda3591b0`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=527f3816fa`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -215,7 +214,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=4eda3591b0";
+    s.src = "app.js?v=527f3816fa";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

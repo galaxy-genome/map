@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=975aa32e2e"), read("data/reachable.png?v=975aa32e2e")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=74ae6b8822"), read("data/reachable.png?v=74ae6b8822")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=975aa32e2e", 1), read("data/zones.webp?v=975aa32e2e", 3)]);
+    [read("data/side.webp?v=74ae6b8822", 1), read("data/zones.webp?v=74ae6b8822", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -708,6 +708,8 @@ let cx = 0, cz = 0, scale = 4, scaleSet = false;
 const HOME_LY = TOUCH ? 75 : 150;
 // Light years across the window when the whole galaxy is asked for.
 const GALAXY_LY = 170000;
+// Where the Whole galaxy button lands: the populated disc, framed.
+const GALAXY_VIEW_LY = 125000;
 // Inside this radius the game treats every planet as already scanned and pays
 // nothing, so a scan-value filter has to leave that space out.
 // The canvas is the map area: it starts where the sidebar ends, so its width is
@@ -1049,7 +1051,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=975aa32e2e").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=74ae6b8822").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2444,7 +2446,7 @@ document.getElementById("toSol").onclick  = () => { clearFocus(); goto(0, 0, sca
 document.getElementById("toVoid").onclick = () => {
   clearFocus(); goto(-2232, -3987, scaleFor(HOME_LY));
 };
-document.getElementById("toAll").onclick  = () => { clearFocus(); goto(-8000, 6000, scaleFor(GALAXY_LY)); };
+document.getElementById("toAll").onclick  = () => { clearFocus(); goto(3800, 25000, scaleFor(GALAXY_VIEW_LY)); };
 
 for (const b of document.querySelectorAll(".chip[data-f]")){
   b.onclick = () => {

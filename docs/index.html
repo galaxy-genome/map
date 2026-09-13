@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=57da6e728d">
+<link rel="stylesheet" href="style.css?v=1186e16f0f">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -74,7 +74,7 @@
       <label class="f"><span class="ask" data-help="what:ore" tabindex="0" data-ui="orePresent">Ore present</span></label>
       <select id="ore"><option value="">any</option></select>
       <label class="f"><span data-ui="minPct">Min %</span><input type="number" id="pctMin" min="0" max="100" step="1" data-ui-ph="pickOre" placeholder="pick an ore" disabled></label>
-      <button class="chip" data-f="belt" data-help="basic:belt" aria-pressed="false"><span class="box"></span><span data-ui="hasBelt">Has belt</span><span class="n" data-n="belt"></span></button>
+      <button class="chip" data-f="belt" data-help="basic:belt" aria-pressed="false"><span class="box"></span><span data-ui="hasBelt">Has belt</span></button>
     </div>
   </details>
 
@@ -116,7 +116,7 @@
     <summary data-ui="crafting">Crafting</summary>
     <div class="body">
       <label class="f"><span class="ask" data-help="what:landable" tabindex="0" data-ui="minLandable">Min landable</span><input type="number" id="laMin" min="0" step="1" placeholder="0"></label>
-      <button class="chip" data-f="land" data-help="basic:land" aria-pressed="false"><span class="box"></span><span data-ui="landable">Landable planet</span><span class="n" data-n="land"></span></button>
+      <button class="chip" data-f="land" data-help="basic:land" aria-pressed="false"><span class="box"></span><span data-ui="landable">Landable planet</span></button>
     </div>
   </details>
 
@@ -233,9 +233,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=57da6e728d");
+    const galaxy = await load("data/galaxy.json?v=1186e16f0f");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=57da6e728d`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=1186e16f0f`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -244,7 +244,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=57da6e728d";
+    s.src = "app.js?v=1186e16f0f";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

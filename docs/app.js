@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=57da6e728d"), read("data/reachable.png?v=57da6e728d")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=1186e16f0f"), read("data/reachable.png?v=1186e16f0f")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=57da6e728d", 1), read("data/zones.webp?v=57da6e728d", 3)]);
+    [read("data/side.webp?v=1186e16f0f", 1), read("data/zones.webp?v=1186e16f0f", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1054,7 +1054,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=57da6e728d").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=1186e16f0f").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2714,7 +2714,7 @@ fill("ore", ORES);
     hunted.add(raw);
     const o = document.createElement("option");
     o.value = raw;
-    o.textContent = `${label} — ${have} ${ui("hSystems").toLowerCase()}` +
+    o.textContent = `${label} — ${num(have)} ${ui("hSystems").toLowerCase()}` +
                     (need > 1 ? ` (${need})` : "");
     if (have === 0 || have < need){ o.textContent += "  \u26a0"; impossible++; }
     gExp.append(o);
@@ -2731,9 +2731,8 @@ fill("ore", ORES);
   }
   el.append(gAll);
   el.onchange = () => { F.startype = el.value; draw(); };
-  document.getElementById("huntNote").innerHTML =
-    ui("huntNote") + ` <b>\u26a0 ` +
-    fmt("huntWarn", {n: impossible, total: D.hunt.length}) + `</b>`;
+  document.getElementById("huntNote").innerHTML = ui("huntNote") + (impossible
+    ? ` <b>\u26a0 ` + fmt("huntWarn", {n: impossible, total: D.hunt.length}) + `</b>` : "");
 }
 
 // Multi-select pill groups. `bucket` is the Set the group writes into;
@@ -2865,8 +2864,8 @@ const PRESETS = [
 ];
 
 // A chip states what the galaxy answers. Generated space never holds a station,
-// an engineer, a gate or the wreck, so those chips are complete already; the two
-// that ask about value are not, and the sweep answered them for all 72 million.
+// an engineer, a gate or the wreck, so the catalogue answers those; a value chip
+// is answered by the sweep, which holds every system.
 function genCount(pre){
   const cr = pre.set && pre.set.valMin;
   if (cr == null) return 0;
@@ -2965,10 +2964,11 @@ function syncPills(host, i){
 // changes rather than going quietly stale.
 function refreshCounts(){
   document.getElementById("hlRichN").textContent =
-    num(S.reduce((n, s) => n + (worth(s) >= RICH_MIN ? 1 : 0), 0));
+    num(D.genCounts[D.scanners[scanner][0] + ":" + RICH_MIN] || 0);
   for (const pre of PRESETS){
     const el = document.querySelector(`[data-preset="${pre.slot}"] .n`);
-    if (el) el.textContent = num(presetCount(pre) + genCount(pre));
+    // The sweep's figure already covers the catalogue.
+    if (el) el.textContent = num(genCount(pre) || presetCount(pre));
   }
 }
 

@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=ed6bbb0abb">
+<link rel="stylesheet" href="style.css?v=88196bcb6e">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -232,9 +232,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=ed6bbb0abb");
+    const galaxy = await load("data/galaxy.json?v=88196bcb6e");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=ed6bbb0abb`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=88196bcb6e`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -243,7 +243,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=ed6bbb0abb";
+    s.src = "app.js?v=88196bcb6e";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

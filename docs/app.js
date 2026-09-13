@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=ed6bbb0abb"), read("data/reachable.png?v=ed6bbb0abb")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=88196bcb6e"), read("data/reachable.png?v=88196bcb6e")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=ed6bbb0abb", 1), read("data/zones.webp?v=ed6bbb0abb", 3)]);
+    [read("data/side.webp?v=88196bcb6e", 1), read("data/zones.webp?v=88196bcb6e", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1054,7 +1054,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=ed6bbb0abb").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=88196bcb6e").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1743,6 +1743,7 @@ function draw(){
     drawRoute();
     drawLabels();
     drawFlashBox();
+    drawOverlays();
     mapButtons = [];
     return finish();
   }
@@ -1834,6 +1835,7 @@ function draw(){
   ctx.globalAlpha = solo ? DIM : 1;
   drawRoute();
   drawFlashBox();
+  drawOverlays();
   // Last, so every source has had its say about what deserves a name.
   drawLabels();
   drawGateButtons();
@@ -2345,6 +2347,28 @@ function cellBoxOf(x, z){
   return boxOf(cx0, cy0, cx0, cy0);
 }
 
+// Shapes a link asks the map to draw: `draw={"circle":[x,z,r]}`, in light years,
+// or a list of circles. A quest that starts anywhere inside an area is linked
+// with that area drawn.
+let overlays = {};
+function drawOverlays(){
+  const circles = overlays.circle || [];
+  const list = Array.isArray(circles[0]) ? circles : circles.length ? [circles] : [];
+  if (!list.length) return;
+  ctx.save();
+  ctx.strokeStyle = "#ffb454";
+  ctx.fillStyle = "rgba(255,180,84,0.08)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([6, 4]);
+  for (const [x, z, r] of list){
+    ctx.beginPath();
+    ctx.arc(sx(x), sy(z), Math.max(r * scale, 4), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawFlashBox(){
   if (!flashBoxes.length && !flashWedge) return;
   ctx.save();
@@ -2521,8 +2545,8 @@ function flyStep(now){
 // ("Smooth and efficient zooming and panning", 2003): it rises as far as the
 // distance needs, crosses zoomed out and descends, at constant perceived speed.
 // Progress along it is eased in and out. The spring stays for retargeting.
-const PATH_RHO = 1.4;               // how far the path rises; sqrt(2) is canonical
-const PATH_MS_PER_S = 420;          // milliseconds per unit of path length
+const PATH_RHO = 1.0;               // how far the path rises; sqrt(2) is canonical
+const PATH_MS_PER_S = 360;          // milliseconds per unit of path length
 let pathRAF = 0;
 function pathStop(){ cancelAnimationFrame(pathRAF); pathRAF = 0; }
 function flyPath(x, z, sc){
@@ -4418,6 +4442,7 @@ async function applyParams(){
   // sky with nothing in it, so the view widens to where the matches are.
   // `at` is the centre of the uncovered map, which is what the readout shows and
   // what goto takes, so it round-trips through goto rather than through cx.
+  try { overlays = JSON.parse(p.get("draw") || "{}") || {}; } catch (e) { overlays = {}; }
   const at = (p.get("at") || "").split(",").map(Number);
   const placed = at.length === 2 && at.every(Number.isFinite);
   const ly = +p.get("ly");
@@ -4497,6 +4522,7 @@ function currentParams(){
                              : [cx, cz];
   put("at", `${Math.round(ax)},${Math.round(az)}`);
   put("ly", Math.round(acrossLy()));
+  if (Object.keys(overlays).length) put("draw", JSON.stringify(overlays));
   return p;
 }
 

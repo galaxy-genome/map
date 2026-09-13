@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=88196bcb6e">
+<link rel="stylesheet" href="style.css?v=b2fa5e2a4e">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -64,7 +64,7 @@
       <label class="f"><span data-ui="minPlanets">Min planets</span><input type="number" id="plMin" min="0" step="1" placeholder="0"></label>
       <label class="f"><span class="ask" data-help="what:starhunter" tabindex="0" data-ui="starHunter">StarHunter class</span></label>
       <select id="startype"><option value="">any</option></select>
-      <p class="note" id="huntNote">Counts are systems in reachable space.</p>
+      <p class="note" id="huntNote" hidden></p>
     </div>
   </details>
 
@@ -232,9 +232,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=88196bcb6e");
+    const galaxy = await load("data/galaxy.json?v=b2fa5e2a4e");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=88196bcb6e`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=b2fa5e2a4e`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -243,7 +243,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=88196bcb6e";
+    s.src = "app.js?v=b2fa5e2a4e";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

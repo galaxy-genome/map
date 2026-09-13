@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=88196bcb6e"), read("data/reachable.png?v=88196bcb6e")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=b2fa5e2a4e"), read("data/reachable.png?v=b2fa5e2a4e")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=88196bcb6e", 1), read("data/zones.webp?v=88196bcb6e", 3)]);
+    [read("data/side.webp?v=b2fa5e2a4e", 1), read("data/zones.webp?v=b2fa5e2a4e", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1054,7 +1054,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=88196bcb6e").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=b2fa5e2a4e").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2733,7 +2733,7 @@ for (const b of document.querySelectorAll(".chip[data-f]")){
     // Some of these match a single system in the whole catalogue. Turning one on
     // and being left with empty sky reads as a broken filter rather than a rare
     // answer, so go to the nearest one instead.
-    if (!on && !visible.length) fitToMatches();
+    if (!on && !visible.length) fitToMatches(true);
   };
 }
 
@@ -2808,9 +2808,15 @@ fill("ore", ORES);
     gAll.append(o);
   }
   el.append(gAll);
-  el.onchange = () => { F.startype = el.value; draw(); };
-  document.getElementById("huntNote").innerHTML = ui("huntNote") + (impossible
-    ? ` <b>\u26a0 ` + fmt("huntWarn", {n: impossible, total: D.hunt.length}) + `</b>` : "");
+  el.onchange = () => {
+    F.startype = el.value;
+    draw();
+    if (el.value) fitToMatches(true);
+  };
+  const note = document.getElementById("huntNote");
+  note.hidden = !impossible;
+  note.innerHTML = impossible
+    ? `<b>\u26a0 ` + fmt("huntWarn", {n: impossible, total: D.hunt.length}) + `</b>` : "";
 }
 
 // Multi-select pill groups. `bucket` is the Set the group writes into;
@@ -4279,23 +4285,22 @@ function fitToRoute(){
 // or a bounding box is either far too tight or far too wide, and this is not.
 const FRAME_MIN_LY = 300;
 
-function fitToMatches(){
-  const hit = S.filter(passes);
-  if (!hit.length){
-    // Most star types occur only in generated space, often nowhere near Sol. A
-    // filter cannot find what is not being drawn, so go to the nearest one.
-    const near = F.startype && (D.starNear || {})[F.startype];
-    if (near && near.length){
-      // Landing exactly on the boundary is where generated stars begin
-      // to draw, so arrive comfortably inside it.
-      const [, x, z] = near[0];
-      goto(x, z, Math.max(scaleFor(400), GEN_SCALE() * 2));
-    }
+function fitToMatches(fly = false){
+  const go = fly ? flyPath : goto;
+  // A star type goes to the closest system that has one, wherever it is and
+  // whether or not anyone named it.
+  const near = F.startype && (D.starNear || {})[F.startype];
+  if (near && near.length){
+    const [, x, z] = near[0];
+    // Close enough that generated systems are drawn, so the star is on screen.
+    go(x, z, Math.max(scaleFor(400), GEN_SCALE() * 2));
     return;
   }
+  const hit = S.filter(passes);
+  if (!hit.length) return;
   const ly = hit.map(s => s[LY]).sort((a, b) => a - b);
   const across = Math.min(Math.max(ly[ly.length >> 1] * 4, FRAME_MIN_LY), GALAXY_LY);
-  goto(0, 0, scaleFor(across));
+  go(0, 0, scaleFor(across));
   flashMatches(hit);
 }
 

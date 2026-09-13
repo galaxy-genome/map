@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=4cc01b2cd2"), read("data/reachable.png?v=4cc01b2cd2")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=ed6bbb0abb"), read("data/reachable.png?v=ed6bbb0abb")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=4cc01b2cd2", 1), read("data/zones.webp?v=4cc01b2cd2", 3)]);
+    [read("data/side.webp?v=ed6bbb0abb", 1), read("data/zones.webp?v=ed6bbb0abb", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1054,7 +1054,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=4cc01b2cd2").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=ed6bbb0abb").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2241,7 +2241,7 @@ function endPointer(e){
   }
   const btn = mapButtons.find(b => evX(e) >= b.x0 && evX(e) <= b.x1
                                 && e.clientY >= b.y0 && e.clientY <= b.y1);
-  if (btn){ clearFocus(); focusOn(btn.to); return; }
+  if (btn){ clearFocus(); focusOn(btn.to, 14, flyPath); return; }
   const hit = pick(evX(e), e.clientY) || pickRich(evX(e), e.clientY)
             || pickGenerated(evX(e), e.clientY);
   // A tap is a decision: the destination stops being provisional and the
@@ -2311,6 +2311,7 @@ const reducedMotion = () =>
 // speed divides every time constant: 4 is a flight a quarter as long.
 let flySpeed = 1;
 function flyView(x, z, sc, speed = 1){
+  pathStop();
   sc = clampScale(sc);
   flySpeed = speed;
   // A tooltip describes a system at a position on screen, and the position is
@@ -2417,17 +2418,17 @@ function showGalaxy(instant){
     x0 = Math.min(x0, x); x1 = Math.max(x1, x);
     z0 = Math.min(z0, z); z1 = Math.max(z1, z);
   }
-  const go = instant ? goto : flyView;
+  const go = instant ? goto : flyPath;
   if (!isFinite(x0)){ go(0, 0, scaleFor(GALAXY_LY)); return; }
   // Both axes have to fit, so the scale is whichever is tighter.
   const fit = Math.min(W / (x1 - x0), H / (z1 - z0)) * GALAXY_MARGIN;
   go((x0 + x1) / 2, (z0 + z1) / 2, fit);
 }
 
-function flyToBounds(x0, z0, x1, z1, fill = FILL){
+function flyToBounds(x0, z0, x1, z1, fill = FILL, fly = flyView){
   const wide = W;
   const span = Math.max(Math.abs(x1 - x0), Math.abs(z1 - z0), CELL_LY);
-  flyView((x0 + x1) / 2, (z0 + z1) / 2, Math.min(wide, H) * fill / span);
+  fly((x0 + x1) / 2, (z0 + z1) / 2, Math.min(wide, H) * fill / span);
 }
 
 // What the search has narrowed to, as a rectangle in light years, at whatever
@@ -2480,6 +2481,7 @@ function searchBounds(raw, cells){
 // since moved". Cleared whenever the view stops being the one it aimed at.
 let flyAimed = "";
 function flyStop(){
+  pathStop();
   if (flyRAF) cancelAnimationFrame(flyRAF);
   flyRAF = 0; flyTo = null; flyV = [0, 0, 0];
   flyAimed = "";
@@ -2515,9 +2517,61 @@ function flyStep(now){
   flyRAF = requestAnimationFrame(flyStep);
 }
 
+// A planned journey follows van Wijk and Nuij's optimal zoom-and-pan path
+// ("Smooth and efficient zooming and panning", 2003): it rises as far as the
+// distance needs, crosses zoomed out and descends, at constant perceived speed.
+// Progress along it is eased in and out. The spring stays for retargeting.
+const PATH_RHO = 1.4;               // how far the path rises; sqrt(2) is canonical
+const PATH_MS_PER_S = 420;          // milliseconds per unit of path length
+let pathRAF = 0;
+function pathStop(){ cancelAnimationFrame(pathRAF); pathRAF = 0; }
+function flyPath(x, z, sc){
+  sc = clampScale(sc);
+  if (reducedMotion()){ goto(x, z, sc); return; }
+  flyStop();
+  tip.style.display = "none";
+  document.getElementById("help").style.display = "none";
+  const x0 = cx, z0 = cz, w0 = W / scale, w1 = W / sc, dx = x - x0, dz = z - z0;
+  const r2 = PATH_RHO * PATH_RHO, d = Math.hypot(dx, dz);
+  let S, at;
+  if (d < 1e-6){
+    const k = Math.sign(Math.log(w1 / w0));
+    S = Math.abs(Math.log(w1 / w0)) / PATH_RHO;
+    at = s => [x0, z0, w0 * Math.exp(k * PATH_RHO * s)];
+  } else {
+    const b0 = (w1 * w1 - w0 * w0 + r2 * r2 * d * d) / (2 * w0 * r2 * d);
+    const b1 = (w1 * w1 - w0 * w0 - r2 * r2 * d * d) / (2 * w1 * r2 * d);
+    const q0 = Math.log(Math.sqrt(b0 * b0 + 1) - b0);
+    const q1 = Math.log(Math.sqrt(b1 * b1 + 1) - b1);
+    S = (q1 - q0) / PATH_RHO;
+    at = s => {
+      const u = w0 / (r2 * d) * (Math.cosh(q0) * Math.tanh(PATH_RHO * s + q0) - Math.sinh(q0));
+      return [x0 + u * dx, z0 + u * dz, w0 * Math.cosh(q0) / Math.cosh(PATH_RHO * s + q0)];
+    };
+  }
+  const ms = Math.min(3000, Math.max(350, S * PATH_MS_PER_S)), t0 = performance.now();
+  const step = now => {
+    const t = Math.min(1, (now - t0) / ms);
+    if (t < 1){
+      const [px, pz, w] = at((1 - Math.cos(Math.PI * t)) / 2 * S);
+      cx = px; cz = pz; scale = W / w;
+      draw();
+      pathRAF = requestAnimationFrame(step);
+    } else { pathRAF = 0; cx = x; cz = z; scale = sc; draw(); }
+  };
+  pathRAF = requestAnimationFrame(step);
+}
+
+// Somewhere off screen is a journey and takes the path; a nudge within view,
+// or a retarget mid-path, stays on the spring.
+function flyTrip(x, z, sc){
+  const far = Math.hypot(x - cx, z - cz) > W / scale || Math.abs(Math.log(sc / scale)) > 2;
+  (far && !pathRAF ? flyPath : flyView)(x, z, sc);
+}
+
 // Land close enough that the system is unmistakable, then flash the ring out.
-function focusOn(s, sc = 14){
-  flyView(s[X], s[Z], sc);
+function focusOn(s, sc = 14, fly = flyView){
+  fly(s[X], s[Z], sc);
   flashMatches([s]);
 }
 
@@ -2549,19 +2603,19 @@ document.getElementById("zout").onclick   = () => zoomStep(1 / 1.6);
 const clearFocus = () => { focused = []; cancelAnimationFrame(focusRAF); };
 // Somewhere else on the map is a journey, not a cut: the flight shows how far
 // the two places are from each other, which a jump never can.
-document.getElementById("zreset").onclick = () => { clearFocus(); flyView(0, 0, scaleFor(HOME_LY)); };
-document.getElementById("toSol").onclick  = () => { clearFocus(); flyView(0, 0, scaleFor(HOME_LY)); };
+document.getElementById("zreset").onclick = () => { clearFocus(); flyPath(0, 0, scaleFor(HOME_LY)); };
+document.getElementById("toSol").onclick  = () => { clearFocus(); flyPath(0, 0, scaleFor(HOME_LY)); };
 // Centre of the deep-space cluster: 21 systems and 35 stations inside about 60 ly.
 document.getElementById("toVoid").onclick = () => {
-  clearFocus(); flyView(-2232, -3987, scaleFor(HOME_LY));
+  clearFocus(); flyPath(-2232, -3987, scaleFor(HOME_LY));
 };
 // The two places worth a button of their own: the black hole that unlocks the
 // Warp Drive Booster by being visited, and the galaxy's only Preon star.
 document.getElementById("toSagA").onclick  = () => {
-  clearFocus(); flyView(25, 25899, scaleFor(HOME_LY));
+  clearFocus(); flyPath(25, 25899, scaleFor(HOME_LY));
 };
 document.getElementById("toPreon").onclick = () => {
-  clearFocus(); flyView(-4608, -16094, scaleFor(HOME_LY));
+  clearFocus(); flyPath(-4608, -16094, scaleFor(HOME_LY));
 };
 // `open` is the browser's, and only ever present when a section is open. The
 // mirror of it is written out too, so the closed state is visible in the DOM and
@@ -2623,7 +2677,7 @@ for (const el of document.querySelectorAll(".chip .rev")){
   const go = e => {
     e.stopPropagation();
     const s2 = byName.get(el.dataset.gate);
-    if (s2){ clearFocus(); focusOn(s2); }
+    if (s2){ clearFocus(); focusOn(s2, 14, flyPath); }
   };
   el.addEventListener("click", go);
   el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") go(e); });
@@ -2631,10 +2685,10 @@ for (const el of document.querySelectorAll(".chip .rev")){
 
 // The far ends of the two warp gates that do not land in the Void.
 document.getElementById("toIsar").onclick = () => {
-  clearFocus(); flyView(-9530, 19808, scaleFor(HOME_LY));
+  clearFocus(); flyPath(-9530, 19808, scaleFor(HOME_LY));
 };
 document.getElementById("toTerm").onclick = () => {
-  clearFocus(); flyView(-24039, -975, scaleFor(HOME_LY));
+  clearFocus(); flyPath(-24039, -975, scaleFor(HOME_LY));
 };
 document.getElementById("toAll").onclick  = () => { clearFocus(); showGalaxy(); };
 
@@ -2939,7 +2993,7 @@ function syncPills(host, i){
       b.setAttribute("aria-pressed", "true");
       draw();
       // A preset that names a place goes there; the rest frame their matches.
-      if (pre.view) flyView(pre.view[0], pre.view[1], scaleFor(pre.view[2]));
+      if (pre.view) flyPath(pre.view[0], pre.view[1], scaleFor(pre.view[2]));
       else fitToMatches();
       helpBox.style.display = "none";
       // The section holding what the preset set is the only one worth reading
@@ -3269,9 +3323,9 @@ function bindSearch(id){
             // A sector lands at a fixed width rather than a share of the screen:
             // its own extent varies with how far out it sits, and the view
             // should not.
-            if (b && whole) flyView((b[0] + b[2]) / 2, (b[1] + b[3]) / 2,
+            if (b && whole) flyTrip((b[0] + b[2]) / 2, (b[1] + b[3]) / 2,
                                     scaleFor(SECTOR_VIEW_LY));
-            else if (b) flyToBounds(b[0], b[1], b[2], b[3], 0.8);
+            else if (b) flyToBounds(b[0], b[1], b[2], b[3], 0.8, flyTrip);
           }
           flashBounds(boxes, wedges);
         }
@@ -3281,7 +3335,7 @@ function bindSearch(id){
     for (const [si, hits] of groups){
       const head = document.createElement("li");
       head.innerHTML = `${S[si][NAME]}<span class="ly">${num(S[si][LY])} ly</span>`;
-      head.onclick = () => { list.innerHTML = ""; setEnd(id, S[si]); focusOn(S[si]); };
+      head.onclick = () => { list.innerHTML = ""; setEnd(id, S[si]); focusOn(S[si], 14, flyTrip); };
       list.append(head);
       for (const [label, kind] of hits.slice(0, 8)){
         const sub = document.createElement("li");

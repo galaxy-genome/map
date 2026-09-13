@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=1186e16f0f">
+<link rel="stylesheet" href="style.css?v=4cc01b2cd2">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -86,7 +86,6 @@
       <button class="chip" data-one="trade" data-f="oreBuyer" data-help="trade:ore" aria-pressed="false"><span class="box"></span><span data-ui="oreBuyer">Best ore price</span><span class="n" data-n="oreBuyer"></span></button>
       <button class="chip" data-one="trade" data-f="trophyBuyer" data-help="trade:trophy" aria-pressed="false"><span class="box"></span><span data-ui="trophyBuyer">Buys trophies</span><span class="n" data-n="trophyBuyer"></span></button>
       <button class="chip" data-one="trade" data-f="noMarket" data-help="trade:none" aria-pressed="false"><span class="box"></span><span data-ui="noMarket">No market at all</span><span class="n" data-n="noMarket"></span></button>
-      <p class="note" data-ui="hTradeNote"></p>
     </div>
   </details>
 
@@ -233,9 +232,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=1186e16f0f");
+    const galaxy = await load("data/galaxy.json?v=4cc01b2cd2");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=1186e16f0f`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=4cc01b2cd2`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -244,7 +243,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=1186e16f0f";
+    s.src = "app.js?v=4cc01b2cd2";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

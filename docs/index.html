@@ -6,37 +6,47 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=74ae6b8822">
+<link rel="stylesheet" href="style.css?v=57da6e728d">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
         data-ui-aria="menu" aria-label="Menu"><span class="bars"></span><span class="badge" id="fCount"></span></button>
 
 <nav class="rail" id="rail">
-  <div class="brand"><span data-ui="title">Galaxy Genome Map</span><small id="count">— systems</small>
-    <small class="unofficial" data-ui="unofficial">Unofficial fan tool</small>
-    <select id="lang" data-ui-aria="language" aria-label="Language"></select>
+  <div class="brand"><span class="name"><span id="brandTitle"><span class="game">Galaxy Genome</span> Map</span><button
+      type="button" id="langFlag" data-ui-aria="language" aria-label="Language"></button></span>
+    <span class="sub"><small class="unofficial" data-ui="unofficial">Unofficial fan tool</small><a
+      class="wikiLink" href="https://galaxy-genome.github.io/wiki/" target="_blank" rel="noopener"
+      data-ui="wikiLink">Wiki</a></span>
+    <select id="lang" data-ui-aria="language" aria-label="Language" hidden></select>
     <label class="spoil"><input type="checkbox" id="spoilers"> <span data-ui="spoilers">show spoilers</span></label>
   </div>
 
-  <div class="grp">
-    <h2 data-ui="route">Route</h2>
-    <label class="f"><span data-ui="currentSystem">Current system</span></label>
-    <input id="from" type="search" data-ui-ph="findPlaceholder" placeholder="click a system, or type" autocomplete="off">
-    <p class="note" id="fromNote" hidden data-ui="fromNote">Double-click to change</p>
+  <details class="grp" id="routeSec" open>
+    <summary><span id="routeHead" data-ui="route">Route</span></summary>
+    <div class="body">
+    <div class="field">
+      <label class="f"><span data-ui="currentSystem">Current system</span></label>
+      <input id="from" type="search" data-ui-ph="findPlaceholder" placeholder="click a system, or type" autocomplete="off">
+      <p class="note" id="fromNote" hidden data-ui="fromNote">Double-click to change</p>
+    </div>
     <ul class="hits" data-for="from"></ul>
     <div id="toBox" hidden>
-      <label class="f"><span data-ui="to">To</span></label>
-      <input id="to" type="search" data-ui-ph="toPlaceholder" placeholder="click a second system" autocomplete="off">
-      <p class="note" id="dowseNote" hidden data-ui="dowseNote">Hover to plot a course</p>
+      <div class="field">
+        <label class="f"><span data-ui="to">To</span></label>
+        <input id="to" type="search" data-ui-ph="toPlaceholder" placeholder="click a second system" autocomplete="off">
+        <p class="note" id="dowseNote" hidden data-ui="dowseNote">Hover to plot a course</p>
+      </div>
       <ul class="hits" data-for="to"></ul>
     </div>
     <label class="f"><span data-ui="maxJump">Max jump</span><input type="number" id="jump" min="1" max="500" step="1" value="10"> <span data-ui-unit="ly">ly</span></label>
     <button id="clearRoute" data-ui="clearRoute">Clear route</button>
     <button class="resetFilters" data-ui="reset">Clear all filters</button>
     <p class="note" id="routeNote"></p>
-  </div>
+    </div>
+  </details>
 
+  <div class="sections">
   <details class="grp" open>
     <summary data-ui="showMe">Show me…</summary>
     <div class="body" id="presetRow"></div>
@@ -71,11 +81,11 @@
   <details class="grp">
     <summary data-ui="trading">Trading</summary>
     <div class="body">
-      <button class="chip" data-f="sellsBlack" data-help="trade:sells" aria-pressed="false"><span class="box"></span><span data-ui="sellsBlack">Sells contraband</span><span class="n" data-n="sellsBlack"></span></button>
-      <button class="chip" data-f="buysBlack" data-help="trade:buys" aria-pressed="false"><span class="box"></span><span data-ui="buysBlack">Buys contraband</span><span class="n" data-n="buysBlack"></span></button>
-      <button class="chip" data-f="oreBuyer" data-help="trade:ore" aria-pressed="false"><span class="box"></span><span data-ui="oreBuyer">Best ore price</span><span class="n" data-n="oreBuyer"></span></button>
-      <button class="chip" data-f="trophyBuyer" data-help="trade:trophy" aria-pressed="false"><span class="box"></span><span data-ui="trophyBuyer">Buys trophies</span><span class="n" data-n="trophyBuyer"></span></button>
-      <button class="chip" data-f="noMarket" data-help="trade:none" aria-pressed="false"><span class="box"></span><span data-ui="noMarket">No market at all</span><span class="n" data-n="noMarket"></span></button>
+      <button class="chip" data-one="trade" data-f="sellsBlack" data-help="trade:sells" aria-pressed="false"><span class="box"></span><span data-ui="sellsBlack">Sells contraband</span><span class="n" data-n="sellsBlack"></span></button>
+      <button class="chip" data-one="trade" data-f="buysBlack" data-help="trade:buys" aria-pressed="false"><span class="box"></span><span data-ui="buysBlack">Buys contraband</span><span class="n" data-n="buysBlack"></span></button>
+      <button class="chip" data-one="trade" data-f="oreBuyer" data-help="trade:ore" aria-pressed="false"><span class="box"></span><span data-ui="oreBuyer">Best ore price</span><span class="n" data-n="oreBuyer"></span></button>
+      <button class="chip" data-one="trade" data-f="trophyBuyer" data-help="trade:trophy" aria-pressed="false"><span class="box"></span><span data-ui="trophyBuyer">Buys trophies</span><span class="n" data-n="trophyBuyer"></span></button>
+      <button class="chip" data-one="trade" data-f="noMarket" data-help="trade:none" aria-pressed="false"><span class="box"></span><span data-ui="noMarket">No market at all</span><span class="n" data-n="noMarket"></span></button>
       <p class="note" data-ui="hTradeNote"></p>
     </div>
   </details>
@@ -86,7 +96,7 @@
       <label class="f"><span class="ask" data-help="what:module" tabindex="0" data-ui="moduleSale">Module for sale</span></label>
       <select id="module"><option value="">any</option></select>
       <div class="row">
-        <button class="pill" id="fullOnly" type="button" aria-pressed="false" data-ui="fullGrade">Full grade only</button>
+        <button class="pill" id="fullOnly" type="button" aria-pressed="true" data-ui="fullGrade">Full grade only</button>
       </div>
       <p class="note" id="moduleNote"></p>
       <label class="f"><span data-ui="shopPurpose">Shop purpose</span></label>
@@ -111,22 +121,36 @@
   </details>
 
   <details class="grp">
-    <summary data-ui="navLimits">Navigation limits</summary>
+    <summary data-ui="calculators">Calculators</summary>
     <div class="body">
-      <label class="f"><span data-ui="minLy">Min ly</span><input type="number" id="lyMin" min="0" step="10" placeholder="0"></label>
-      <label class="f"><span data-ui="maxLy">Max ly</span><input type="number" id="lyMax" min="0" step="10" placeholder="any"></label>
+      <label class="f"><span data-ui="calcShip">Ship</span></label>
+      <select id="calcShip"><option value="" data-ui="pickShip">pick a ship</option></select>
+      <label class="f"><span class="ask" data-help="what:calcmass" tabindex="0" data-ui="calcMass">Ship mass</span><input type="number" id="calcMass" min="1" step="10" placeholder="0"></label>
+      <label class="f"><span data-ui="calcLoad">Cargo + fuel</span><input type="number" id="calcLoad" min="0" step="5" placeholder="0"></label>
+      <label class="f"><span data-ui="calcWarp">Warp drive</span></label>
+      <select id="calcWarp"></select>
+      <label class="f"><span data-ui="calcShield">Shields</span></label>
+      <select id="calcShield"></select>
+      <label class="f"><span data-ui="calcThruster">Thrusters</span></label>
+      <select id="calcThruster"></select>
+      <dl class="calcOut" id="calcOut"></dl>
     </div>
   </details>
 
-  <div class="grp">
-    <button id="reset" class="resetFilters" data-ui="reset">Clear all filters</button>
+  <details class="grp">
+    <summary data-ui="wikiPages">Wiki pages</summary>
+    <div class="body">
+      <div class="row wikiGo">
+        <select id="wikiPage"></select>
+        <button type="button" id="wikiGo" data-ui="go">Go</button>
+      </div>
+    </div>
+  </details>
+
   </div>
 
   <div class="grp">
-    <h2 data-ui="jumpTo">Jump to</h2>
-    <button class="chip" id="toSol"><span class="box" style="border-color:var(--cyan)"></span>Sol</button>
-    <button class="chip" id="toVoid" data-spoiler><span class="box" style="border-color:var(--amber)"></span>The Void</button>
-    <button class="chip" id="toAll"><span class="box" style="border-color:var(--cyan)"></span><span data-ui="wholeGalaxy">Whole galaxy</span></button>
+    <button id="reset" class="resetFilters" data-ui="reset">Clear all filters</button>
   </div>
 
   <div class="grp">
@@ -136,6 +160,17 @@
       class="n" id="hlRichN"></span></button>
     <button class="chip" id="hlSectors" aria-pressed="true"><span class="box"
       style="border-color:#4fc3ff"></span><span data-ui="hlSectors">Sectors</span></button>
+  </div>
+
+  <div class="grp">
+    <h2 data-ui="jumpTo">Jump to</h2>
+    <button class="chip" id="toSol"><span class="box" style="border-color:var(--cyan)"></span>Sol</button>
+    <button class="chip" id="toVoid" data-help="place:void"><span class="box" style="border-color:var(--amber)"></span>The Void<span class="rev" data-gate="LP 157-32" data-help="gate:LP 157-32" role="button" tabindex="0" aria-label="gateOther" data-ui-title="gateOther">⇄</span></button>
+    <button class="chip" id="toSagA" data-help="place:saga"><span class="box" style="border-color:var(--amber)"></span>Sagittarius A*</button>
+    <button class="chip" id="toPreon" data-spoiler data-help="place:preon"><span class="box" style="border-color:#ffd666"></span><span data-ui="preonStar">Preon star</span></button>
+    <button class="chip" id="toIsar" data-help="place:isar"><span class="box" style="border-color:var(--amber)"></span>Isar<span class="rev" data-gate="Wolf 1462" data-help="gate:Wolf 1462" role="button" tabindex="0" aria-label="gateOther" data-ui-title="gateOther">⇄</span></button>
+    <button class="chip" id="toTerm" data-help="place:terminus"><span class="box" style="border-color:var(--amber)"></span>Terminus<span class="rev" data-gate="PPM 41187" data-help="gate:PPM 41187" role="button" tabindex="0" aria-label="gateOther" data-ui-title="gateOther">⇄</span></button>
+    <button class="chip" id="toAll"><span class="box" style="border-color:var(--cyan)"></span><span data-ui="wholeGalaxy">Whole galaxy</span></button>
   </div>
 
   <div class="grp">
@@ -150,19 +185,6 @@
       <div data-layer="eng" data-spoiler><i style="border:1px solid var(--amber);border-radius:0"></i><span data-ui="engineer">Engineer</span></div>
     </div>
   </div>
-  <details class="grp">
-    <summary data-ui="calculators">Calculators</summary>
-    <div class="body">
-      <label class="f"><span class="ask" data-help="what:calcmass" tabindex="0" data-ui="calcMass">Ship mass</span><input type="number" id="calcMass" min="1" step="10" placeholder="0"></label>
-      <label class="f"><span data-ui="calcWarp">Warp drive</span></label>
-      <select id="calcWarp"></select>
-      <label class="f"><span data-ui="calcShield">Shields</span></label>
-      <select id="calcShield"></select>
-      <label class="f"><span data-ui="calcThruster">Thrusters</span></label>
-      <select id="calcThruster"></select>
-      <dl class="calcOut" id="calcOut"></dl>
-    </div>
-  </details>
 
   <footer class="credit">
       <p data-ui="byDev">Galaxy Genome is made by SKV Games.</p>
@@ -192,6 +214,12 @@
   <div><span data-ui="scale">Scale</span> <b id="scl">—</b> <span data-ui="lyAcross">ly across</span></div>
 </div>
 
+<aside class="wikiPanel" id="wikiPanel" aria-label="Wiki" hidden>
+  <div class="wikiBar"><button type="button" class="wikiClose" id="wikiClose"
+    data-ui-aria="close" aria-label="Close">&times;</button></div>
+  <iframe id="wikiFrame" title="Galaxy Genome Wiki"></iframe>
+</aside>
+
 <div class="tip" id="tip" role="status"></div>
 <div class="help" id="help"></div>
 
@@ -205,9 +233,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=74ae6b8822");
+    const galaxy = await load("data/galaxy.json?v=57da6e728d");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=74ae6b8822`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=57da6e728d`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -216,7 +244,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=74ae6b8822";
+    s.src = "app.js?v=57da6e728d";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

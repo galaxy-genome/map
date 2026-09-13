@@ -19,9 +19,25 @@ canvas:active{cursor:grabbing}
   background:var(--deep);
   display:flex;flex-direction:column;gap:18px;overflow-y:auto;z-index:3}
 .brand{font-weight:700;letter-spacing:.16em;font-size:13px;color:var(--cyan);
-  text-transform:uppercase}
+  text-transform:uppercase;text-wrap:nowrap}
+.brand .name{display:flex;align-items:center;gap:8px}
+/* The game's name in white, what this tool adds to it in the accent, as the
+   wiki's title does. */
+.brand .game{color:#fff}
+#langFlag{margin-left:auto;background:none;border:0;padding:0 2px;font-size:15px;
+  line-height:1;cursor:pointer;filter:saturate(.8)}
+#langFlag:hover,#langFlag:focus-visible{filter:none;outline:none}
 .brand small{display:block;font-family:var(--mono);font-size:11px;color:var(--dim);
   letter-spacing:.04em;margin-top:4px;text-transform:none}
+/* The subtitle and the wiki link share a row, the link held to the right edge
+   under the flag. */
+.brand .sub{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:8px}
+.brand .wikiLink{font-family:var(--mono);font-size:11px;font-weight:400;
+  letter-spacing:.04em;text-transform:none;color:var(--cyan);text-decoration:none;
+  border:1px solid var(--cyan);border-radius:2px;padding:1px 6px}
+.brand .wikiLink::after{content:" \2197"}
+.brand .wikiLink:hover,.brand .wikiLink:focus-visible{color:#fff;border-color:#fff;
+  outline:none}
 .grp{display:flex;flex-direction:column;gap:7px}
 .grp h2{margin:0;font-size:10px;letter-spacing:.18em;color:var(--dim);
   text-transform:uppercase;font-weight:600}
@@ -79,12 +95,23 @@ label.f:has(#jump){justify-content:flex-start;gap:6px}
 .tip dt.rule,.tip dd.rule{height:1px;background:var(--edge);margin:5px 0}
 .tip .ore{margin-top:6px;padding-top:6px;border-top:1px solid var(--edge);color:var(--amber);
   display:grid;grid-template-columns:repeat(3,auto);gap:2px 14px;justify-content:start}
+.tip .flown{margin:0 0 6px;padding-bottom:6px;border-bottom:1px solid var(--edge);
+  color:var(--amber);font-family:var(--mono);font-size:11px}
 .tip .muted{color:var(--dim)}
 .tip dd.stn{grid-column:2}
 .tip .chev{color:#6ee7a8;font-weight:700}
+.chip .rev{margin-left:auto;padding:0 2px;color:var(--dim);font-size:13px;line-height:1}
+.chip .rev:hover,.chip .rev:focus-visible{color:var(--amber);outline:none}
 .legend i.diamond{border-radius:2px;transform:rotate(45deg);width:8px;height:8px}
 
-.zoom{position:fixed;right:16px;top:16px;z-index:3;display:flex;flex-direction:column;gap:6px}
+.zoom{position:fixed;right:16px;top:16px;z-index:3;display:flex;flex-direction:column;gap:6px;
+  transition:right .18s ease-out}
+/* With the wiki open beside the map, the buttons move to its left edge so they
+   stay reachable; where the wiki is the whole screen there is nowhere to go. */
+body.wikiOpen .zoom{right:calc(min(420px,100vw) + 16px)}
+body.touch.wikiOpen .zoom{right:10px}
+@media (max-width:480px){body.wikiOpen .zoom{right:16px}}
+@media (prefers-reduced-motion:reduce){.zoom{transition:none}}
 .zoom button{width:38px;height:34px;background:rgba(8,18,34,.85);border:1px solid var(--edge);
   color:var(--ink);font-family:var(--mono);font-size:13px;cursor:pointer;border-radius:2px}
 .zoom button:hover{border-color:var(--cyan);color:var(--cyan)}
@@ -104,7 +131,11 @@ label.f:has(#jump){justify-content:flex-start;gap:6px}
 .credit{border-top:1px solid var(--edge);padding-top:12px;margin-top:4px;
   font-family:var(--mono);font-size:10px;line-height:1.6;color:var(--dim)}
 .credit p{margin:0 0 6px}
-.credit .stores{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+/* The label on the left and the two stores stacked on one edge beside it, so
+   they line up with each other whatever the rail's width. */
+.credit .stores{display:grid;grid-template-columns:auto 1fr;column-gap:8px;
+  row-gap:2px;align-items:baseline;justify-items:start}
+.credit .stores>span{grid-row:span 2}
 .credit a{color:var(--cyan);text-decoration:none;border-bottom:1px solid transparent}
 .credit a:hover,.credit a:focus-visible{border-bottom-color:var(--cyan)}
 .credit .fine{color:#46606d;margin-bottom:0}
@@ -127,17 +158,65 @@ label.f:has(#jump){justify-content:flex-start;gap:6px}
 .calcOut dt{color:var(--dim)}
 .calcOut dd{margin:0;color:var(--cyan);text-align:right;font-variant-numeric:tabular-nums}
 .calcOut .muted{color:var(--dim)}
+.wikiGo select{flex:1;min-width:0}
+/* The wiki slides in over the right of the map: 420px where there is room for
+   the map beside it, the whole screen where there is not. */
+.wikiPanel{position:fixed;top:0;right:0;bottom:0;z-index:6;width:min(420px,100vw);
+  background:var(--deep);border-left:1px solid var(--edge);
+  box-shadow:-12px 0 30px rgba(0,0,0,.45);transition:transform .18s ease-out}
+.wikiPanel[hidden]{display:block;transform:translateX(100%);visibility:hidden;
+  transition:transform .18s ease-in,visibility 0s .18s}
+.wikiPanel{display:flex;flex-direction:column}
+.wikiPanel[hidden]{display:flex}
+.wikiBar{flex:none;display:flex;justify-content:flex-end;padding:6px 8px;
+  border-bottom:1px solid var(--edge)}
+.wikiPanel iframe{flex:1;width:100%;min-height:0;border:0;display:block;background:var(--deep)}
+.wikiClose{width:30px;height:28px;display:grid;place-items:center;background:transparent;
+  border:1px solid var(--edge);border-radius:3px;color:var(--dim);font-size:20px;
+  line-height:1;cursor:pointer}
+.wikiClose:hover,.wikiClose:focus-visible{border-color:var(--cyan);color:var(--cyan);outline:none}
+/* A phone lays the page out wider than its screen, so width alone never reaches
+   420px there: on touch the wiki is the whole screen, as the rail is. */
+@media (max-width:420px){.wikiPanel{border-left:0;box-shadow:none}}
+body.touch .wikiPanel{width:100vw;border-left:0;box-shadow:none}
+@media (prefers-reduced-motion:reduce){.wikiPanel,.wikiPanel[hidden]{transition:none}}
+#wikiGo{padding:5px 12px;background:transparent;border:1px solid var(--edge);
+  border-radius:2px;color:var(--ink);font-family:var(--mono);font-size:11px;cursor:pointer}
+#wikiGo:hover,#wikiGo:focus-visible{border-color:var(--cyan);color:var(--cyan);outline:none}
+.calcOut dd.wide{grid-column:1 / -1;text-align:left}
+.calcOut .cliff{color:var(--danger);font-size:10px;line-height:1.5;display:block}
+.calcOut .setJump{margin-left:6px;padding:1px 6px;background:transparent;
+  border:1px solid var(--edge);border-radius:2px;color:var(--dim);
+  font-family:var(--mono);font-size:10px;cursor:pointer}
+.calcOut .setJump:hover,.calcOut .setJump:focus-visible{border-color:var(--cyan);
+  color:var(--cyan);outline:none}
 .note{margin:2px 0 0;font-family:var(--mono);font-size:10px;line-height:1.5;color:var(--dim)}
 .note b{color:var(--danger);font-weight:400}
 
 
-details.grp{border-top:1px solid var(--edge);padding-top:12px}
+/* The collapsible sections space themselves, rather than taking the rail's gap:
+   a run of closed ones should read as a list, not as eight separate blocks. */
+.sections{display:flex;flex-direction:column;gap:6px}
+details.grp{border-top:1px solid var(--edge);padding-top:5px}
 details.grp>summary{list-style:none;cursor:pointer;font-size:10px;letter-spacing:.18em;
   color:var(--dim);text-transform:uppercase;font-weight:600;display:flex;
   align-items:center;gap:6px;padding-bottom:8px}
 details.grp>summary::-webkit-details-marker{display:none}
-details.grp>summary::before{content:"+";font-family:var(--mono);color:var(--edge)}
-details.grp[open]>summary::before{content:"\2212"}
+/* A chevron the same weight as the heading, turned down when the section is
+   open: the old + was a mono glyph in the border colour and read as nothing. */
+details.grp>summary::before{content:"";width:7px;height:7px;flex:none;
+  border-right:1.5px solid var(--cyan);border-bottom:1.5px solid var(--cyan);
+  transform:rotate(-45deg);margin:0 3px 2px 1px;transition:transform .12s}
+details.grp[open]>summary::before{transform:rotate(45deg);margin:0 3px 4px 1px}
+/* Open reads brighter than closed, so the state is legible without reading the
+   chevron. */
+details.grp[open]>summary{color:var(--ink)}
+details.grp[closed]>summary::before{border-color:var(--dim)}
+/* A closed section is a line of text, so it takes a line of room. */
+details.grp[closed]{gap:0}
+details.grp[closed]>summary{padding-bottom:0}
+details.grp>summary:hover{color:var(--ink)}
+details.grp>summary:hover::before{border-color:var(--cyan)}
 details.grp>summary:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
 details.grp .body{display:flex;flex-direction:column;gap:6px;padding-bottom:6px}
 .row{display:flex;gap:6px;align-items:center}
@@ -157,7 +236,7 @@ label.f span{white-space:nowrap}
 /* The destination's label, box and note are wrapped so they can be hidden
    together, and the wrapper has to carry the spacing the rail would have given
    them individually. */
-#toBox{display:flex;flex-direction:column;gap:7px}
+#toBox:not([hidden]){display:flex;flex-direction:column;gap:7px}
 #reset{width:100%;padding:7px;background:transparent;border:1px solid var(--edge);
   color:var(--dim);font-family:var(--mono);font-size:11px;cursor:pointer;border-radius:2px}
 #reset:hover{border-color:var(--danger);color:var(--danger)}

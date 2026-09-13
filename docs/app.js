@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=74ae6b8822"), read("data/reachable.png?v=74ae6b8822")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=57da6e728d"), read("data/reachable.png?v=57da6e728d")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=74ae6b8822", 1), read("data/zones.webp?v=74ae6b8822", 3)]);
+    [read("data/side.webp?v=57da6e728d", 1), read("data/zones.webp?v=57da6e728d", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -708,8 +708,8 @@ let cx = 0, cz = 0, scale = 4, scaleSet = false;
 const HOME_LY = TOUCH ? 75 : 150;
 // Light years across the window when the whole galaxy is asked for.
 const GALAXY_LY = 170000;
-// Where the Whole galaxy button lands: the populated disc, framed.
-const GALAXY_VIEW_LY = 125000;
+// How much of the shorter side the whole galaxy leaves empty when it is framed.
+const GALAXY_MARGIN = 0.9;
 // Inside this radius the game treats every planet as already scanned and pays
 // nothing, so a scan-value filter has to leave that space out.
 // The canvas is the map area: it starts where the sidebar ends, so its width is
@@ -723,7 +723,7 @@ const filters = new Set();
 let spoilers = false;
 // Everything the sidebar can narrow by. Empty / null means "don't care".
 const F = {sec:new Set(), purp:new Set(), fac:new Set(),
-           ore:-1, ptype:-1, startype:"", module:-1, fullOnly:false,
+           ore:-1, ptype:-1, startype:"", module:-1, fullOnly:true,
            lyMin:null, lyMax:null, valMin:null, oneHop:false, plMin:null,
            pctMin:null, laMin:null};
 
@@ -807,6 +807,9 @@ function resize(){
   const rail = document.getElementById("rail").getBoundingClientRect();
   inset = TOUCH ? 0 : Math.max(0, Math.min(rail.right, window.innerWidth / 2));
   W = window.innerWidth - inset; H = window.innerHeight;
+  // A tab that loads in the background reports no size at all, and nothing
+  // fires a resize when it is finally shown: every scale would be NaN.
+  if (W <= 0 || H <= 0){ requestAnimationFrame(resize); return; }
   cv.style.left = inset + "px";
   cv.style.width = W + "px"; cv.style.height = H + "px";
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
@@ -1051,7 +1054,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=74ae6b8822").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=57da6e728d").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1630,6 +1633,62 @@ function drawPoints(){
 
 // A gate is a shortcut between two systems, so both ends are worth marking:
 // at the widest zooms the line is all there is to say a system matters.
+// Each gate's two ends, by name, so either can offer the trip to the other.
+const gateOther = new Map();
+for (const [a, b] of D.gates || []){ gateOther.set(a, b); gateOther.set(b, a); }
+
+// Both ends of every gate: whichever one you are looking at, the button offers
+// the trip the gate exists for.
+const GATE_ENDS = [...gateOther.keys()];
+// Close enough that a system is a place rather than a dot. The Core-side ends
+// sit among hundreds of other systems, so their buttons wait until the view is
+// tight enough for that not to be clutter.
+const GATE_BUTTON_LY = 15000;
+const GATE_NEAR_LY = 175;
+// The end of each pair closer to Sol.
+const gateNear = new Set();
+for (const [a, b] of D.gates || []){
+  const A = byName.get(a), B = byName.get(b);
+  if (A && B) gateNear.add(A[LY] <= B[LY] ? a : b);
+}
+// Buttons drawn on the map this frame, in screen coordinates.
+let mapButtons = [];
+
+function drawGateButtons(){
+  mapButtons = [];
+  if (acrossLy() > GATE_BUTTON_LY) return;
+  ctx.save();
+  ctx.font = '600 16px "JetBrains Mono", monospace';
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const name of GATE_ENDS){
+    const here = byName.get(name), there = byName.get(gateOther.get(name));
+    if (!here || !there) continue;
+    if (gateNear.has(name) && acrossLy() > GATE_NEAR_LY) continue;
+    const px = sx(here[X]), py = sy(here[Z]);
+    if (px < -200 || px > W + 200 || py < -100 || py > H + 100) continue;
+    const text = fmt("jumpToGate", {sys: there[NAME]});
+    const w = ctx.measureText(text).width + 22, h = 26;
+    const x = px - w / 2, y = py - 34 - h;
+    ctx.fillStyle = "rgba(8,18,34,.92)";
+    ctx.strokeStyle = "rgba(255,171,61,.75)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 4);
+    ctx.fill();
+    ctx.stroke();
+    // The line down to the system it belongs to, so the button is clearly its.
+    ctx.beginPath();
+    ctx.moveTo(px, y + h); ctx.lineTo(px, py - 8);
+    ctx.stroke();
+    ctx.fillStyle = "#ffab3d";
+    ctx.fillText(text, px, y + h / 2 + 1);
+    mapButtons.push({x0: x, y0: y, x1: x + w, y1: y + h, to: there});
+  }
+  ctx.restore();
+  ctx.textBaseline = "alphabetic";
+}
+
 function drawGates(){
   soloA("gate");
   ctx.strokeStyle = "rgba(255,171,61,.7)"; ctx.lineWidth = 1.4;
@@ -1684,6 +1743,7 @@ function draw(){
     drawRoute();
     drawLabels();
     drawFlashBox();
+    mapButtons = [];
     return finish();
   }
   // Wide enough that individual systems are not drawn, only the valuable ones.
@@ -1776,6 +1836,7 @@ function draw(){
   drawFlashBox();
   // Last, so every source has had its say about what deserves a name.
   drawLabels();
+  drawGateButtons();
   ctx.globalAlpha = 1;
 
   if (focused.length){
@@ -1861,7 +1922,7 @@ function showGenTip(st, mx, my){
   const b = starBodies(st);
   const ore = b.belts.flatMap(belt =>
     belt.ores.map(o => `${t("Goods" + o.name) || o.name} ${o.pct}%`));
-  tip.innerHTML = `<h3>${st.name}${coords(st.x, st.z)}</h3><dl>` +
+  tip.innerHTML = flownLine(st.name) + `<h3>${st.name}${coords(st.x, st.z)}</h3><dl>` +
     row("starType", t(st.raw + "Name") || st.type) +
     row("security", ui("secAnarchy")) +
     (st.fuel ? row("fuel", "\u2713") : "") +
@@ -1874,6 +1935,11 @@ function showGenTip(st, mx, my){
     `</dl>` + (ore.length ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "");
   tip.style.display = "block";
   placeTip(mx, my);
+}
+
+// Whichever kind of row it is, the tooltip for it.
+function showTipFor(hit, mx, my){
+  if (Array.isArray(hit)) showTip(hit, mx, my); else showGenTip(hit, mx, my);
 }
 
 function pick(mx, my){
@@ -1953,6 +2019,16 @@ function stationRows(s){
 const coords = (x, z) =>
   `<span class="coords">${num(Math.round(x))}, ${num(Math.round(z))}</span>`;
 
+// What the journey to this system costs, at the head of its own tooltip: the
+// figure the route note carries, where the reader is already looking.
+let routeFlown = "";
+// The jump range travels with the figures: the same journey at a different
+// range is a different number of jumps, and the reader set it minutes ago.
+const flownLine = name =>
+  routeFlown && routeTo && routeTo.name === name
+    ? `<div class="flown">${routeFlown} \u00b7 ${ui("maxJump")}: ${num(jumpLy)} ly</div>`
+    : "";
+
 function showTip(s, mx, my){
   const ore = D.oreDetail[s[NAME]];
   const alias = aliasBySystem.get(indexOfName.get(s[NAME])) || {};
@@ -1963,7 +2039,7 @@ function showTip(s, mx, my){
     .join("");
   // A row is only worth its line when it says something. Nothing the system
   // does not have is listed.
-  tip.innerHTML =
+  tip.innerHTML = flownLine(s[NAME]) +
     `<h3>${s[NAME]}${coords(s[X], s[Z])}</h3><dl>` +
     row("starType", TYPES[s[TY]]) +
     row("security", ui(SEC_SLOT[s[SEC]] || "secAnarchy")) +
@@ -2089,6 +2165,9 @@ function dowseCross(){
   routeTo = end;
   dowseProvisional = true;
   recomputeRoute();
+  // A pan is this device's hover, so the destination it lands on describes
+  // itself the way a hovered one does.
+  if (TOUCH && acrossLy() <= SYSTEM_LY / 2) showTipFor(hit, W / 2, H / 2);
 }
 
 function dowse(x, y){
@@ -2160,6 +2239,9 @@ function endPointer(e){
     if (pressedEnd){ pressedEnd = false; return; }
     tipAt(evX(e), e.clientY);
   }
+  const btn = mapButtons.find(b => evX(e) >= b.x0 && evX(e) <= b.x1
+                                && e.clientY >= b.y0 && e.clientY <= b.y1);
+  if (btn){ clearFocus(); focusOn(btn.to); return; }
   const hit = pick(evX(e), e.clientY) || pickRich(evX(e), e.clientY)
             || pickGenerated(evX(e), e.clientY);
   // A tap is a decision: the destination stops being provisional and the
@@ -2226,8 +2308,11 @@ let flyTo = null, flyV = [0, 0, 0], flyLast = 0, flyRAF = 0;
 const reducedMotion = () =>
   matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function flyView(x, z, sc){
+// speed divides every time constant: 4 is a flight a quarter as long.
+let flySpeed = 1;
+function flyView(x, z, sc, speed = 1){
   sc = clampScale(sc);
+  flySpeed = speed;
   // A tooltip describes a system at a position on screen, and the position is
   // about to stop being true.
   tip.style.display = "none";
@@ -2324,6 +2409,21 @@ function drawFlashBox(){
 const FILL = 0.5;
 // What a sector arrives at, in light years across the map area.
 const SECTOR_VIEW_LY = 30000;
+// The galaxy, framed by its own outline rather than by a remembered number, so
+// it stays centred and inside the view at any window shape.
+function showGalaxy(instant){
+  let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+  for (const [x, z] of D.outline || []){
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x);
+    z0 = Math.min(z0, z); z1 = Math.max(z1, z);
+  }
+  const go = instant ? goto : flyView;
+  if (!isFinite(x0)){ go(0, 0, scaleFor(GALAXY_LY)); return; }
+  // Both axes have to fit, so the scale is whichever is tighter.
+  const fit = Math.min(W / (x1 - x0), H / (z1 - z0)) * GALAXY_MARGIN;
+  go((x0 + x1) / 2, (z0 + z1) / 2, fit);
+}
+
 function flyToBounds(x0, z0, x1, z1, fill = FILL){
   const wide = W;
   const span = Math.max(Math.abs(x1 - x0), Math.abs(z1 - z0), CELL_LY);
@@ -2396,7 +2496,7 @@ function flyStep(now){
   const zoomingIn = flyTo[2] > at[2];
   let rest = 0;
   for (let i = 0; i < 3; i++){
-    const w = 1 / (i < 2 ? FLY_TAU : zoomingIn ? FLY_TAU_IN : FLY_TAU_OUT);
+    const w = flySpeed / (i < 2 ? FLY_TAU : zoomingIn ? FLY_TAU_IN : FLY_TAU_OUT);
     const d = at[i] - flyTo[i];
     flyV[i] = (flyV[i] - w * w * d * dt) / (1 + 2 * w * dt + w * w * dt * dt);
     at[i] += flyV[i] * dt;
@@ -2437,20 +2537,118 @@ function flashMatches(list){
   };
   focusRAF = requestAnimationFrame(step);
 }
-document.getElementById("zin").onclick    = () => { scale = clampScale(scale * 1.6); draw(); };
-document.getElementById("zout").onclick   = () => { scale = clampScale(scale / 1.6); draw(); };
+// The buttons zoom in flight, quickly. A press mid-flight steps from where the
+// flight is heading, so pressing twice is two steps rather than one and a bit.
+const zoomStep = f => {
+  const base = flyTo ? Math.exp(flyTo[2]) : scale;
+  const [x, z] = flyTo ? [flyTo[0], flyTo[1]] : [cx, cz];
+  flyView(x, z, base * f, 4);
+};
+document.getElementById("zin").onclick    = () => zoomStep(1.6);
+document.getElementById("zout").onclick   = () => zoomStep(1 / 1.6);
 const clearFocus = () => { focused = []; cancelAnimationFrame(focusRAF); };
-document.getElementById("zreset").onclick = () => { clearFocus(); goto(0, 0, scaleFor(HOME_LY)); };
-document.getElementById("toSol").onclick  = () => { clearFocus(); goto(0, 0, scaleFor(HOME_LY)); };
+// Somewhere else on the map is a journey, not a cut: the flight shows how far
+// the two places are from each other, which a jump never can.
+document.getElementById("zreset").onclick = () => { clearFocus(); flyView(0, 0, scaleFor(HOME_LY)); };
+document.getElementById("toSol").onclick  = () => { clearFocus(); flyView(0, 0, scaleFor(HOME_LY)); };
 // Centre of the deep-space cluster: 21 systems and 35 stations inside about 60 ly.
 document.getElementById("toVoid").onclick = () => {
-  clearFocus(); goto(-2232, -3987, scaleFor(HOME_LY));
+  clearFocus(); flyView(-2232, -3987, scaleFor(HOME_LY));
 };
-document.getElementById("toAll").onclick  = () => { clearFocus(); goto(3800, 25000, scaleFor(GALAXY_VIEW_LY)); };
+// The two places worth a button of their own: the black hole that unlocks the
+// Warp Drive Booster by being visited, and the galaxy's only Preon star.
+document.getElementById("toSagA").onclick  = () => {
+  clearFocus(); flyView(25, 25899, scaleFor(HOME_LY));
+};
+document.getElementById("toPreon").onclick = () => {
+  clearFocus(); flyView(-4608, -16094, scaleFor(HOME_LY));
+};
+// `open` is the browser's, and only ever present when a section is open. The
+// mirror of it is written out too, so the closed state is visible in the DOM and
+// can be styled or found without a negation.
+for (const d of document.querySelectorAll("details.grp")){
+  const mark = () => d.toggleAttribute("closed", !d.open);
+  d.addEventListener("toggle", mark);
+  mark();
+}
+
+// Every wiki article, grouped the way the wiki's own menu groups them, opened in
+// a tab of its own so the map stays where the reader left it.
+{
+  const sel = document.getElementById("wikiPage");
+  const home = document.createElement("option");
+  home.value = ""; home.dataset.ui = "wikiHome"; home.textContent = ui("wikiHome");
+  sel.append(home);
+  for (const [group, pages] of D.wikiPages || []){
+    const og = document.createElement("optgroup");
+    og.label = group;
+    for (const page of pages){
+      const o = document.createElement("option");
+      o.value = page; o.textContent = page;
+      og.append(o);
+    }
+    sel.append(og);
+  }
+  document.getElementById("wikiGo").addEventListener("click", () => openWiki(sel.value));
+}
+
+// The wiki opens beside the map rather than instead of it. Served locally, the
+// map points at the local wiki preview.
+const WIKI_URL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
+  ? "http://localhost:8790/" : "https://galaxy-genome.github.io/wiki/";
+const wikiPanel = document.getElementById("wikiPanel");
+// Every link to the wiki follows the same rule, so a local map never sends a
+// reader to the published copy.
+for (const a of document.querySelectorAll('a.wikiLink')) a.href = WIKI_URL;
+function openWiki(page){
+  const frame = document.getElementById("wikiFrame");
+  const want = WIKI_URL + (page ? "#" + encodeURIComponent(page.replace(/ /g, "_")) : "");
+  if (frame.src !== want) frame.src = want;
+  wikiPanel.hidden = false;
+  document.body.classList.add("wikiOpen");
+  document.getElementById("wikiClose").focus();
+}
+function closeWiki(){
+  wikiPanel.hidden = true;
+  document.body.classList.remove("wikiOpen");
+}
+document.getElementById("wikiClose").addEventListener("click", closeWiki);
+// Escape closes the wiki before it means anything to the route beneath it.
+addEventListener("keydown", e => {
+  if (e.key === "Escape" && !wikiPanel.hidden){ closeWiki(); e.stopImmediatePropagation(); }
+}, true);
+
+// The reverse arrows inside the Jump to chips: the same trip, the other way.
+for (const el of document.querySelectorAll(".chip .rev")){
+  const go = e => {
+    e.stopPropagation();
+    const s2 = byName.get(el.dataset.gate);
+    if (s2){ clearFocus(); focusOn(s2); }
+  };
+  el.addEventListener("click", go);
+  el.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") go(e); });
+}
+
+// The far ends of the two warp gates that do not land in the Void.
+document.getElementById("toIsar").onclick = () => {
+  clearFocus(); flyView(-9530, 19808, scaleFor(HOME_LY));
+};
+document.getElementById("toTerm").onclick = () => {
+  clearFocus(); flyView(-24039, -975, scaleFor(HOME_LY));
+};
+document.getElementById("toAll").onclick  = () => { clearFocus(); showGalaxy(); };
 
 for (const b of document.querySelectorAll(".chip[data-f]")){
   b.onclick = () => {
     const f = b.dataset.f, on = b.getAttribute("aria-pressed") === "true";
+    // A station's market is one thing or another: nothing buys contraband and
+    // has no market, so pressing one of these releases the rest of its group.
+    if (!on && b.dataset.one)
+      for (const other of document.querySelectorAll(`.chip[data-one="${b.dataset.one}"]`)){
+        if (other === b) continue;
+        other.setAttribute("aria-pressed", "false");
+        filters.delete(other.dataset.f);
+      }
     b.setAttribute("aria-pressed", String(!on));
     on ? filters.delete(f) : filters.add(f);
     draw();
@@ -2599,7 +2797,7 @@ addEventListener("keydown", e => {
   if (e.key === "Escape") helpBox.style.display = "none";
 });
 
-function pillGroup(hostId, items, bucket, perRow, keyOf = i => i, helpOf = null){
+function pillGroup(hostId, items, bucketName, perRow, keyOf = i => i, helpOf = null){
   const box = document.getElementById(hostId);
   let row = null;
   items.forEach((label, i) => {
@@ -2611,8 +2809,14 @@ function pillGroup(hostId, items, bucket, perRow, keyOf = i => i, helpOf = null)
     b.setAttribute("aria-pressed", "false");
     b.onclick = () => {
       const on = b.getAttribute("aria-pressed") === "true";
+      const bucket = F[bucketName];
+      // One at a time: a system has one security level, a station one purpose
+      // and one faction, so two of these together can only answer nothing.
+      for (const other of box.querySelectorAll(".pill"))
+        other.setAttribute("aria-pressed", "false");
+      bucket.clear();
       b.setAttribute("aria-pressed", String(!on));
-      on ? bucket.delete(keyOf(i)) : bucket.add(keyOf(i));
+      if (!on) bucket.add(keyOf(i));
       draw();
     };
     if (helpOf) bindHelp(b, helpOf(i));
@@ -2622,11 +2826,11 @@ function pillGroup(hostId, items, bucket, perRow, keyOf = i => i, helpOf = null)
 
 const SECS = [["H","secHigh"],["M","secMedium"],["L","secLow"],
               ["A","secAnarchy"],["C","secConflict"]];
-pillGroup("secRow", SECS.map(x => ui(x[1])), F.sec, 3, i => SECS[i][0],
+pillGroup("secRow", SECS.map(x => ui(x[1])), "sec", 3, i => SECS[i][0],
           i => "sec:" + SECS[i][0]);
-pillGroup("purpRow", D.purposeSlots.map(ui), F.purp, 2, i => i,
+pillGroup("purpRow", D.purposeSlots.map(ui), "purp", 2, i => i,
           i => "purp:" + D.purposes[i]);
-pillGroup("facRow", D.factionKeys.map(t), F.fac, 2, i => i,
+pillGroup("facRow", D.factionKeys.map(t), "fac", 2, i => i,
           i => "fac:" + D.factions[i]);
 
 // The ring around a station system takes its faction's colour, so the legend is
@@ -2649,11 +2853,12 @@ pillGroup("facRow", D.factionKeys.map(t), F.fac, 2, i => i,
 // for engineers or gates is the whole of what anyone does with them, so the chip
 // is the control.
 const PRESETS = [
-  {slot: "pMillion",   set: {valMin: 1000000},  scanner: "1D", show: "#valMin"},
-  {slot: "pArrival",   set: {valMin: 500000},   show: "#valMin"},
+  // The one question value asks: where is a scan worth the trip. Sol at 1,000 ly
+  // is where a reader can act on the answer.
+  {slot: "pHighValue", set: {valMin: 500000}, scanner: "1D", show: "#valMin",
+   view: [0, 0, 1000]},
   {slot: "pOutfit",    purp: "HiTech",           show: '#purpRow .pill[aria-pressed="true"]'},
   {slot: "pStation",   on: ["wreck"]},
-  {slot: "pMining",    on: ["belt", "station"],  show: '[data-f="belt"]'},
   {slot: "pBlackMarket", on: ["sellsBlack"],     show: '[data-f="sellsBlack"]'},
   {slot: "pEngineers", on: ["eng"], spoil: true},
   {slot: "pGates",     on: ["gate"], spoil: true},
@@ -2671,11 +2876,18 @@ function genCount(pre){
 
 function presetCount(pre){
   const keep = new Set(filters);
-  const kf = {...F, sec: new Set(F.sec), purp: new Set(F.purp), fac: new Set(F.fac)};
+  // The sets are restored by their contents, never by replacing them: the pills
+  // hold the set they were built with, and a fresh one is a set nothing reads.
+  const kf = {...F};
+  const sets = {sec: [...F.sec], purp: [...F.purp], fac: [...F.fac]};
   applyPreset(pre, true);
   const n = S.reduce((a, x) => a + (passes(x) ? 1 : 0), 0);
   filters.clear(); for (const k of keep) filters.add(k);
   Object.assign(F, kf);
+  for (const [k, had] of Object.entries(sets)){
+    F[k].clear();
+    for (const v of had) F[k].add(v);
+  }
   return n;
 }
 
@@ -2727,9 +2939,16 @@ function syncPills(host, i){
       applyPreset(pre);
       b.setAttribute("aria-pressed", "true");
       draw();
-      fitToMatches();
+      // A preset that names a place goes there; the rest frame their matches.
+      if (pre.view) flyView(pre.view[0], pre.view[1], scaleFor(pre.view[2]));
+      else fitToMatches();
       helpBox.style.display = "none";
-      if (pre.show) reveal(document.querySelector(pre.show));
+      // The section holding what the preset set is the only one worth reading
+      // afterwards, so the rest fold away rather than being scrolled past.
+      const det = pre.show ? document.querySelector(pre.show)?.closest("details") : null;
+      for (const other of document.querySelectorAll(".sections details.grp"))
+        if (other !== det && other !== b.closest("details")) other.open = false;
+      if (det) det.open = true;
     };
     box.append(b);
   }
@@ -2767,6 +2986,12 @@ function refreshCounts(){
 refreshCounts();
 
 // The two dropdowns explain the option you land on, under the control.
+// Where the percentage box starts for an ore: a quarter into its range.
+const oreDefault = i => {
+  const [lo, hi] = D.oreRange[i];
+  return Math.round(lo + (hi - lo) / 4);
+};
+
 function bindSelectHelp(id, prefix, names){
   const el = document.getElementById(id);
   const note = document.createElement("p");
@@ -2790,12 +3015,14 @@ bindSelectHelp("ore", "ore:", D.oreRaw);
       F.pctMin = null;
     } else {
       // The box spans what this ore can actually be: no belt holds Alexandrite
-      // above 21%, so 40% there is a typo rather than a search.
+      // above 21%, so 40% there is a typo rather than a search. It starts a
+      // quarter of the way up, because the poorest showing of an ore is not
+      // what anyone is looking for.
       const [lo, hi] = D.oreRange[+sel.value];
-      box.disabled = false; box.value = lo;
+      box.disabled = false; box.value = oreDefault(+sel.value);
       box.placeholder = `${lo}\u2013${hi}`;
       box.min = lo; box.max = hi;
-      F.pctMin = lo;
+      F.pctMin = +box.value;
     }
     draw();
   });
@@ -2835,7 +3062,7 @@ bindSelectHelp("ptype", "pt:", D.ptypeRaw);
 
 // Below half a million nothing is worth the jump, so the boxes do not offer it.
 const VALUE_FLOOR = 500000;
-for (const id of ["lyMin","lyMax","valMin","plMin","pctMin","laMin"]){
+for (const id of ["valMin","plMin","pctMin","laMin"]){
   const el = document.getElementById(id);
   el.oninput = e => {
     F[id] = e.target.value === "" ? null : +e.target.value;
@@ -2878,11 +3105,11 @@ function clearFilters(quiet){
   F.sec.clear(); F.purp.clear(); F.fac.clear();
   F.ore = F.ptype = F.module = -1;
   F.startype = "";
-  F.fullOnly = false;
+  F.fullOnly = true;
   for (const k of ["lyMin","lyMax","valMin","plMin","pctMin","laMin"]) F[k] = null;
   F.oneHop = false;
   if (quiet) return;
-  for (const k of ["lyMin","lyMax","valMin","plMin","pctMin","laMin"])
+  for (const k of ["valMin","plMin","pctMin","laMin"])
     document.getElementById(k).value = "";
   document.getElementById("oneHop").checked = false;
   // The highlight toggles are not filters and keep their state.
@@ -3096,9 +3323,20 @@ for (const [id, get] of [["from", () => routeFrom], ["to", () => routeTo]]){
   if (TOUCH){ from.dataset.ui = "fromNoteTouch"; dowse.dataset.ui = "dowseTouch"; }
   from.textContent = ui(from.dataset.ui);
   dowse.textContent = ui(dowse.dataset.ui);
+  const sec = document.getElementById("routeSec");
+  const head = document.getElementById("routeHead");
   showNotes = () => {
     from.hidden = !routeFrom;
     dowse.hidden = !dowsing();
+    // The section is open while a journey is still being chosen, and closes
+    // itself once both ends are settled: the answer is one line, and the boxes
+    // that produced it are in the way of everything below them.
+    const settled = !!routeFrom && !!routeTo && !dowseProvisional;
+    head.textContent = settled
+      ? `${routeFrom.name} \u2192 ${routeTo.name}` + (routeFlown ? ` \u00b7 ${routeFlown}` : "")
+      : ui("route");
+    head.removeAttribute("data-ui");
+    if (settled === sec.open) sec.open = !settled;
   };
 }
 
@@ -3127,9 +3365,10 @@ for (const s of S){
 for (const [k, v] of Object.entries(counts))
   for (const el of document.querySelectorAll(`[data-n="${k}"]`))
     el.textContent = v.toLocaleString();
-document.getElementById("count").textContent = S.length.toLocaleString() + " reachable systems";
 
 addEventListener("resize", resize);
+// A background tab measures zero; this is when it stops being one.
+addEventListener("visibilitychange", () => { if (!document.hidden) resize(); });
 
 
 // Generated stars are produced from their cell's seed as the view needs them.
@@ -3335,39 +3574,91 @@ function passesGenerated(st, deep){
   const lists = {warp: byClass(C.warp), shield: byClass(C.shield),
                  thruster: byClass(C.thrust)};
   const massBox = document.getElementById("calcMass");
+  const loadBox = document.getElementById("calcLoad");
   const out = document.getElementById("calcOut");
+  // The hull decides what a shield is worth and how fast the ship goes, so the
+  // figures are in the game's own units once one is named.
+  const shipBox = document.getElementById("calcShip");
+  (D.calc.ships || []).forEach((sh, i) => {
+    const o = document.createElement("option");
+    o.value = String(i); o.textContent = sh.n;
+    shipBox.append(o);
+  });
+  // Choosing a ship fills the mass box with the hull's own mass, unless the
+  // reader has typed a mass of their own: a figure the ship box put there is
+  // the ship box's to replace.
+  let massIsOurs = true;
+  massBox.addEventListener("input", () => { massIsOurs = massBox.value === ""; });
+  shipBox.addEventListener("change", () => {
+    const sh = shipBox.value === "" ? null : D.calc.ships[+shipBox.value];
+    if (sh && massIsOurs) massBox.value = sh.mass;
+  });
 
   function recalc(){
     const mass = +massBox.value;
+    const ship = shipBox.value === "" ? null : D.calc.ships[+shipBox.value];
+    // Speed is rated against the hull and what it carries, never against the
+    // modules bolted to it; shields are rated against the bare hull alone.
+    const flying = ship ? ship.mass + (+loadBox.value || 0) : 0;
     const rows = [];
     const pick = k => sels[k].value === "" ? null : lists[k][+sels[k].value];
     const warp = pick("warp"), shield = pick("shield"), thr = pick("thruster");
     const need = `<dd class="muted">${ui("calcMass").toLowerCase()}?</dd>`;
+    const needShip = `<dd class="muted">${ui("pickShip")}?</dd>`;
 
     if (warp){
-      let ly = mass > 0
-        ? warp.opt / mass * Math.pow(1000 * warp.maxFuel / warp.sub, 1 / warp.cc)
-        : null;
-      if (ly > 150) ly = 30;                       // the game clamps a runaway result
-      rows.push([ui("calcJump"), ly == null ? null : `${ly.toFixed(1)} ly`]);
+      const reach = Math.pow(1000 * warp.maxFuel / warp.sub, 1 / warp.cc);
+      let ly = mass > 0 ? warp.opt / mass * reach : null;
+      // ShipInfo.CalcJump throws away anything past 150 and substitutes 30, so
+      // a drive too strong for the hull is worse than a smaller one.
+      let cliff = null;
+      if (ly > 150){
+        ly = 30;
+        cliff = Math.ceil(warp.opt * reach / 150);
+      }
+      // The figure is only useful once the map is planning with it, so it
+      // offers itself to the Max jump box rather than waiting to be copied.
+      rows.push([ui("calcJump"), ly == null ? null
+        : `${ly.toFixed(1)} ly <button type="button" class="setJump" `
+          + `data-ly="${ly.toFixed(1)}" data-ui="calcSet">${ui("calcSet")}</button>`]);
+      rows.push([ui("calcInUse"), `${num(jumpLy)} ly`]);
+      if (cliff) rows.push([null, `<span class="cliff">`
+        + fmt("calcCliff", {t: num(cliff)}) + `</span>`]);
     }
     if (shield){
-      const f = mass > 0
-        ? 0.53821 * erf(1.0228 * shield.opt / mass) - 0.0588 * shield.decr + 0.56377
+      const f = ship
+        ? 0.53821 * erf(1.0228 * shield.opt / ship.mass) - 0.0588 * shield.decr + 0.56377
         : null;
-      rows.push([ui("calcShieldOut"), f == null ? null : `${(f * 100).toFixed(0)}%`]);
+      rows.push([ui("calcShieldOut"),
+                 f == null ? null : `${Math.round(ship.shields * f)} MW`]);
     }
     if (thr){
-      const f = mass > 0
-        ? Math.sqrt(thr.opt / mass) * (1 + GRADE[thr.g] / 35 - 1 / 35)
+      // ShipInfo.SpeedCalc, in the units the game's own ship panel prints.
+      const speed = ship
+        ? ship.speed * Math.sqrt(thr.opt / flying) * 0.0165
+          * (1 + GRADE[thr.g] / 35 - 1 / 35)
         : null;
-      rows.push([ui("calcSpeedOut"), f == null ? null : `${f.toFixed(2)}x`]);
-      if (f != null) rows.push([ui("calcAccelOut"), `${f.toFixed(2)}x`]);
+      rows.push([ui("calcSpeedOut"), speed == null ? null : `${speed.toFixed(1)} ls/s`]);
+      if (speed != null){
+        rows.push([ui("calcAccelOut"), `${(speed / 4.5).toFixed(1)} ls/s\u00b2`]);
+        rows.push([ui("calcTurnOut"),
+                   `${(speed / 10 * 180 / Math.PI).toFixed(1)}\u00b0/s\u00b2`]);
+      }
     }
     out.innerHTML = rows.map(([k, v]) =>
-      `<dt>${k}</dt>${v == null ? need : `<dd>${v}</dd>`}`).join("");
+      k == null ? `<dd class="wide">${v}</dd>`
+        : `<dt>${k}</dt>${v != null ? `<dd>${v}</dd>`
+            : k === ui("calcJump") ? need : needShip}`).join("");
+    for (const b of out.querySelectorAll(".setJump"))
+      b.onclick = () => {
+        const box = document.getElementById("jump");
+        box.value = Math.round(+b.dataset.ly);
+        box.dispatchEvent(new Event("input"));
+        box.dispatchEvent(new Event("change"));
+        recalc();
+      };
   }
-  for (const el of [massBox, sels.warp, sels.shield, sels.thruster]){
+  for (const el of [massBox, loadBox, shipBox, sels.warp, sels.shield, sels.thruster]){
     el.addEventListener("input", recalc);
     el.addEventListener("change", recalc);
   }
@@ -3599,8 +3890,8 @@ function nearestNode(nodes, p){
 // ---- driving it ------------------------------------------------------------
 async function recomputeRoute(){
   const note = document.getElementById("routeNote");
-  routePath = null; routeGates = null; routePartial = false;
-  if (!routeFrom || !routeTo){ note.textContent = ""; draw(); return; }
+  routePath = null; routeGates = null; routePartial = false; routeFlown = "";
+  if (!routeFrom || !routeTo){ note.textContent = ""; showNotes(); draw(); return; }
   if (routeFrom.name === routeTo.name){ note.textContent = ui("sameSystem"); draw(); return; }
   if (routeBusy) return;
   routeBusy = true;
@@ -3662,6 +3953,8 @@ async function recomputeRoute(){
       : "";
     if (r.partial){
       const stop = r.path[r.path.length - 1];
+      routeFlown = fmt("stopsAt", {sys: stop.name, jumps: plural("jumps", jumpsN),
+                                   ly: num(Math.round(r.total))});
       const gap = Math.hypot(routeTo.x - stop.x, routeTo.z - stop.z);
       note.innerHTML =
         `<b>${fmt("noRoute", {ly: jumpLy})}</b> ` +
@@ -3669,10 +3962,11 @@ async function recomputeRoute(){
                         ly: num(Math.round(r.total))}) +
         `<br><b>${fmt("short", {ly: num(Math.round(gap)), sys: routeTo.name})}</b>`;
     } else {
-      note.innerHTML = fmt("routeOk",
-        {jumps: plural("jumps", jumpsN), ly: num(Math.round(r.total))})
-        + gateNote + payNote;
+      routeFlown = fmt("routeOk",
+        {jumps: plural("jumps", jumpsN), ly: num(Math.round(r.total))});
+      note.innerHTML = routeFlown + gateNote + payNote;
     }
+    showNotes();
   } finally {
     routeBusy = false;
     draw();
@@ -3756,7 +4050,23 @@ function marker(px, py, colour, dir){
 
 
 // ---- controls --------------------------------------------------------------
-addEventListener("keydown", e => { if (e.key === "Escape"){ clearRoute(); focused = []; } });
+// Escape undoes the journey one end at a time: the destination first, because
+// changing your mind about where you are going is the common case.
+addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  focused = [];
+  if (routeTo){
+    routeTo = routePath = routeGates = null;
+    dowseProvisional = false;
+    document.getElementById("to").value = "";
+    document.getElementById("routeNote").textContent = "";
+    routeFlown = "";
+    showNotes();
+    draw();
+    return;
+  }
+  clearRoute();
+});
 document.getElementById("clearRoute").onclick = clearRoute;
 
 const jumpBox = document.getElementById("jump");
@@ -3778,6 +4088,23 @@ jumpBox.addEventListener("input", () => {
     if (code === lang) o.selected = true;
     sel.append(o);
   }
+  // The picker is a flag until it is wanted: one row of the rail rather than a
+  // dropdown nobody touches twice.
+  const flag = document.getElementById("langFlag");
+  const showFlag = () => { flag.textContent = LANG_FLAG[lang] || "\u{1F310}"; };
+  showFlag();
+  flag.addEventListener("click", () => {
+    if (!sel.hidden){ sel.hidden = true; return; }
+    sel.hidden = false;
+    sel.focus();
+    // Drop the list open in the same press, where the browser allows it: the
+    // flag was the click, so a second one to open the picker is a click wasted.
+    if (sel.showPicker) { try { sel.showPicker(); } catch (_) {} }
+  });
+  // Settling is choosing one or looking away; either way the row goes.
+  sel.addEventListener("blur", () => { sel.hidden = true; });
+  sel.addEventListener("keydown", e => { if (e.key === "Escape") sel.hidden = true; });
+
   const applyUI = () => {
     for (const el of document.querySelectorAll("[data-ui]"))
       el.textContent = ui(el.dataset.ui);
@@ -3789,10 +4116,14 @@ jumpBox.addEventListener("input", () => {
       el.setAttribute("aria-label", ui(el.dataset.uiAria));
     document.documentElement.lang = lang === "cn" ? "zh" : lang;
     document.title = ui("title");
-    document.getElementById("count").firstChild.textContent =
-      num(S.length) + " " + ui("systems");
+    // The game's name stays as the developer wrote it in every language, so it
+    // can be picked out of the translated title wherever the word order puts it.
+    const esc = t => t.replace(/[&<>]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"})[c]);
+    document.getElementById("brandTitle").innerHTML = esc(ui("title"))
+      .replace("Galaxy Genome", '<span class="game">Galaxy Genome</span>');
   };
   sel.addEventListener("change", () => {
+    sel.hidden = true;
     lang = sel.value;
     try { localStorage.setItem("gg.lang", lang); } catch (_) {}
     TYPES = named(D.typeKeys, D.types);
@@ -3812,6 +4143,7 @@ jumpBox.addEventListener("input", () => {
     document.querySelectorAll("#purpRow .pill").forEach((b, i) => b.textContent = ui(D.purposeSlots[i]));
     document.querySelectorAll("#facRow .pill").forEach((b, i) => b.textContent = t(D.factionKeys[i]));
     applyUI();
+    showFlag();
     draw();
   });
   applyUI();
@@ -3964,9 +4296,10 @@ async function applyParams(){
     const c = document.getElementById("oneHop");
     if (!c.checked){ c.checked = true; fire(c, "change"); }
   }
-  if (p.get("fullgrade") === "1"){
+  // Full grade is on by default, so a link only has to carry the other case.
+  if (p.get("fullgrade") === "0"){
     const b = document.getElementById("fullOnly");
-    if (b.getAttribute("aria-pressed") !== "true"){ b.click(); touched.push(b); }
+    if (b.getAttribute("aria-pressed") === "true"){ b.click(); touched.push(b); }
   }
   {   // the star filter is keyed by the game's own name, not a position
     const want = (p.get("startype") || "").trim().toLowerCase();
@@ -3975,8 +4308,15 @@ async function applyParams(){
     if (opt){ sel.value = opt.value; fire(sel); touched.push(sel); }
   }
 
+  // Distance has no control of its own any more, but a link may still ask for
+  // it: the wiki points at "every station inside 100 ly".
+  for (const [key, id] of [["lymin", "lyMin"], ["lymax", "lyMax"]]){
+    const v = p.get(key);
+    if (v != null && v !== "") F[id] = +v;
+  }
+
   for (const [key, id] of [["pct", "pctMin"], ["value", "valMin"], ["planets", "plMin"],
-                           ["landable", "laMin"], ["lymin", "lyMin"], ["lymax", "lyMax"]]){
+                           ["landable", "laMin"]]){
     const v = p.get(key);
     if (v == null) continue;
     const el = document.getElementById(id);
@@ -4030,7 +4370,8 @@ async function applyParams(){
   if (ly > 0) goto(placed ? at[0] : cx, placed ? at[1] : cz,
                    scaleFor(ly));
   else if (placed) goto(at[0], at[1], scale);
-  else if (p.get("view") === "galaxy") document.getElementById("toAll").click();
+  // A link opens where it says it opens; the flight is for a choice made here.
+  else if (p.get("view") === "galaxy") showGalaxy(true);
   else if (!from && !only && anyFilter()) fitToMatches();
   draw();
   reveal(touched[0]);
@@ -4066,12 +4407,12 @@ function currentParams(){
   if (filters.size) put("filters", [...filters].join(","));
   if (F.ore >= 0){
     put("ore", D.oreRaw[F.ore]);
-    if (F.pctMin != null && F.pctMin !== D.oreRange[F.ore][0]) put("pct", F.pctMin);
+    if (F.pctMin != null && F.pctMin !== oreDefault(F.ore)) put("pct", F.pctMin);
   }
   if (F.ptype >= 0) put("ptype", D.ptypeRaw[F.ptype]);
   if (F.module >= 0){
     put("module", D.moduleRaw[F.module]);
-    if (F.fullOnly) put("fullgrade", "1");
+    if (!F.fullOnly) put("fullgrade", "0");
   }
   put("startype", F.startype);
   const sec = pressed("secRow").map(i => SECS[i][0]);
@@ -4120,4 +4461,6 @@ function syncURL(){
   }, 400);
 }
 
-applyParams().finally(() => { urlBusy = false; syncToBox(); syncURL(); });
+applyParams()
+  .catch(e => { console.error("deep link", e); })
+  .finally(() => { urlBusy = false; syncToBox(); syncURL(); });

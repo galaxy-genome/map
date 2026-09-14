@@ -31,7 +31,7 @@ def main():
 
     SCAN, STARV, PB, ST = 12, 20, 21, 10
     for s in d["systems"]:
-        need(len(s) == 22, f"system row for {s[0]} has {len(s)} fields, expected 22")
+        need(len(s) == 23, f"system row for {s[0]} has {len(s)} fields, expected 23")
         break
 
     # A system is worth its stars plus its planets, and a pre-explored one is

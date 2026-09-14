@@ -55,6 +55,16 @@ canvas:active{cursor:grabbing}
 #find{width:100%;padding:7px 9px;background:rgba(4,12,22,.9);border:1px solid var(--edge);
   color:var(--ink);font-family:var(--mono);font-size:12px;border-radius:2px}
 #find:focus{outline:none;border-color:var(--cyan)}
+/* The search opens under the wiki link, as the language picker opens under the flag. */
+.brand .spoilRow{display:flex;align-items:center;justify-content:space-between;gap:8px}
+#findBtn,#findGo{background:none;border:0;padding:2px 4px;color:var(--cyan);cursor:pointer;
+  line-height:0}
+#findBtn:hover,#findBtn:focus-visible,#findGo:hover,#findGo:focus-visible{color:#fff;outline:none}
+#findBox{margin-top:6px;text-transform:none;letter-spacing:normal;font-weight:400;text-wrap:wrap}
+#findBox .findWrap{position:relative}
+#findBox #find{padding-right:28px}
+#findBox #findGo{position:absolute;right:4px;top:50%;transform:translateY(-50%)}
+.hits li.sub em.sec{margin-left:auto}
 .hits{list-style:none;margin:0;padding:0;max-height:150px;overflow-y:auto}
 .hits li{padding:5px 9px;font-family:var(--mono);font-size:12px;cursor:pointer;
   border-left:2px solid transparent}

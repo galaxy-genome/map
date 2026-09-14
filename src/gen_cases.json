@@ -1,10 +1,10 @@
 [
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "WaterWorld",
 255
@@ -30,15 +30,43 @@
 205
 ]
 ],
-"belts":[],
-"seed":745967114,
-"raw":"K-YellowOrange"
+"belts": [],
+"materials": [
+[],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+]
+],
+"seed": 745967114,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 415
@@ -60,21 +88,48 @@
 575
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "Gallite",
 "Bromellite"
 ]
 ],
-"seed":583290944,
-"raw":"G-WhiteYellow"
+"materials": [
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+]
+],
+"seed": 583290944,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4965
@@ -104,21 +159,50 @@
 2515
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "Monazite",
 "Bromellite"
 ]
 ],
-"seed":374800128,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+]
+],
+"seed": 374800128,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "A-BlueWhite"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 2225
@@ -132,34 +216,49 @@
 1265
 ]
 ],
-"belts":[],
-"seed":1364675584,
-"raw":"A-BlueWhite"
+"belts": [],
+"materials": [
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[]
+],
+"seed": 1364675584,
+"raw": "A-BlueWhite"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[],
-"belts":[],
-"seed":1782745350,
-"raw":"L-BrownDwarf"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 1782745350,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "F-White"
 ],
-"planets":[],
-"belts":[],
-"seed":593891328,
-"raw":"F-White"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 593891328,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 75
@@ -209,22 +308,80 @@
 115
 ]
 ],
-"belts":[
+"belts": [
 [
 "Coltan",
 "Lepidolite",
 "Rutile"
 ]
 ],
-"seed":1201726208,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Cadmium",
+"Iron",
+"Phosphorus"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+]
+],
+"seed": 1201726208,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "S-Star",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 2535
@@ -250,22 +407,42 @@
 105
 ]
 ],
-"belts":[
+"belts": [
 [
 "LithiumHydroxide",
 "MethaneClathrate",
 "Lepidolite"
 ]
 ],
-"seed":761459714,
-"raw":"S-Star"
+"materials": [
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[],
+[]
+],
+"seed": 761459714,
+"raw": "S-Star"
 },
 {
-"stars":[
+"stars": [
 "F-White",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 1195
@@ -283,7 +460,7 @@
 1475
 ]
 ],
-"belts":[
+"belts": [
 [
 "Monazite",
 "Alexandrite",
@@ -295,15 +472,29 @@
 "Gallite"
 ]
 ],
-"seed":1486947585,
-"raw":"F-White"
+"materials": [
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[]
+],
+"seed": 1486947585,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf",
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4435
@@ -317,21 +508,38 @@
 2385
 ]
 ],
-"belts":[
+"belts": [
 [
 "Monazite",
 "Bouxite",
 "Uraninite"
 ]
 ],
-"seed":469091608,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+]
+],
+"seed": 469091608,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3625
@@ -369,22 +577,65 @@
 1725
 ]
 ],
-"belts":[],
-"seed":1097045012,
-"raw":"K-YellowOrange"
+"belts": [],
+"materials": [
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Sulphur",
+"Manganese",
+"Vanadium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Manganese",
+"Vanadium"
+],
+[],
+[
+"Iron",
+"Selenium",
+"Germanium"
+]
+],
+"seed": 1097045012,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 1715
 ]
 ],
-"belts":[
+"belts": [
 [
 "Gallite",
 "Bromellite",
@@ -396,16 +647,23 @@
 "MethaneClathrate"
 ]
 ],
-"seed":1550053663,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+]
+],
+"seed": 1550053663,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf",
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 1775
@@ -423,21 +681,39 @@
 1325
 ]
 ],
-"belts":[
+"belts": [
 [
 "Coltan",
 "Monazite",
 "MethaneClathrate"
 ]
 ],
-"seed":1396770563,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+]
+],
+"seed": 1396770563,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "F-White"
 ],
-"planets":[
+"planets": [
 [
 "AmmoniaPlanet",
 965
@@ -471,7 +747,7 @@
 2495
 ]
 ],
-"belts":[
+"belts": [
 [
 "Bromellite",
 "Lepidolite",
@@ -483,14 +759,48 @@
 "Diamonds"
 ]
 ],
-"seed":378873351,
-"raw":"F-White"
+"materials": [
+[],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Tellurium",
+"Selenium",
+"Nickel"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[],
+[
+"Iron",
+"Selenium",
+"Polonium"
+]
+],
+"seed": 378873351,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 1815
@@ -508,7 +818,7 @@
 1385
 ]
 ],
-"belts":[
+"belts": [
 [
 "Bouxite",
 "MethaneClathrate",
@@ -520,14 +830,36 @@
 "Alexandrite"
 ]
 ],
-"seed":738625281,
-"raw":"T-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+]
+],
+"seed": 738625281,
+"raw": "T-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 115
@@ -569,21 +901,65 @@
 195
 ]
 ],
-"belts":[
+"belts": [
 [
 "LithiumHydroxide",
 "Lepidolite",
 "Gallite"
 ]
 ],
-"seed":1253205761,
-"raw":"G-WhiteYellow"
+"materials": [
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[],
+[],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+]
+],
+"seed": 1253205761,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 235
@@ -621,16 +997,63 @@
 335
 ]
 ],
-"belts":[],
-"seed":693468705,
-"raw":"K-YellowOrange"
+"belts": [],
+"materials": [
+[
+"Chromium",
+"Germanium",
+"Phosphorus"
+],
+[
+"Cadmium",
+"Iron",
+"Phosphorus"
+],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Sulphur",
+"Manganese",
+"Vanadium"
+]
+],
+"seed": 693468705,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[],
-"belts":[
+"planets": [],
+"belts": [
 [
 "LithiumHydroxide",
 "Painite",
@@ -642,28 +1065,36 @@
 "Monazite"
 ]
 ],
-"seed":62080256,
-"raw":"G-WhiteYellow"
+"materials": [],
+"seed": 62080256,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 855
 ]
 ],
-"belts":[],
-"seed":884251980,
-"raw":"L-BrownDwarf"
+"belts": [],
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+]
+],
+"seed": 884251980,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantClassII",
 615
@@ -677,22 +1108,35 @@
 165
 ]
 ],
-"belts":[
+"belts": [
 [
 "Bromellite",
 "Rutile",
 "Uraninite"
 ]
 ],
-"seed":243479808,
-"raw":"K-YellowOrange"
+"materials": [
+[],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+]
+],
+"seed": 243479808,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "T-BrownDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 2185
@@ -702,16 +1146,28 @@
 3915
 ]
 ],
-"belts":[],
-"seed":318018562,
-"raw":"T-BrownDwarf"
+"belts": [],
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+]
+],
+"seed": 318018562,
+"raw": "T-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 1865
@@ -729,15 +1185,33 @@
 165
 ]
 ],
-"belts":[],
-"seed":570840576,
-"raw":"K-YellowOrange"
+"belts": [],
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[],
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+]
+],
+"seed": 570840576,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "A-BlueWhite"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4965
@@ -763,7 +1237,7 @@
 4955
 ]
 ],
-"belts":[
+"belts": [
 [
 "Monazite",
 "Lepidolite",
@@ -775,15 +1249,43 @@
 "Bromellite"
 ]
 ],
-"seed":536173583,
-"raw":"A-BlueWhite"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+]
+],
+"seed": 536173583,
+"raw": "A-BlueWhite"
 },
 {
-"stars":[
+"stars": [
 "S-Star",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 1155
@@ -797,16 +1299,33 @@
 625
 ]
 ],
-"belts":[],
-"seed":1349641232,
-"raw":"S-Star"
+"belts": [],
+"materials": [
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+]
+],
+"seed": 1349641232,
+"raw": "S-Star"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 1305
@@ -836,23 +1355,60 @@
 4495
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "Uraninite",
 "Painite"
 ]
 ],
-"seed":1261730052,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Tellurium",
+"Selenium",
+"Nickel"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+]
+],
+"seed": 1261730052,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "T-BrownDwarf",
 "T-BrownDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3495
@@ -862,21 +1418,33 @@
 1365
 ]
 ],
-"belts":[
+"belts": [
 [
 "MethaneClathrate",
 "LithiumHydroxide",
 "Diamonds"
 ]
 ],
-"seed":738319619,
-"raw":"T-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+]
+],
+"seed": 738319619,
+"raw": "T-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 695
@@ -918,21 +1486,69 @@
 385
 ]
 ],
-"belts":[
+"belts": [
 [
 "Diamonds",
 "Alexandrite",
 "LithiumHydroxide"
 ]
 ],
-"seed":692335633,
-"raw":"G-WhiteYellow"
+"materials": [
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+]
+],
+"seed": 692335633,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "F-White"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 245
@@ -942,19 +1558,27 @@
 775
 ]
 ],
-"belts":[],
-"seed":1606530313,
-"raw":"F-White"
+"belts": [],
+"materials": [
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[]
+],
+"seed": 1606530313,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "M-RedDwarf",
 "M-RedDwarf",
 "L-BrownDwarf",
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 165
@@ -996,7 +1620,7 @@
 3505
 ]
 ],
-"belts":[
+"belts": [
 [
 "LithiumHydroxide",
 "Diamonds",
@@ -1008,14 +1632,66 @@
 "LithiumHydroxide"
 ]
 ],
-"seed":442863109,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Sulphur",
+"Manganese",
+"Vanadium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+]
+],
+"seed": 442863109,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3095
@@ -1025,23 +1701,35 @@
 3695
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "Uraninite",
 "Monazite"
 ]
 ],
-"seed":1364577297,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+]
+],
+"seed": 1364577297,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "T-BrownDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 215
@@ -1079,7 +1767,7 @@
 4845
 ]
 ],
-"belts":[
+"belts": [
 [
 "Gallite",
 "Lepidolite",
@@ -1091,14 +1779,57 @@
 "Alexandrite"
 ]
 ],
-"seed":336668672,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+]
+],
+"seed": 336668672,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "WaterWorld",
 65
@@ -1108,15 +1839,23 @@
 2445
 ]
 ],
-"belts":[],
-"seed":595900947,
-"raw":"M-RedDwarf"
+"belts": [],
+"materials": [
+[],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+]
+],
+"seed": 595900947,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3415
@@ -1126,7 +1865,7 @@
 3605
 ]
 ],
-"belts":[
+"belts": [
 [
 "Diamonds",
 "Bouxite",
@@ -1138,15 +1877,27 @@
 "LithiumHydroxide"
 ]
 ],
-"seed":612760064,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+]
+],
+"seed": 612760064,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf",
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3405
@@ -1172,7 +1923,7 @@
 1475
 ]
 ],
-"belts":[
+"belts": [
 [
 "Painite",
 "Alexandrite",
@@ -1184,23 +1935,56 @@
 "Bromellite"
 ]
 ],
-"seed":331723016,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+]
+],
+"seed": 331723016,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[],
-"belts":[],
-"seed":791094784,
-"raw":"G-WhiteYellow"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 791094784,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4885
@@ -1214,7 +1998,7 @@
 3635
 ]
 ],
-"belts":[
+"belts": [
 [
 "Painite",
 "Diamonds",
@@ -1226,20 +2010,37 @@
 "Bouxite"
 ]
 ],
-"seed":1333909522,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+]
+],
+"seed": 1333909522,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4285
 ]
 ],
-"belts":[
+"belts": [
 [
 "Gallite",
 "LithiumHydroxide",
@@ -1251,14 +2052,21 @@
 "Gallite"
 ]
 ],
-"seed":1801849350,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Germanium"
+]
+],
+"seed": 1801849350,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 105
@@ -1268,37 +2076,50 @@
 3405
 ]
 ],
-"belts":[
+"belts": [
 [
 "Bouxite",
 "Coltan",
 "LithiumHydroxide"
 ]
 ],
-"seed":1615109892,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+]
+],
+"seed": 1615109892,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[],
-"belts":[
+"planets": [],
+"belts": [
 [
 "MethaneClathrate",
 "Rutile",
 "Bromellite"
 ]
 ],
-"seed":1667679233,
-"raw":"M-RedDwarf"
+"materials": [],
+"seed": 1667679233,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 155
@@ -1316,7 +2137,7 @@
 125
 ]
 ],
-"belts":[
+"belts": [
 [
 "Bouxite",
 "Bromellite",
@@ -1328,21 +2149,35 @@
 "MethaneClathrate"
 ]
 ],
-"seed":884315417,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Chromium",
+"Germanium",
+"Phosphorus"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[],
+[]
+],
+"seed": 884315417,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "Y-BrownDwarf",
 "F-White"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3435
 ]
 ],
-"belts":[
+"belts": [
 [
 "Coltan",
 "Monazite",
@@ -1354,14 +2189,21 @@
 "Diamonds"
 ]
 ],
-"seed":1338292758,
-"raw":"Y-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Manganese"
+]
+],
+"seed": 1338292758,
+"raw": "Y-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4525
@@ -1375,15 +2217,32 @@
 255
 ]
 ],
-"belts":[],
-"seed":1350938632,
-"raw":"M-RedDwarf"
+"belts": [],
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+]
+],
+"seed": 1350938632,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 225
@@ -1393,7 +2252,7 @@
 445
 ]
 ],
-"belts":[
+"belts": [
 [
 "Rutile",
 "Coltan",
@@ -1405,15 +2264,27 @@
 "Painite"
 ]
 ],
-"seed":508705795,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Chromium",
+"Germanium",
+"Phosphorus"
+]
+],
+"seed": 508705795,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "F-White",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "MetalRichPlanet",
 1365
@@ -1439,15 +2310,39 @@
 235
 ]
 ],
-"belts":[],
-"seed":665261568,
-"raw":"F-White"
+"belts": [],
+"materials": [
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[],
+[]
+],
+"seed": 665261568,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "F-White"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4745
@@ -1457,7 +2352,7 @@
 3095
 ]
 ],
-"belts":[
+"belts": [
 [
 "Gallite",
 "Painite",
@@ -1469,14 +2364,26 @@
 "Coltan"
 ]
 ],
-"seed":140631296,
-"raw":"F-White"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+]
+],
+"seed": 140631296,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 185
@@ -1490,17 +2397,34 @@
 255
 ]
 ],
-"belts":[],
-"seed":749916936,
-"raw":"K-YellowOrange"
+"belts": [],
+"materials": [
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+]
+],
+"seed": 749916936,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 115
@@ -1546,7 +2470,7 @@
 95
 ]
 ],
-"belts":[
+"belts": [
 [
 "Gallite",
 "LithiumHydroxide",
@@ -1558,24 +2482,74 @@
 "Diamonds"
 ]
 ],
-"seed":338819840,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Nickel",
+"Manganese"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+]
+],
+"seed": 338819840,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "T-BrownDwarf"
 ],
-"planets":[],
-"belts":[],
-"seed":1053841408,
-"raw":"M-RedDwarf"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 1053841408,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantClassII",
 555
@@ -1605,31 +2579,65 @@
 565
 ]
 ],
-"belts":[
+"belts": [
 [
 "Bromellite",
 "Painite",
 "Gallite"
 ]
 ],
-"seed":727843330,
-"raw":"G-WhiteYellow"
+"materials": [
+[],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Chromium",
+"Germanium",
+"Phosphorus"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+]
+],
+"seed": 727843330,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "S-Star"
 ],
-"planets":[],
-"belts":[],
-"seed":1525979904,
-"raw":"S-Star"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 1525979904,
+"raw": "S-Star"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 2045
@@ -1659,43 +2667,83 @@
 995
 ]
 ],
-"belts":[
+"belts": [
 [
 "Rutile",
 "Lepidolite",
 "Gallite"
 ]
 ],
-"seed":1821667599,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Sulphur",
+"Manganese",
+"Vanadium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+],
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+]
+],
+"seed": 1821667599,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantClassI",
 165
 ]
 ],
-"belts":[
+"belts": [
 [
 "Coltan",
 "Monazite",
 "Rutile"
 ]
 ],
-"seed":811891733,
-"raw":"L-BrownDwarf"
+"materials": [
+[]
+],
+"seed": 811891733,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow",
 "M-RedDwarf",
 "TauriG"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 265
@@ -1713,17 +2761,35 @@
 4855
 ]
 ],
-"belts":[],
-"seed":569543447,
-"raw":"G-WhiteYellow"
+"belts": [],
+"materials": [
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+]
+],
+"seed": 569543447,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "F-White",
 "M-RedDwarf",
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "MetalRichPlanet",
 395
@@ -1761,7 +2827,7 @@
 245
 ]
 ],
-"belts":[
+"belts": [
 [
 "Alexandrite",
 "Gallite",
@@ -1773,14 +2839,61 @@
 "Bouxite"
 ]
 ],
-"seed":627321374,
-"raw":"F-White"
+"materials": [
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+]
+],
+"seed": 627321374,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "MetalRichPlanet",
 65
@@ -1798,22 +2911,44 @@
 4105
 ]
 ],
-"belts":[
+"belts": [
 [
 "Painite",
 "Monazite",
 "Bouxite"
 ]
 ],
-"seed":193150976,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+]
+],
+"seed": 193150976,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 795
@@ -1823,16 +2958,24 @@
 85
 ]
 ],
-"belts":[],
-"seed":2002995968,
-"raw":"L-BrownDwarf"
+"belts": [],
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[]
+],
+"seed": 2002995968,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf",
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4945
@@ -1850,21 +2993,39 @@
 2815
 ]
 ],
-"belts":[
+"belts": [
 [
 "Alexandrite",
 "Gallite",
 "Rutile"
 ]
 ],
-"seed":696575003,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+]
+],
+"seed": 696575003,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3745
@@ -1898,7 +3059,7 @@
 4335
 ]
 ],
-"belts":[
+"belts": [
 [
 "Painite",
 "Rutile",
@@ -1910,15 +3071,49 @@
 "Painite"
 ]
 ],
-"seed":1611024132,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[],
+[],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+]
+],
+"seed": 1611024132,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 1445
@@ -1948,7 +3143,7 @@
 75
 ]
 ],
-"belts":[
+"belts": [
 [
 "Diamonds",
 "Rutile",
@@ -1960,15 +3155,52 @@
 "Bromellite"
 ]
 ],
-"seed":1179997954,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Cadmium",
+"Iron",
+"Phosphorus"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+]
+],
+"seed": 1179997954,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "T-BrownDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4135
@@ -1978,19 +3210,31 @@
 955
 ]
 ],
-"belts":[],
-"seed":1003771666,
-"raw":"T-BrownDwarf"
+"belts": [],
+"materials": [
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+]
+],
+"seed": 1003771666,
+"raw": "T-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf",
 "L-BrownDwarf",
 "T-BrownDwarf",
 "T-BrownDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 365
@@ -2004,7 +3248,7 @@
 245
 ]
 ],
-"belts":[
+"belts": [
 [
 "Rutile",
 "Uraninite",
@@ -2016,14 +3260,31 @@
 "Bouxite"
 ]
 ],
-"seed":1729413903,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+]
+],
+"seed": 1729413903,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 365
@@ -2037,15 +3298,28 @@
 235
 ]
 ],
-"belts":[],
-"seed":709929216,
-"raw":"G-WhiteYellow"
+"belts": [],
+"materials": [
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[],
+[
+"Chromium",
+"Iron",
+"Polonium"
+]
+],
+"seed": 709929216,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "Y-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 1275
@@ -2063,7 +3337,7 @@
 1805
 ]
 ],
-"belts":[
+"belts": [
 [
 "Alexandrite",
 "Monazite",
@@ -2075,15 +3349,37 @@
 "Diamonds"
 ]
 ],
-"seed":935579959,
-"raw":"Y-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+]
+],
+"seed": 935579959,
+"raw": "Y-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 2055
@@ -2121,7 +3417,7 @@
 1025
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "Uraninite",
@@ -2133,33 +3429,82 @@
 "Rutile"
 ]
 ],
-"seed":1296223772,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Chromium",
+"Germanium",
+"Phosphorus"
+],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+]
+],
+"seed": 1296223772,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "A-BlueWhite"
 ],
-"planets":[],
-"belts":[],
-"seed":153290752,
-"raw":"A-BlueWhite"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 153290752,
+"raw": "A-BlueWhite"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[],
-"belts":[],
-"seed":817279506,
-"raw":"M-RedDwarf"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 817279506,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 655
@@ -2169,7 +3514,7 @@
 95
 ]
 ],
-"belts":[
+"belts": [
 [
 "Gallite",
 "Painite",
@@ -2181,14 +3526,26 @@
 "LithiumHydroxide"
 ]
 ],
-"seed":1905642243,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+]
+],
+"seed": 1905642243,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 225
@@ -2210,23 +3567,42 @@
 665
 ]
 ],
-"belts":[
+"belts": [
 [
 "Monazite",
 "LithiumHydroxide",
 "Uraninite"
 ]
 ],
-"seed":1159937031,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[],
+[],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+]
+],
+"seed": 1159937031,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 235
@@ -2268,21 +3644,65 @@
 4745
 ]
 ],
-"belts":[
+"belts": [
 [
 "Gallite",
 "Uraninite",
 "Lepidolite"
 ]
 ],
-"seed":1587981064,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Sulphur",
+"Manganese",
+"Vanadium"
+],
+[],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+]
+],
+"seed": 1587981064,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3685
@@ -2320,7 +3740,7 @@
 4645
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "Rutile",
@@ -2332,16 +3752,59 @@
 "MethaneClathrate"
 ]
 ],
-"seed":412375816,
-"raw":"G-WhiteYellow"
+"materials": [
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+]
+],
+"seed": 412375816,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "K-YellowOrange",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 205
@@ -2375,7 +3838,7 @@
 65
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "LithiumHydroxide",
@@ -2387,17 +3850,51 @@
 "Bromellite"
 ]
 ],
-"seed":1522721057,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[],
+[],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+]
+],
+"seed": 1522721057,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "M-RedDwarf",
 "L-BrownDwarf",
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 255
@@ -2427,39 +3924,78 @@
 3255
 ]
 ],
-"belts":[],
-"seed":1488007680,
-"raw":"K-YellowOrange"
+"belts": [],
+"materials": [
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+]
+],
+"seed": 1488007680,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "F-White"
 ],
-"planets":[],
-"belts":[],
-"seed":283432712,
-"raw":"F-White"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 283432712,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[],
-"belts":[],
-"seed":358801922,
-"raw":"L-BrownDwarf"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 358801922,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 105
 ]
 ],
-"belts":[
+"belts": [
 [
 "Monazite",
 "Gallite",
@@ -2471,14 +4007,17 @@
 "Gallite"
 ]
 ],
-"seed":136634880,
-"raw":"M-RedDwarf"
+"materials": [
+[]
+],
+"seed": 136634880,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 1265
@@ -2500,7 +4039,7 @@
 1785
 ]
 ],
-"belts":[
+"belts": [
 [
 "MethaneClathrate",
 "Bromellite",
@@ -2512,15 +4051,42 @@
 "Uraninite"
 ]
 ],
-"seed":452329221,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+]
+],
+"seed": 452329221,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 225
@@ -2546,7 +4112,7 @@
 1115
 ]
 ],
-"belts":[
+"belts": [
 [
 "Diamonds",
 "Coltan",
@@ -2558,14 +4124,38 @@
 "Diamonds"
 ]
 ],
-"seed":1521736974,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[],
+[],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+]
+],
+"seed": 1521736974,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[
+"planets": [
 [
 "MetalRichPlanet",
 605
@@ -2591,23 +4181,55 @@
 265
 ]
 ],
-"belts":[
+"belts": [
 [
 "Coltan",
 "Rutile",
 "MethaneClathrate"
 ]
 ],
-"seed":1744172288,
-"raw":"G-WhiteYellow"
+"materials": [
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+]
+],
+"seed": 1744172288,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 425
@@ -2641,7 +4263,7 @@
 85
 ]
 ],
-"belts":[
+"belts": [
 [
 "Diamonds",
 "Uraninite",
@@ -2653,14 +4275,56 @@
 "Gallite"
 ]
 ],
-"seed":297038604,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Sulphur",
+"Nickel",
+"Manganese"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+]
+],
+"seed": 297038604,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantClassI",
 1135
@@ -2694,22 +4358,60 @@
 75
 ]
 ],
-"belts":[
+"belts": [
 [
 "LithiumHydroxide",
 "Uraninite",
 "Lepidolite"
 ]
 ],
-"seed":529748492,
-"raw":"M-RedDwarf"
+"materials": [
+[],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Tellurium",
+"Selenium",
+"Nickel"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Sulphur",
+"Manganese",
+"Vanadium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Chromium",
+"Germanium",
+"Phosphorus"
+]
+],
+"seed": 529748492,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3595
@@ -2743,7 +4445,7 @@
 265
 ]
 ],
-"belts":[
+"belts": [
 [
 "Diamonds",
 "Painite",
@@ -2755,14 +4457,48 @@
 "Painite"
 ]
 ],
-"seed":877771264,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Cadmium",
+"Iron",
+"Phosphorus"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[]
+],
+"seed": 877771264,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantClassII",
 275
@@ -2776,7 +4512,7 @@
 115
 ]
 ],
-"belts":[
+"belts": [
 [
 "Painite",
 "Bromellite",
@@ -2788,15 +4524,28 @@
 "Lepidolite"
 ]
 ],
-"seed":1248015129,
-"raw":"K-YellowOrange"
+"materials": [
+[],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+]
+],
+"seed": 1248015129,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantwithWaterLife",
 615
@@ -2834,15 +4583,54 @@
 3855
 ]
 ],
-"belts":[],
-"seed":455313164,
-"raw":"K-YellowOrange"
+"belts": [],
+"materials": [
+[],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+],
+[],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+]
+],
+"seed": 455313164,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4195
@@ -2852,22 +4640,34 @@
 565
 ]
 ],
-"belts":[
+"belts": [
 [
 "Alexandrite",
 "LithiumHydroxide",
 "Uraninite"
 ]
 ],
-"seed":743496704,
-"raw":"T-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+]
+],
+"seed": 743496704,
+"raw": "T-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantClassI",
 1685
@@ -2909,7 +4709,7 @@
 1105
 ]
 ],
-"belts":[
+"belts": [
 [
 "Coltan",
 "Uraninite",
@@ -2921,14 +4721,50 @@
 "Bromellite"
 ]
 ],
-"seed":419620361,
-"raw":"M-RedDwarf"
+"materials": [
+[],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Cadmium",
+"Iron",
+"Phosphorus"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[],
+[],
+[]
+],
+"seed": 419620361,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 815
@@ -2938,7 +4774,7 @@
 175
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "Diamonds",
@@ -2950,15 +4786,23 @@
 "Diamonds"
 ]
 ],
-"seed":967935506,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[]
+],
+"seed": 967935506,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "T-BrownDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4035
@@ -2972,7 +4816,7 @@
 235
 ]
 ],
-"belts":[
+"belts": [
 [
 "LithiumHydroxide",
 "Alexandrite",
@@ -2984,14 +4828,31 @@
 "Rutile"
 ]
 ],
-"seed":664935181,
-"raw":"T-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+]
+],
+"seed": 664935181,
+"raw": "T-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantClassI",
 2705
@@ -3025,24 +4886,63 @@
 4345
 ]
 ],
-"belts":[],
-"seed":1339479810,
-"raw":"M-RedDwarf"
+"belts": [],
+"materials": [
+[],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+]
+],
+"seed": 1339479810,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[],
-"belts":[],
-"seed":1687421444,
-"raw":"M-RedDwarf"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 1687421444,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 95
@@ -3080,7 +4980,7 @@
 115
 ]
 ],
-"belts":[
+"belts": [
 [
 "Uraninite",
 "Lepidolite",
@@ -3092,14 +4992,53 @@
 "Bouxite"
 ]
 ],
-"seed":916656455,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[
+"Chromium",
+"Germanium",
+"Phosphorus"
+],
+[],
+[],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+]
+],
+"seed": 916656455,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "WaterWorld",
 95
@@ -3133,7 +5072,7 @@
 105
 ]
 ],
-"belts":[
+"belts": [
 [
 "Uraninite",
 "Coltan",
@@ -3145,15 +5084,41 @@
 "Uraninite"
 ]
 ],
-"seed":1139893764,
-"raw":"M-RedDwarf"
+"materials": [
+[],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[],
+[],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[],
+[
+"Chromium",
+"Germanium",
+"Phosphorus"
+]
+],
+"seed": 1139893764,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "F-White",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 845
@@ -3199,7 +5164,7 @@
 85
 ]
 ],
-"belts":[
+"belts": [
 [
 "LithiumHydroxide",
 "Coltan",
@@ -3211,14 +5176,55 @@
 "MethaneClathrate"
 ]
 ],
-"seed":705136896,
-"raw":"F-White"
+"materials": [
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[],
+[],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[],
+[],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+]
+],
+"seed": 705136896,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "A-BlueWhite"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 4925
@@ -3252,7 +5258,7 @@
 4995
 ]
 ],
-"belts":[
+"belts": [
 [
 "Gallite",
 "MethaneClathrate",
@@ -3264,14 +5270,56 @@
 "Rutile"
 ]
 ],
-"seed":65176320,
-"raw":"A-BlueWhite"
+"materials": [
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+]
+],
+"seed": 65176320,
+"raw": "A-BlueWhite"
 },
 {
-"stars":[
+"stars": [
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 2095
@@ -3281,21 +5329,33 @@
 925
 ]
 ],
-"belts":[
+"belts": [
 [
 "Uraninite",
 "Coltan",
 "Bouxite"
 ]
 ],
-"seed":1740022784,
-"raw":"T-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+]
+],
+"seed": 1740022784,
+"raw": "T-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "F-White"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 655
@@ -3325,15 +5385,48 @@
 695
 ]
 ],
-"belts":[],
-"seed":1433628445,
-"raw":"F-White"
+"belts": [],
+"materials": [
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+]
+],
+"seed": 1433628445,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 255
@@ -3355,22 +5448,45 @@
 405
 ]
 ],
-"belts":[
+"belts": [
 [
 "Painite",
 "MethaneClathrate",
 "Coltan"
 ]
 ],
-"seed":181723392,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Iron",
+"Phosphorus",
+"Cadmium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+]
+],
+"seed": 181723392,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow",
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 1705
@@ -3408,21 +5524,64 @@
 4065
 ]
 ],
-"belts":[
+"belts": [
 [
 "LithiumHydroxide",
 "Gallite",
 "Bromellite"
 ]
 ],
-"seed":243396608,
-"raw":"G-WhiteYellow"
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+],
+[
+"Sulphur",
+"Manganese",
+"Vanadium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+]
+],
+"seed": 243396608,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantwithWaterLife",
 755
@@ -3464,7 +5623,7 @@
 3035
 ]
 ],
-"belts":[
+"belts": [
 [
 "Coltan",
 "Rutile",
@@ -3476,15 +5635,63 @@
 "Gallite"
 ]
 ],
-"seed":1351021832,
-"raw":"K-YellowOrange"
+"materials": [
+[],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+]
+],
+"seed": 1351021832,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "A-BlueWhite",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3725
@@ -3510,7 +5717,7 @@
 1405
 ]
 ],
-"belts":[
+"belts": [
 [
 "Coltan",
 "Monazite",
@@ -3522,14 +5729,42 @@
 "Rutile"
 ]
 ],
-"seed":1385635333,
-"raw":"A-BlueWhite"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Germanium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Sulphur",
+"Nickel",
+"Manganese"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[]
+],
+"seed": 1385635333,
+"raw": "A-BlueWhite"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3225
@@ -3547,7 +5782,7 @@
 2895
 ]
 ],
-"belts":[
+"belts": [
 [
 "Coltan",
 "Gallite",
@@ -3559,14 +5794,36 @@
 "Painite"
 ]
 ],
-"seed":1443001094,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+]
+],
+"seed": 1443001094,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 185
@@ -3584,24 +5841,47 @@
 135
 ]
 ],
-"belts":[],
-"seed":634664204,
-"raw":"M-RedDwarf"
+"belts": [],
+"materials": [
+[
+"Sulphur",
+"Nickel",
+"Manganese"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[
+"Sulphur",
+"Manganese",
+"Vanadium"
+]
+],
+"seed": 634664204,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[],
-"belts":[],
-"seed":802503474,
-"raw":"K-YellowOrange"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 802503474,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 2875
@@ -3619,21 +5899,43 @@
 735
 ]
 ],
-"belts":[
+"belts": [
 [
 "Uraninite",
 "LithiumHydroxide",
 "Bromellite"
 ]
 ],
-"seed":1501821231,
-"raw":"T-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+]
+],
+"seed": 1501821231,
+"raw": "T-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 125
@@ -3651,7 +5953,7 @@
 365
 ]
 ],
-"belts":[
+"belts": [
 [
 "Diamonds",
 "Gallite",
@@ -3663,14 +5965,32 @@
 "Gallite"
 ]
 ],
-"seed":967303424,
-"raw":"K-YellowOrange"
+"materials": [
+[
+"Sulphur",
+"Selenium",
+"Iron"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[]
+],
+"seed": 967303424,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "F-White"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3285
@@ -3684,36 +6004,50 @@
 1665
 ]
 ],
-"belts":[
+"belts": [
 [
 "Diamonds",
 "Lepidolite",
 "Painite"
 ]
 ],
-"seed":380847623,
-"raw":"F-White"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[]
+],
+"seed": 380847623,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[],
-"belts":[
+"planets": [],
+"belts": [
 [
 "Painite",
 "Lepidolite",
 "LithiumHydroxide"
 ]
 ],
-"seed":1036329769,
-"raw":"L-BrownDwarf"
+"materials": [],
+"seed": 1036329769,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 235
@@ -3723,16 +6057,28 @@
 175
 ]
 ],
-"belts":[],
-"seed":1564562432,
-"raw":"K-YellowOrange"
+"belts": [],
+"materials": [
+[
+"Cadmium",
+"Iron",
+"Phosphorus"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+]
+],
+"seed": 1564562432,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 235
@@ -3742,17 +6088,25 @@
 305
 ]
 ],
-"belts":[],
-"seed":279046664,
-"raw":"K-YellowOrange"
+"belts": [],
+"materials": [
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[]
+],
+"seed": 279046664,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf",
 "L-BrownDwarf",
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 935
@@ -3786,21 +6140,63 @@
 5005
 ]
 ],
-"belts":[
+"belts": [
 [
 "Uraninite",
 "Monazite",
 "Alexandrite"
 ]
 ],
-"seed":1433692731,
-"raw":"L-BrownDwarf"
+"materials": [
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Phosphorus",
+"Nickel"
+],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+]
+],
+"seed": 1433692731,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 65
@@ -3814,21 +6210,38 @@
 185
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "MethaneClathrate",
 "Diamonds"
 ]
 ],
-"seed":1212381445,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Sulphur",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Carbon",
+"Iron",
+"Vanadium"
+]
+],
+"seed": 1212381445,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "T-BrownDwarf"
 ],
-"planets":[
+"planets": [
 [
 "IcePlanet",
 3205
@@ -3838,21 +6251,33 @@
 3745
 ]
 ],
-"belts":[
+"belts": [
 [
 "Lepidolite",
 "MethaneClathrate",
 "Alexandrite"
 ]
 ],
-"seed":363054857,
-"raw":"T-BrownDwarf"
+"materials": [
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+]
+],
+"seed": 363054857,
+"raw": "T-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 65
@@ -3866,7 +6291,7 @@
 115
 ]
 ],
-"belts":[
+"belts": [
 [
 "Rutile",
 "Alexandrite",
@@ -3878,15 +6303,32 @@
 "LithiumHydroxide"
 ]
 ],
-"seed":641143298,
-"raw":"M-RedDwarf"
+"materials": [
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Iron",
+"Phosphorus",
+"Vanadium"
+],
+[
+"Sulphur",
+"Selenium",
+"Nickel"
+]
+],
+"seed": 641143298,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf"
 ],
-"planets":[],
-"belts":[
+"planets": [],
+"belts": [
 [
 "Painite",
 "Gallite",
@@ -3898,15 +6340,16 @@
 "Rutile"
 ]
 ],
-"seed":760327938,
-"raw":"M-RedDwarf"
+"materials": [],
+"seed": 760327938,
+"raw": "M-RedDwarf"
 },
 {
-"stars":[
+"stars": [
 "A-BlueWhite",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "HighMetalPlanet",
 2025
@@ -3936,7 +6379,7 @@
 2115
 ]
 ],
-"belts":[
+"belts": [
 [
 "Painite",
 "Bouxite",
@@ -3948,48 +6391,80 @@
 "Lepidolite"
 ]
 ],
-"seed":1783857152,
-"raw":"A-BlueWhite"
+"materials": [
+[
+"Nickel",
+"Vanadium",
+"Sulphur"
+],
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[
+"Iron",
+"Sulphur",
+"Nickel"
+],
+[],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[]
+],
+"seed": 1783857152,
+"raw": "A-BlueWhite"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[],
-"belts":[
+"planets": [],
+"belts": [
 [
 "Lepidolite",
 "Painite",
 "Bromellite"
 ]
 ],
-"seed":626284051,
-"raw":"L-BrownDwarf"
+"materials": [],
+"seed": 626284051,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "K-YellowOrange"
 ],
-"planets":[],
-"belts":[],
-"seed":783314688,
-"raw":"K-YellowOrange"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 783314688,
+"raw": "K-YellowOrange"
 },
 {
-"stars":[
+"stars": [
 "F-White",
 "M-RedDwarf"
 ],
-"planets":[],
-"belts":[],
-"seed":1033206868,
-"raw":"F-White"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 1033206868,
+"raw": "F-White"
 },
 {
-"stars":[
+"stars": [
 "G-WhiteYellow"
 ],
-"planets":[
+"planets": [
 [
 "RockPlanet",
 675
@@ -4015,32 +6490,57 @@
 205
 ]
 ],
-"belts":[
+"belts": [
 [
 "Bouxite",
 "Bromellite",
 "Lepidolite"
 ]
 ],
-"seed":1737696512,
-"raw":"G-WhiteYellow"
+"materials": [
+[],
+[
+"Iron",
+"Sulphur",
+"Tellurium"
+],
+[],
+[
+"Phosphorus",
+"Iron",
+"Polonium"
+],
+[
+"Vanadium",
+"Manganese",
+"Cadmium"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+]
+],
+"seed": 1737696512,
+"raw": "G-WhiteYellow"
 },
 {
-"stars":[
+"stars": [
 "L-BrownDwarf"
 ],
-"planets":[],
-"belts":[],
-"seed":932617737,
-"raw":"L-BrownDwarf"
+"planets": [],
+"belts": [],
+"materials": [],
+"seed": 932617737,
+"raw": "L-BrownDwarf"
 },
 {
-"stars":[
+"stars": [
 "M-RedDwarf",
 "M-RedDwarf",
 "M-RedDwarf"
 ],
-"planets":[
+"planets": [
 [
 "GasGiantClassI",
 795
@@ -4090,8 +6590,58 @@
 95
 ]
 ],
-"belts":[],
-"seed":178517507,
-"raw":"M-RedDwarf"
+"belts": [],
+"materials": [
+[],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Sulphur",
+"Iron",
+"Tellurium"
+],
+[
+"Nickel",
+"Phosphorus",
+"Chromium"
+],
+[
+"Chromium",
+"Iron",
+"Polonium"
+],
+[
+"Iron",
+"Selenium",
+"Manganese"
+],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Sulphur",
+"Cadmium",
+"Polonium"
+],
+[],
+[
+"Iron",
+"Selenium",
+"Polonium"
+],
+[
+"Iron",
+"Sulphur",
+"Chromium"
+],
+[]
+],
+"seed": 178517507,
+"raw": "M-RedDwarf"
 }
 ]

@@ -104,7 +104,8 @@ ok("a system near The Void is explored too", () => {
 });
 // The generator exists twice: gen.py builds the database, app.js draws the map.
 // Nothing forces them to agree, and when they silently disagreed the map showed
-// a galaxy the game does not have. gen_cases.json is what Python produces.
+// a galaxy the game does not have. gen_cases.json is what Python produces
+// (tools/port/gen_cases.py), materials included.
 ok("the JS generator matches the Python one", () => {
   const cases = JSON.parse(read("../src/gen_cases.json"));
   const wrong = [];
@@ -115,9 +116,10 @@ ok("the JS generator matches the Python one", () => {
       stars: b.stars,
       planets: b.planets.map(p => [p.type.replace(/ /g, ""), p.orbit]),
       belts: b.belts.map(t => t.ores.map(o => o.name)),
+      materials: b.planets.map(p => p.mats),
     });
     const want = JSON.stringify({
-      stars: c.stars, planets: c.planets, belts: c.belts,
+      stars: c.stars, planets: c.planets, belts: c.belts, materials: c.materials,
     });
     if (got !== want) wrong.push({ seed: c.seed, got, want });
   }

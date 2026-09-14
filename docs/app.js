@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=066c052863"), read("data/reachable.png?v=066c052863")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=ed281fe26b"), read("data/reachable.png?v=ed281fe26b")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=066c052863", 1), read("data/zones.webp?v=066c052863", 3)]);
+    [read("data/side.webp?v=ed281fe26b", 1), read("data/zones.webp?v=ed281fe26b", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1082,7 +1082,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=066c052863").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=ed281fe26b").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1948,9 +1948,30 @@ function pickGenerated(mx, my){
   return best;
 }
 
-// What digging on this system's landable planets can turn up, all planets together.
-const matRow = keys => keys.length
-  ? row("materials", keys.map(k => MATS[D.matRaw.indexOf(k)]).sort().join(", ")) : "";
+// What digging on this system's landable planets can turn up, with the chance a
+// dig finds each: its commonness over the planet's three, as low to high across
+// the planets that carry it.
+const matRow = spans => {
+  const parts = Object.entries(spans)
+    .map(([k, [lo, hi]]) => [MATS[D.matRaw.indexOf(k)], lo === hi ? `${lo}%` : `${lo}–${hi}%`])
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([name, pct]) => `${name} ${pct}`);
+  return parts.length
+    ? row("materials", parts.map((p, i) => p + (i === parts.length - 1 ? "" : i % 5 === 4 ? ",<br>" : ", ")).join(""))
+    : "";
+};
+function matSpans(trios){
+  const out = {};
+  for (const trio of trios){
+    const total = trio.reduce((s, k) => s + D.matRare[k], 0);
+    for (const k of trio){
+      const pct = Math.round(100 * D.matRare[k] / total);
+      const e = out[k] || (out[k] = [pct, pct]);
+      e[0] = Math.min(e[0], pct); e[1] = Math.max(e[1], pct);
+    }
+  }
+  return out;
+}
 
 function showGenTip(st, mx, my){
   const b = starBodies(st);
@@ -1965,7 +1986,7 @@ function showGenTip(st, mx, my){
     (b.planets.length
       ? row("planets", b.planets.length + (b.landable ? ` (${b.landable})` : "")) : "") +
     (b.belts.length ? row("belts", b.belts.length) : "") +
-    matRow([...new Set(b.planets.flatMap(p => p.mats))]) +
+    matRow(matSpans(b.planets.map(p => p.mats).filter(m => m.length))) +
     valueRows(st) +
     `</dl>` + (ore.length ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "");
   tip.style.display = "block";
@@ -2083,7 +2104,7 @@ function showTip(s, mx, my){
     fromHereRow(s[X], s[Z]) +
     (s[PL] ? row("planets", s[PL] + (s[LA] ? ` (${s[LA]})` : "")) : "") +
     (s[BE] ? row("belts", s[BE]) : "") +
-    matRow(D.matRaw.filter((_k, i) => s[MAT] >> i & 1)) +
+    matRow(D.matPct[s[NAME]] || {}) +
     stationRows(s) +
     (factionsOf(s) ? row("faction", factionsOf(s)) : "") +
     tradeRow(s) +
@@ -3248,6 +3269,53 @@ for (const b of document.querySelectorAll(".resetFilters"))
 // indented under the system they belong to, and selecting either picks the system.
 const SPOILER_ALIAS = new Set(["engineer", "landmark"]);
 
+// The search box finds filters as well as systems: every button and every dropdown
+// entry in the filter sections, the route's two buttons and the Jump to places,
+// matched on their own words or their field's. Picking one presses it exactly as
+// a click would, and opens only the section it sits in.
+function filterHits(q){
+  const out = [];
+  const jumpTo = document.querySelector('.grp h2[data-ui="jumpTo"]').parentElement;
+  const els = [
+    ...document.querySelectorAll("#clearRoute, #routeSec .resetFilters"),
+    ...[...document.querySelectorAll(".sections details.grp")]
+      .filter(sec => !sec.querySelector("#calcShip, #wikiPage"))
+      .flatMap(sec => [...sec.querySelectorAll("button.chip, button.pill, select")]),
+    ...jumpTo.querySelectorAll("button.chip"),
+  ];
+  for (const el of els){
+    if (el.closest("[hidden]") || (el.hasAttribute("data-spoiler") && !spoilers)) continue;
+    const sec = el.closest("details.grp");
+    const secName = (sec ? sec.querySelector("summary") : jumpTo.querySelector("h2")).textContent.trim();
+    if (el.tagName === "SELECT"){
+      let label = el.previousElementSibling;
+      label = label && label.matches("label.f") ? label.textContent.trim() : "";
+      for (const o of el.options){
+        if (o.value === "") continue;
+        const text = o.textContent.trim();
+        if (`${label} ${text}`.toLowerCase().includes(q))
+          out.push({text: label ? `${label}: ${text}` : text, sec, secName,
+                    pick: () => { el.value = o.value;
+                                  el.dispatchEvent(new Event("change", {bubbles: true})); }});
+      }
+    } else {
+      const text = [...el.childNodes]
+        .filter(n => !(n.classList && (n.classList.contains("n") || n.classList.contains("rev"))))
+        .map(n => n.textContent).join("").trim();
+      if (text.toLowerCase().includes(q))
+        out.push({text, sec, secName, pick: () => el.click()});
+    }
+  }
+  return out;
+}
+function pickFilter(hit){
+  if (hit.sec){
+    for (const d of document.querySelectorAll("details.grp")) d.open = d === hit.sec;
+    hit.sec.scrollIntoView({block: "nearest"});
+  }
+  hit.pick();
+}
+
 function bindSearch(id){
   const input = document.getElementById(id);
   // What the box held last time, and what the view was last sent to. Backspacing
@@ -3262,11 +3330,24 @@ function bindSearch(id){
     // An emptied box is an end given up: the origin takes the journey with it,
     // since there is nothing left for a destination to be measured from.
     if (!raw){
+      if (id === "find") return;
       if (id === "from") clearRoute();
       else if (routeTo){ routeTo = routePath = routeGates = null; draw(); }
       return;
     }
     if (q.length < 2) return;
+    // A system picked here is a system picked in the origin box.
+    const end = id === "find" ? "from" : id;
+    if (id === "find")
+      for (const hit of filterHits(q).slice(0, 12)){
+        const li = document.createElement("li");
+        li.className = "sub";
+        li.innerHTML = `<b></b><em class="sec"></em>`;
+        li.querySelector("b").textContent = hit.text;
+        li.querySelector("em").textContent = hit.secName;
+        li.onclick = () => { closeFind(); pickFilter(hit); };
+        list.append(li);
+      }
     // A generated name can be resolved from any zoom, so the maps it needs are
     // fetched here rather than waiting for the view to reach them.
     if (cellsFromName(raw).length && !GEN.side) await loadGenerationMaps();
@@ -3336,8 +3417,9 @@ function bindSearch(id){
           Math.hypot(star.x, star.z)))} ly</span>`;
         li.onclick = () => {
           list.innerHTML = "";
+          if (id === "find") closeFind();
           focusOn({[NAME]: star.name, [X]: star.x, [Z]: star.z});
-          setEnd(id, star);
+          setEnd(end, star);
         };
         list.append(li);
       }
@@ -3349,7 +3431,7 @@ function bindSearch(id){
     // sector while only the sector is known, then the band a half-typed pair
     // allows, then the column a whole one fixes, then the four cells the two
     // pairs name, then the one the quadrant letter chooses.
-    if (id === "from" && grew && !groups.size){
+    if (id !== "to" && grew && !groups.size){
       const regions = regionsFromName(raw);
       // Nothing of a cell name typed yet, so the answer is whole sectors, and a
       // sector is a wedge and a ring rather than the rectangle around it.
@@ -3400,7 +3482,11 @@ function bindSearch(id){
     for (const [si, hits] of groups){
       const head = document.createElement("li");
       head.innerHTML = `${S[si][NAME]}<span class="ly">${num(S[si][LY])} ly</span>`;
-      head.onclick = () => { list.innerHTML = ""; setEnd(id, S[si]); focusOn(S[si], 14, flyTrip); };
+      head.onclick = () => {
+        list.innerHTML = "";
+        if (id === "find") closeFind();
+        setEnd(end, S[si]); focusOn(S[si], 14, flyTrip);
+      };
       list.append(head);
       for (const [label, kind] of hits.slice(0, 8)){
         const sub = document.createElement("li");
@@ -3413,7 +3499,7 @@ function bindSearch(id){
   });
 }
 // Enter takes the first thing offered, which is what the list is ordered for.
-for (const id of ["from", "to"])
+for (const id of ["from", "to", "find"])
   document.getElementById(id).addEventListener("keydown", e => {
     if (e.key !== "Enter") return;
     const first = document.querySelector(`.hits[data-for="${id}"] li`);
@@ -3424,6 +3510,22 @@ for (const id of ["from", "to"])
 
 bindSearch("from");
 bindSearch("to");
+bindSearch("find");
+
+// The search is an icon until it is wanted, as the language picker is a flag.
+const findBox = document.getElementById("findBox"), findInput = document.getElementById("find");
+function closeFind(){
+  findBox.hidden = true;
+  findInput.value = "";
+  document.querySelector('.hits[data-for="find"]').innerHTML = "";
+}
+document.getElementById("findBtn").addEventListener("click", () => {
+  if (!findBox.hidden) return closeFind();
+  findBox.hidden = false;
+  findInput.focus();
+});
+document.getElementById("findGo").addEventListener("click", () =>
+  document.querySelector('.hits[data-for="find"] li')?.click());
 
 // Coming back to either box re-describes the system it holds, so you can check
 // what you picked without hunting for it on the map.

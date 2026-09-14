@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=066c052863">
+<link rel="stylesheet" href="style.css?v=ed281fe26b">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -19,7 +19,17 @@
       class="wikiLink" href="https://galaxy-genome.github.io/wiki/" target="_blank" rel="noopener"
       data-ui="wikiLink">Wiki</a></span>
     <select id="lang" data-ui-aria="language" aria-label="Language" hidden></select>
-    <label class="spoil"><input type="checkbox" id="spoilers"> <span data-ui="spoilers">show spoilers</span></label>
+    <div class="spoilRow">
+      <label class="spoil"><input type="checkbox" id="spoilers"> <span data-ui="spoilers">show spoilers</span></label>
+      <button type="button" id="findBtn" data-ui-aria="search" aria-label="Search"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+    </div>
+    <div id="findBox" hidden>
+      <div class="findWrap">
+        <input id="find" type="search" data-ui-ph="searchPlaceholder" placeholder="a system or a filter" autocomplete="off">
+        <button type="button" id="findGo" data-ui-aria="search" aria-label="Search"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
+      </div>
+      <ul class="hits" data-for="find"></ul>
+    </div>
   </div>
 
   <details class="grp" id="routeSec" open>
@@ -234,9 +244,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=066c052863");
+    const galaxy = await load("data/galaxy.json?v=ed281fe26b");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=066c052863`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=ed281fe26b`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -245,7 +255,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=066c052863";
+    s.src = "app.js?v=ed281fe26b";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

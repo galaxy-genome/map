@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=cbbcce2eb9"), read("data/reachable.png?v=cbbcce2eb9")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=9edca72f78"), read("data/reachable.png?v=9edca72f78")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=cbbcce2eb9", 1), read("data/zones.webp?v=cbbcce2eb9", 3)]);
+    [read("data/side.webp?v=9edca72f78", 1), read("data/zones.webp?v=9edca72f78", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1090,7 +1090,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=cbbcce2eb9").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=9edca72f78").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1653,7 +1653,12 @@ function drawExplored(){
 // anybody starts; the far ones, and the system holding the Preon star, are
 // discoveries, so they wait for spoilers.
 const LANDMARK_KNOWN_LY = 5000;
+// Filters that put a figure beside every match. Their labels need the ground a
+// landmark's name would take.
+const figuresShown = () => F.ore >= 0 || F.mat >= 0 || valueAsked()
+  || filters.has("wreck") || filters.has("sellsBlack");
 function drawPoints(){
+  if (figuresShown()) return;
   ctx.globalAlpha = solo ? DIM : 1;
   ctx.fillStyle = "rgba(255,171,61,.85)";
   ctx.font = '600 11px "Oxanium", sans-serif';

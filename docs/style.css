@@ -66,6 +66,14 @@ canvas:active{cursor:grabbing}
 #findBox #findGo{position:absolute;right:4px;top:50%;transform:translateY(-50%)}
 .hits li.sub em.sec{margin-left:auto}
 .hits{list-style:none;margin:0;padding:0;max-height:150px;overflow-y:auto}
+/* Deep ore: rare, so it leads the tooltip in its own opalescent band. */
+.tip .deep{display:flex;flex-direction:column;gap:2px;margin:6px 0 8px;padding:7px 10px;
+  border:1px solid transparent;border-radius:3px;
+  background:linear-gradient(var(--deep),var(--deep)) padding-box,
+             linear-gradient(110deg,#7cf5ff,#b48bff,#ff8bd8,#ffe08a) border-box;
+  box-shadow:0 0 14px rgba(180,139,255,.35)}
+.tip .deep b{font-size:15px;letter-spacing:.04em;color:var(--amber)}
+.tip .deep span{font-size:11px;color:var(--dim)}
 .hits li{padding:5px 9px;font-family:var(--mono);font-size:12px;cursor:pointer;
   border-left:2px solid transparent}
 .hits li:hover{background:rgba(53,224,245,.09);border-left-color:var(--cyan)}

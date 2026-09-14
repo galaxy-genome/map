@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=a4f3462151">
+<link rel="stylesheet" href="style.css?v=ec8ae8181e">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -122,12 +122,13 @@
   </details>
 
   <details class="grp">
-    <summary><span data-ui="crafting">Upgrade Materials</span></summary>
+    <summary><span data-ui="crafting">Module Mods</span></summary>
     <div class="body">
       <label class="f"><span class="ask" data-help="what:mat" tabindex="0" data-ui="materialPresent">Material to dig</span></label>
       <select id="mat"><option value="">any</option></select>
       <label class="f"><span data-ui="minPct">Min %</span><input type="number" id="matPctMin" min="0" max="100" step="1" data-ui-ph="pickMaterial" placeholder="pick a material" disabled></label>
       <label class="f"><span class="ask" data-help="what:landable" tabindex="0" data-ui="minLandable">Min landable</span><input type="number" id="laMin" min="0" step="1" placeholder="0"></label>
+      <span id="engCopy"></span>
       <button class="chip" data-f="land" data-help="basic:land" aria-pressed="false"><span class="box"></span><span data-ui="landable">Landable planet</span></button>
     </div>
   </details>
@@ -245,9 +246,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=a4f3462151");
+    const galaxy = await load("data/galaxy.json?v=ec8ae8181e");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=a4f3462151`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=ec8ae8181e`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -256,7 +257,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=a4f3462151";
+    s.src = "app.js?v=ec8ae8181e";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

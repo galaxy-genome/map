@@ -109,13 +109,13 @@ with sync_playwright() as p:
     mark.click()
     page.wait_for_timeout(500)
     check(page.locator("#wikiPanel").is_visible()
-          and page.locator("#wikiFrame").get_attribute("src").endswith("#Galaxy_Genome_Map#Mining"),
-          "section W opens the wiki at that section")
+          and page.locator("#wikiFrame").get_attribute("src").endswith("#Mining"),
+          "Mining W opens the Mining guide")
     check(mining.evaluate("s => s.parentElement.open") == was_open, "section W leaves the section as it was")
-    page.locator("details.grp>summary", has_text="Upgrade Materials").locator(".secWiki").click(force=True)
+    page.locator("details.grp>summary", has_text="Module Mods").locator(".secWiki").click(force=True)
     page.wait_for_timeout(300)
-    check(page.locator("#wikiFrame").get_attribute("src").endswith("#Module_Mods#Landing"),
-          "Upgrade Materials W opens Module Mods#Landing")
+    check(page.locator("#wikiFrame").get_attribute("src").endswith("#Module_Mods"),
+          "Module Mods W opens the Module Mods page")
     page.locator("details.grp>summary", has_text="Mining").locator(".secWiki").click(force=True)
     page.wait_for_timeout(300)
     mark.click()
@@ -143,7 +143,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(200)
     check(page.input_value("#ore") == "" and page.get_attribute('button[data-f="trophyBuyer"]', "aria-pressed") == "true",
           "a Trading chip releases the Mining ore")
-    page.locator("details.grp>summary", has_text="Upgrade Materials").locator("span").click()
+    page.locator("details.grp>summary", has_text="Module Mods").locator("span").click()
     page.select_option("#mat", label="Phosphorus")
     page.wait_for_timeout(200)
     check(page.get_attribute('button[data-f="trophyBuyer"]', "aria-pressed") == "false"
@@ -172,6 +172,33 @@ with sync_playwright() as p:
     page.goto(url + "?module=FuelScoop")
     page.wait_for_timeout(2500)
     check("at=0,0" in page.url and "ly=150" in page.url, f"a module link opens 150 ly around Sol ({page.url})")
+    page.goto(url + "?ore=VoidOpal&at=0,0&ly=2000")
+    page.wait_for_timeout(3000)
+    check(page.is_disabled("#pctMin") and page.input_value("#pctMin") == "", "a deep ore disables Min %")
+    groups = page.evaluate("[...document.querySelectorAll('#ore optgroup')].map(g => [g.label, [...g.children].map(o => o.textContent)])")
+    check(len(groups) == 2 and groups[1][1] == ["Musgravite", "Void Opal"] and len(groups[0][1]) == 13,
+          f"deep ores sit in their own group last ({[g[0] for g in groups]}, {groups[1][1] if len(groups) > 1 else None})")
+    check(page.evaluate("document.querySelector('#ore').selectedOptions[0].textContent") == "Void Opal",
+          "the link selected Void Opal inside its group")
+    note = page.locator("#ore + p.note").inner_text()
+    check("Seismic" in note, f"the Void Opal note explains deep ore ({note!r})")
+    if SHOTS: page.screenshot(path=str(SHOTS / "void-opal.png"))
+    page.goto(url + "?ore=Musgravite")
+    page.wait_for_timeout(2500)
+    check("at=0,0" in page.url and "ly=1100" in page.url, f"a deep ore link opens 1,100 ly around Sol ({page.url})")
+    page.goto(url + "?system=Wolf%20851")
+    page.wait_for_timeout(2500)
+    tip = page.evaluate("(() => { showTip(byName.get('Wolf 851'), 10, 10); return document.getElementById('tip').innerText; })()")
+    check("Void Opal" in tip and "Deep material" in tip, f"a catalogue tooltip names its deep ore ({tip[-80:]!r})")
+    gen = page.evaluate("""(() => {
+      for (const st of genVisible){
+        const cx = (st.seed >>> 20) & 0xFFF, cy = (st.seed >>> 8) & 0xFFF;
+        if ((cx + cy) % 10 === 2 && starBodies(st).belts.length){
+          showGenTip(st, 10, 10); return document.getElementById('tip').innerText; }
+      }
+      return "no generated system in view";
+    })()""")
+    check("Musgravite" in gen and "Deep material" in gen, f"a generated tooltip names its deep ore ({gen[-80:]!r})")
     page.goto(url + "?ore=Painite&at=500,500&ly=300")
     page.wait_for_timeout(2500)
     check("at=500,500" in page.url and "ly=300" in page.url, "a link's own view wins")
@@ -180,6 +207,23 @@ with sync_playwright() as p:
     touch.wait_for_timeout(1500)
     check(touch.evaluate("getComputedStyle(document.querySelector('.secWiki')).visibility") == "visible",
           "section W always shows on touch")
+    page.goto(url)
+    page.wait_for_timeout(1500)
+    page.locator("details.grp>summary", has_text="Module Mods").locator("span").click()
+    mm = page.locator("details.grp", has=page.locator("#mat"))
+    copy = mm.locator('[data-preset="pEngineers"]')
+    order = mm.evaluate("d => [...d.querySelectorAll('button.chip')].map(b => b.dataset.preset || b.dataset.f)")
+    check(order[-2:] == ["pEngineers", "land"], f"Engineers sits above Landable planet ({order})")
+    check(copy.locator(".n").inner_text() != "", "the copy carries the Engineers count")
+    copy.click()
+    page.wait_for_timeout(500)
+    check(page.locator('[data-preset="pEngineers"][aria-pressed="true"]').count() == 2
+          and page.is_checked("#spoilers"), "the copy presses both Engineers chips and shows spoilers")
+    check(mm.evaluate("d => d.open"), "Module Mods stays open")
+    page.locator("details.grp>summary", has_text="Show me").locator(".secWiki").click(force=True)
+    page.wait_for_timeout(300)
+    check(page.locator("#wikiFrame").get_attribute("src").endswith("#Galaxy_Genome_Map"),
+          "Show me W opens the top of the Map page")
     check(not errors, f"no page errors {errors[:2]}")
     b.close()
 srv.shutdown()

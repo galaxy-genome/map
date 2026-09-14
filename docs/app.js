@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=a4f3462151"), read("data/reachable.png?v=a4f3462151")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=ec8ae8181e"), read("data/reachable.png?v=ec8ae8181e")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=a4f3462151", 1), read("data/zones.webp?v=a4f3462151", 3)]);
+    [read("data/side.webp?v=ec8ae8181e", 1), read("data/zones.webp?v=ec8ae8181e", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -816,6 +816,9 @@ const TRADE_BIT = {sellsBlack: 1, buysBlack: 2, oreBuyer: 4, trophyBuyer: 8,
                    noMarket: 16};
 const tradeOf = s => TRADE.get(s[NAME]) || 0;
 
+// Which cell-sum digit carries deep ore `oi`, or undefined for a belt ore.
+const deepDigit = oi => D.deepOres[D.oreRaw[oi]];
+const DEEP_TONS = "3\u20136 t";
 // Richest showing of ore `oi` in this system, or 0 if it has none.
 function orePct(s, oi){
   const a = s[OP];
@@ -890,7 +893,7 @@ function passes(s){
   if (F.lyMax   != null && s[LY]   > F.lyMax)   return false;
   if (F.valMin != null && worth(s) < F.valMin) return false;
   if (F.plMin   != null && s[PL]   < F.plMin)   return false;
-  if (F.ore >= 0 && F.pctMin != null && orePct(s, F.ore) < F.pctMin) return false;
+  if (F.ore >= 0 && F.pctMin != null && !deepDigit(F.ore) && orePct(s, F.ore) < F.pctMin) return false;
   if (F.mat >= 0 && F.matPctMin != null && (matSpan(s, F.mat) || [0, 0])[1] < F.matPctMin) return false;
   if (F.laMin   != null && s[LA]   < F.laMin)   return false;
   return true;
@@ -1090,7 +1093,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=a4f3462151").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=ec8ae8181e").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1840,8 +1843,8 @@ function draw(){
     label(s, px, py, v){
       const r = rank(s), key = s[NAME];
       if (F.ore >= 0){
-        const pct = orePct(s, F.ore);
-        if (pct) label(px, py, r, key, [[pct + "%  ", ORE_INK], [s[NAME], INK]]);
+        const shown = deepDigit(F.ore) ? (s[ORE] >> F.ore & 1 ? DEEP_TONS : "") : orePct(s, F.ore) && orePct(s, F.ore) + "%";
+        if (shown) label(px, py, r, key, [[shown + "  ", ORE_INK], [s[NAME], INK]]);
       } else if (F.mat >= 0){
         const span = matSpan(s, F.mat);
         if (span) label(px, py, r, key, [[spanText(span) + "  ", ORE_INK], [s[NAME], INK]]);
@@ -1997,11 +2000,18 @@ function matSpans(trios){
   return out;
 }
 
+// A deep ore is rare enough to lead the tooltip rather than sit among the belt ores.
+const deepBanner = has => {
+  const i = D.oreRaw.findIndex((_k, j) => deepDigit(j) && has(j));
+  return i < 0 ? "" : `<div class="deep"><b>${ORES[i]}</b><span>${fmt("deepBanner", {t: DEEP_TONS})}</span></div>`;
+};
+
 function showGenTip(st, mx, my){
   const b = starBodies(st);
   const ore = b.belts.flatMap(belt =>
     belt.ores.map(o => `${t("Goods" + o.name) || o.name} ${o.pct}%`));
-  tip.innerHTML = flownLine(st.name) + `<h3>${st.name}${coords(st.x, st.z)}</h3><dl>` +
+  tip.innerHTML = flownLine(st.name) + `<h3>${st.name}${coords(st.x, st.z)}</h3>` +
+    deepBanner(i => generatedOrePct(st, i)) + `<dl>` +
     row("starType", t(st.raw + "Name") || st.type) +
     row("security", ui("secAnarchy")) +
     (st.fuel ? row("fuel", "\u2713") : "") +
@@ -2120,7 +2130,8 @@ function showTip(s, mx, my){
   // A row is only worth its line when it says something. Nothing the system
   // does not have is listed.
   tip.innerHTML = flownLine(s[NAME]) +
-    `<h3>${s[NAME]}${coords(s[X], s[Z])}</h3><dl>` +
+    `<h3>${s[NAME]}${coords(s[X], s[Z])}</h3>` +
+    deepBanner(i => s[ORE] >> i & 1) + `<dl>` +
     row("starType", TYPES[s[TY]]) +
     row("security", ui(SEC_SLOT[s[SEC]] || "secAnarchy")) +
     (s[FUEL] ? row("fuel", "\u2713") : "") +
@@ -2775,11 +2786,15 @@ function closeWiki(){
 }
 document.getElementById("wikiClose").addEventListener("click", closeWiki);
 
-// Each sidebar section opens the wiki's Map page at the part that explains it, or
-// the article that does it better.
-const SECTION_WIKI = {route: "Route", showMe: "Show me…", exploration: "Exploration",
-  mining: "Mining", trading: "Trading", outfitting: "Outfitting", security: "Security",
-  crafting: ["Module Mods", "Landing"], calculators: "Calculators", wikiPages: null};
+// Each sidebar section opens the wiki article about its subject; the Map page's own
+// section only where no article covers it.
+const SECTION_WIKI = {
+  route: ["Navigation"], showMe: ["Galaxy Genome Map"],
+  exploration: ["Exploration"], mining: ["Mining"], trading: ["Trading"],
+  outfitting: ["Modules"], security: ["Galaxy Genome Map", "Security"],
+  crafting: ["Module Mods"],
+  calculators: ["Navigation", "Geeking out: what mass actually costs you"],
+  wikiPages: [""]};
 for (const sum of document.querySelectorAll("details.grp>summary")){
   const head = sum.querySelector(":scope > span");
   const slot = head.id === "routeHead" ? "route" : head.dataset.ui;
@@ -2790,8 +2805,7 @@ for (const sum of document.querySelectorAll("details.grp>summary")){
   // A second press on the page already showing puts the wiki away.
   b.addEventListener("click", e => {
     e.preventDefault(); e.stopPropagation();
-    const target = SECTION_WIKI[slot];
-    const [page, sec] = Array.isArray(target) ? target : target ? ["Galaxy Genome Map", target] : ["", null];
+    const [page, sec] = SECTION_WIKI[slot];
     if (!wikiPanel.hidden && document.getElementById("wikiFrame").src === wikiUrl(page, sec)) closeWiki();
     else openWiki(page, sec);
   });
@@ -2853,7 +2867,22 @@ function fill(sel, items, labelOf){
   el.onchange = () => { F[sel === "startype" ? "startype" : sel] =
     el.value === "" ? -1 : +el.value; draw(); };
 }
-fill("ore", ORES);
+// Belt ores first, then the two deep ores in a group of their own.
+{
+  const el = document.getElementById("ore");
+  for (const [slot, deep] of [["beltOres", false], ["deepOres", true]]){
+    const g = document.createElement("optgroup");
+    g.label = ui(slot);
+    ORES.forEach((label, i) => {
+      if (!!deepDigit(i) !== deep) return;
+      const o = document.createElement("option");
+      o.value = i; o.textContent = label;
+      g.append(o);
+    });
+    el.append(g);
+  }
+  el.onchange = () => { F.ore = el.value === "" ? -1 : +el.value; draw(); };
+}
 fill("mat", MATS);
 
 // Planet types, split by whether you can land on one. Surface work needs a
@@ -3113,7 +3142,9 @@ function syncPills(host, i){
 
 {
   const box = document.getElementById("presetRow");
-  for (const pre of PRESETS){
+  // Engineers is offered again in Module Mods, where the work they do is.
+  const copies = {pEngineers: "engCopy"};
+  const make = pre => {
     const b = document.createElement("button");
     b.className = "chip"; b.type = "button"; b.dataset.preset = pre.slot;
     b.setAttribute("aria-pressed", "false");
@@ -3127,7 +3158,8 @@ function syncPills(host, i){
         clearFilters(); draw(); return;
       }
       applyPreset(pre);
-      b.setAttribute("aria-pressed", "true");
+      for (const twin of document.querySelectorAll(`[data-preset="${pre.slot}"]`))
+        twin.setAttribute("aria-pressed", "true");
       draw();
       // A preset that names a place goes there; the rest frame their matches.
       if (pre.view) flyPath(pre.view[0], pre.view[1], scaleFor(pre.view[2]));
@@ -3140,7 +3172,11 @@ function syncPills(host, i){
         if (other !== det && other !== b.closest("details")) other.open = false;
       if (det) det.open = true;
     };
-    box.append(b);
+    return b;
+  };
+  for (const pre of PRESETS){
+    box.append(make(pre));
+    if (copies[pre.slot]) document.getElementById(copies[pre.slot]).replaceWith(make(pre));
   }
 }
 
@@ -3157,9 +3193,9 @@ function refreshCounts(){
   document.getElementById("hlRichN").textContent =
     num(D.genCounts[D.scanners[scanner][0] + ":" + RICH_MIN] || 0);
   for (const pre of PRESETS){
-    const el = document.querySelector(`[data-preset="${pre.slot}"] .n`);
     // The sweep's figure already covers the catalogue.
-    if (el) el.textContent = num(genCount(pre) || presetCount(pre));
+    for (const el of document.querySelectorAll(`[data-preset="${pre.slot}"] .n`))
+      el.textContent = num(genCount(pre) || presetCount(pre));
   }
 }
 
@@ -3209,7 +3245,13 @@ bindSelectHelp("mat", "mat:", D.matRaw);
       box.disabled = true; box.value = ""; box.placeholder = ui("pickOre");
       box.removeAttribute("max");
       F.pctMin = null;
+    } else if (deepDigit(+sel.value)){
+      // A deep ore has no share of a belt to be at least.
+      box.disabled = true; box.value = ""; box.placeholder = "—";
+      box.removeAttribute("max");
+      F.pctMin = null;
     } else {
+
       // The box spans what this ore can actually be: no belt holds Alexandrite
       // above 21%, so 40% there is a typo rather than a search. It starts a
       // quarter of the way up, because the poorest showing of an ore is not
@@ -3828,7 +3870,7 @@ function drawGenerated(){
     const px = sx(st.x), py = sy(st.z), r = onRoute.has(st.name) ? -1 : 4;
     if (F.ore >= 0){
       const pct = generatedOrePct(st, F.ore);
-      if (pct) label(px, py, r, st.name, [[pct + "%  ", ORE_INK], [st.name, INK]]);
+      if (pct) label(px, py, r, st.name, [[(deepDigit(F.ore) ? DEEP_TONS : pct + "%") + "  ", ORE_INK], [st.name, INK]]);
     } else if (F.mat >= 0 && deep){
       const span = generatedMatSpan(st, F.mat);
       if (span) label(px, py, r, st.name, [[spanText(span) + "  ", ORE_INK], [st.name, INK]]);
@@ -3845,7 +3887,13 @@ function drawGenerated(){
 }
 
 // The richest showing of an ore in a generated system, 0 when it has none.
+// A deep ore reads 100 where the cell carries it and a belt is there to crack.
 function generatedOrePct(st, oreIndex){
+  const digit = deepDigit(oreIndex);
+  if (digit){
+    const cx = (st.seed >>> 20) & 0xFFF, cy = (st.seed >>> 8) & 0xFFF;
+    return (cx + cy) % 10 === digit && starBodies(st).belts.length ? 100 : 0;
+  }
   const want = D.oreRaw[oreIndex];
   let best = 0;
   for (const belt of starBodies(st).belts)
@@ -4490,7 +4538,7 @@ jumpBox.addEventListener("input", () => {
     MODULES = named(D.moduleKeys, D.modules);
     for (const [id, list] of [["ore", ORES], ["ptype", PTYPES], ["mat", MATS], ["module", MODULES]]){
       const el = document.getElementById(id);
-      [...el.options].forEach((o, i) => { if (i) o.textContent = list[i - 1]; });
+      for (const o of el.options) if (o.value !== "") o.textContent = list[+o.value];
     }
     document.querySelectorAll("#secRow .pill").forEach((b, i) => b.textContent = ui(SECS[i][1]));
     document.querySelectorAll("#scanner option").forEach((o, i) => {
@@ -4733,8 +4781,10 @@ async function applyParams(){
   else if (p.get("view") === "galaxy") showGalaxy(true);
   // An ore, material, planet type or module link is a search near home: framing
   // every match would open on the whole galaxy.
+  // Deep ores fall in diagonal stripes across whole cells, which only read as a
+  // pattern from further out.
   else if (!from && !only && ["ore", "mat", "ptype", "module"].some(k => p.get(k)))
-    goto(0, 0, scaleFor(150));
+    goto(0, 0, scaleFor(D.deepOres[p.get("ore")] ? 1100 : 150));
   else if (!from && !only && anyFilter()) fitToMatches();
   draw();
   reveal(touched[0]);

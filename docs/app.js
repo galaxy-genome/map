@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=b2fa5e2a4e"), read("data/reachable.png?v=b2fa5e2a4e")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=066c052863"), read("data/reachable.png?v=066c052863")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=b2fa5e2a4e", 1), read("data/zones.webp?v=b2fa5e2a4e", 3)]);
+    [read("data/side.webp?v=066c052863", 1), read("data/zones.webp?v=066c052863", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -470,6 +470,31 @@ function orePercents(triple){
   return w.map(v => Math.floor(100 * v / sum));
 }
 
+// PlanetNew reseeds with the planet's own seed and points at that same pixel,
+// then spends three draws plus the type's cosmetic ones before picking its
+// materials. Pixel p of the noise is Lehmer state 4p+1, reached by a power.
+const LEHMER_M = 2147483647n;
+function powmod(b, e){
+  let r = 1n;
+  for (b %= LEHMER_M; e > 0n; e >>= 1n, b = b * b % LEHMER_M) if (e & 1n) r = r * b % LEHMER_M;
+  return r;
+}
+function planetMaterials(seed, type){
+  const entry = D.gen.planetMats[type];
+  if (!entry) return [];
+  const [looks, n, sets] = entry;
+  if (n === 1) return sets[0];
+  const p = (seed + 3 + looks + 1) % 200000;
+  const s = seed | 0;                          // noise takes an int
+  let x = Number(powmod(16807n, BigInt(4 * p + 1)) * BigInt(s <= 0 ? -s + 1 : s) % LEHMER_M);
+  const r = x % 256; x = (x * 16807) % 2147483647;
+  const g = x % 256; x = (x * 16807) % 2147483647;
+  const b = x % 256; x = (x * 16807) % 2147483647;
+  const a = x % 256;
+  const px = ((a << 24) | (r << 16) | (g << 8) | b) >>> 0;
+  return sets[Math.floor((px * 0.999999999999998 + 1e-15) / 4294967295 * n)];
+}
+
 function systemBodies(seed, starType){
   const rng = new Rndm(seed);
   rng.integer(0, 1);                      // MakePlanetsFromDB bails after two draws
@@ -540,14 +565,15 @@ function generateBodies(rng, starType, lum, group, budget, out){
     occupied[slot] = 1;
     budget--;
     rng.float(0, Math.PI * 2);
-    rng.integer(-2147483647, 2147483646);
+    const seed = rng.integer(-2147483647, 2147483646) + 2147483647;
     const orbit = slot * SEGMENT_LEN + 25;
     if (isBelt){
       const triple = genMaterials(rng);
       const pct = orePercents(triple);
       out.belts.push({orbit, ores: triple.map((t, i) => ({name: t[0], pct: pct[i]}))});
     } else {
-      out.planets.push({orbit, type: body[4], scan: body[5], landable: !!body[6]});
+      out.planets.push({orbit, type: body[4], scan: body[5], landable: !!body[6],
+                        mats: planetMaterials(seed, body[0])});
     }
   }
 
@@ -600,7 +626,7 @@ function starBodies(star){
 
 const D = window.__GG__;
 const [NAME,X,Z,LY,TY,FUEL,SEC,PL,BE,LA,ST,EN,SCAN,AUTH,ORE,PTY,PUR,FAC,GATE,OP,
-       STARV,PB] = [...Array(22).keys()];
+       STARV,PB,MAT] = [...Array(23).keys()];
 const S = D.systems, PAL = D.palette;
 // Language. Names come from the game's own text, so the map speaks whatever the
 // player's copy of the game speaks. A key missing in one language falls back to
@@ -628,6 +654,7 @@ const named = (keys, fallback) => keys.map((k, i) => k ? t(k) : fallback[i]);
 let TYPES = named(D.typeKeys, D.types);
 let ORES = named(D.oreKeys, D.ores);
 let PTYPES = named(D.ptypeKeys, D.ptypes);
+let MATS = named(D.matKeys, D.matRaw);
 let MODULES = named(D.moduleKeys, D.modules);
 const SEC_SLOT = {H:"secHigh", M:"secMedium", L:"secLow", A:"secAnarchy", C:"secConflict"};
 const byName = new Map(S.map(s => [s[NAME], s]));
@@ -723,7 +750,7 @@ const filters = new Set();
 let spoilers = false;
 // Everything the sidebar can narrow by. Empty / null means "don't care".
 const F = {sec:new Set(), purp:new Set(), fac:new Set(),
-           ore:-1, ptype:-1, startype:"", module:-1, fullOnly:true,
+           ore:-1, ptype:-1, mat:-1, startype:"", module:-1, fullOnly:true,
            lyMin:null, lyMax:null, valMin:null, oneHop:false, plMin:null,
            pctMin:null, laMin:null};
 
@@ -842,6 +869,7 @@ function passes(s){
   if (F.sec.size  && !F.sec.has(s[SEC] || "-"))          return false;
   if (F.ore    >= 0 && !(s[ORE] >> F.ore    & 1))         return false;
   if (F.ptype  >= 0 && !(s[PTY] >> F.ptype  & 1))         return false;
+  if (F.mat    >= 0 && !(s[MAT] >> F.mat    & 1))         return false;
   if (F.startype && D.typeRaw[s[TY]] !== F.startype)      return false;
   if (F.module >= 0){
     const stock = D.sysModules[s[NAME]];
@@ -862,7 +890,7 @@ function passes(s){
 
 function anyFilter(){
   return filters.size || F.sec.size || F.purp.size || F.fac.size ||
-         F.ore >= 0 || F.ptype >= 0 || F.startype || F.module >= 0 ||
+         F.ore >= 0 || F.ptype >= 0 || F.mat >= 0 || F.startype || F.module >= 0 ||
          [F.lyMin,F.lyMax,F.valMin,F.plMin,F.pctMin,F.laMin]
            .some(v => v != null);
 }
@@ -986,7 +1014,7 @@ const FLASH_MS = 900, FLASHES = 1;
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function filterCount(){
   return filters.size + F.sec.size + F.purp.size + F.fac.size +
-    [F.ore, F.ptype, F.module].filter(v => v >= 0).length +
+    [F.ore, F.ptype, F.mat, F.module].filter(v => v >= 0).length +
     (F.startype ? 1 : 0) +
     [F.lyMin, F.lyMax, F.valMin, F.plMin, F.pctMin, F.laMin]
       .filter(v => v != null).length;
@@ -1054,7 +1082,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=b2fa5e2a4e").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=066c052863").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1080,7 +1108,7 @@ function loadRich(){
 // The layer carries value and position and nothing else, so it can only answer
 // while no filter asks about anything else.
 function richAnswerable(){
-  return F.ore < 0 && F.ptype < 0 && F.module < 0 && !F.startype
+  return F.ore < 0 && F.ptype < 0 && F.mat < 0 && F.module < 0 && !F.startype
       && F.plMin == null && F.laMin == null && filters.size === 0
       && F.sec.size === 0 && F.purp.size === 0 && F.fac.size === 0;
 }
@@ -1920,6 +1948,10 @@ function pickGenerated(mx, my){
   return best;
 }
 
+// What digging on this system's landable planets can turn up, all planets together.
+const matRow = keys => keys.length
+  ? row("materials", keys.map(k => MATS[D.matRaw.indexOf(k)]).sort().join(", ")) : "";
+
 function showGenTip(st, mx, my){
   const b = starBodies(st);
   const ore = b.belts.flatMap(belt =>
@@ -1933,6 +1965,7 @@ function showGenTip(st, mx, my){
     (b.planets.length
       ? row("planets", b.planets.length + (b.landable ? ` (${b.landable})` : "")) : "") +
     (b.belts.length ? row("belts", b.belts.length) : "") +
+    matRow([...new Set(b.planets.flatMap(p => p.mats))]) +
     valueRows(st) +
     `</dl>` + (ore.length ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "");
   tip.style.display = "block";
@@ -2050,6 +2083,7 @@ function showTip(s, mx, my){
     fromHereRow(s[X], s[Z]) +
     (s[PL] ? row("planets", s[PL] + (s[LA] ? ` (${s[LA]})` : "")) : "") +
     (s[BE] ? row("belts", s[BE]) : "") +
+    matRow(D.matRaw.filter((_k, i) => s[MAT] >> i & 1)) +
     stationRows(s) +
     (factionsOf(s) ? row("faction", factionsOf(s)) : "") +
     tradeRow(s) +
@@ -2748,6 +2782,7 @@ function fill(sel, items, labelOf){
     el.value === "" ? -1 : +el.value; draw(); };
 }
 fill("ore", ORES);
+fill("mat", MATS);
 
 // Planet types, split by whether you can land on one. Surface work needs a
 // landing; a scan does not, and the two lists never overlap.
@@ -3187,7 +3222,7 @@ function escapeEmptyView(){
 function clearFilters(quiet){
   filters.clear();
   F.sec.clear(); F.purp.clear(); F.fac.clear();
-  F.ore = F.ptype = F.module = -1;
+  F.ore = F.ptype = F.mat = F.module = -1;
   F.startype = "";
   F.fullOnly = true;
   for (const k of ["lyMin","lyMax","valMin","plMin","pctMin","laMin"]) F[k] = null;
@@ -3199,7 +3234,7 @@ function clearFilters(quiet){
   // The highlight toggles are not filters and keep their state.
   for (const el of document.querySelectorAll('.grp [aria-pressed="true"]'))
     if (el.id !== "hlRich") el.setAttribute("aria-pressed", "false");
-  for (const el of document.querySelectorAll("#ore,#ptype,#startype,#module")) el.value = "";
+  for (const el of document.querySelectorAll("#ore,#ptype,#mat,#startype,#module")) el.value = "";
   const pct = document.getElementById("pctMin");
   pct.disabled = true; pct.value = "";
   document.getElementById("moduleNote").textContent = "";
@@ -3590,7 +3625,7 @@ const IMPOSSIBLE = ["catalogue", "station", "eng", "gate", "auth", "wreck",
                     ...Object.keys(TRADE_BIT)];
 
 function needsBodies(){
-  return F.ore >= 0 || F.ptype >= 0 || F.valMin != null ||
+  return F.ore >= 0 || F.ptype >= 0 || F.mat >= 0 || F.valMin != null ||
          F.plMin != null || F.laMin != null ||
          filters.has("belt") || filters.has("land");
 }
@@ -3611,7 +3646,7 @@ function passesGenerated(st, deep){
   // still asks about them.
   if (F.valMin != null && worth(st) < F.valMin) return false;
   if (!(filters.has("belt") || filters.has("land") || F.plMin != null
-        || F.laMin != null || F.ptype >= 0 || F.ore >= 0)) return true;
+        || F.laMin != null || F.ptype >= 0 || F.mat >= 0 || F.ore >= 0)) return true;
 
   const b = starBodies(st);
   if (filters.has("belt") && !b.belts.length) return false;
@@ -3619,6 +3654,7 @@ function passesGenerated(st, deep){
   if (F.plMin != null && b.planets.length < F.plMin) return false;
   if (F.laMin != null && b.landable < F.laMin) return false;
   if (F.ptype >= 0 && !b.planets.some(p => p.type === PTYPES[F.ptype])) return false;
+  if (F.mat >= 0 && !b.planets.some(p => p.mats.includes(D.matRaw[F.mat]))) return false;
   if (F.ore >= 0){
     const best = generatedOrePct(st, F.ore);
     if (!best) return false;
@@ -4213,8 +4249,9 @@ jumpBox.addEventListener("input", () => {
     TYPES = named(D.typeKeys, D.types);
     ORES = named(D.oreKeys, D.ores);
     PTYPES = named(D.ptypeKeys, D.ptypes);
+    MATS = named(D.matKeys, D.matRaw);
     MODULES = named(D.moduleKeys, D.modules);
-    for (const [id, list] of [["ore", ORES], ["ptype", PTYPES], ["module", MODULES]]){
+    for (const [id, list] of [["ore", ORES], ["ptype", PTYPES], ["mat", MATS], ["module", MODULES]]){
       const el = document.getElementById(id);
       [...el.options].forEach((o, i) => { if (i) o.textContent = list[i - 1]; });
     }
@@ -4360,6 +4397,7 @@ async function applyParams(){
   };
   choose("ore", D.oreRaw, p.get("ore"));
   choose("ptype", D.ptypeRaw, p.get("ptype"));
+  choose("mat", D.matRaw, p.get("mat"));
   choose("module", D.moduleRaw, p.get("module"));
 
   // Faction and shop-purpose are rows of toggles rather than dropdowns.
@@ -4494,6 +4532,7 @@ function currentParams(){
     if (F.pctMin != null && F.pctMin !== oreDefault(F.ore)) put("pct", F.pctMin);
   }
   if (F.ptype >= 0) put("ptype", D.ptypeRaw[F.ptype]);
+  if (F.mat >= 0) put("mat", D.matRaw[F.mat]);
   if (F.module >= 0){
     put("module", D.moduleRaw[F.module]);
     if (!F.fullOnly) put("fullgrade", "0");

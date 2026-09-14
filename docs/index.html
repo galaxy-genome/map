@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=b2fa5e2a4e">
+<link rel="stylesheet" href="style.css?v=066c052863">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -114,6 +114,8 @@
   <details class="grp">
     <summary data-ui="crafting">Crafting</summary>
     <div class="body">
+      <label class="f"><span class="ask" data-help="what:mat" tabindex="0" data-ui="materialPresent">Material to dig</span></label>
+      <select id="mat"><option value="">any</option></select>
       <label class="f"><span class="ask" data-help="what:landable" tabindex="0" data-ui="minLandable">Min landable</span><input type="number" id="laMin" min="0" step="1" placeholder="0"></label>
       <button class="chip" data-f="land" data-help="basic:land" aria-pressed="false"><span class="box"></span><span data-ui="landable">Landable planet</span></button>
     </div>
@@ -232,9 +234,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=b2fa5e2a4e");
+    const galaxy = await load("data/galaxy.json?v=066c052863");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=b2fa5e2a4e`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=066c052863`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -243,7 +245,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=b2fa5e2a4e";
+    s.src = "app.js?v=066c052863";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

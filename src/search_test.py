@@ -44,7 +44,7 @@ with sync_playwright() as p:
     page.wait_for_timeout(300)
     check(page.input_value("#mat") != "", "Enter selects Material to dig")
     check(page.evaluate("document.getElementById('mat').closest('details').open"), "its section opens")
-    check(page.evaluate("[...document.querySelectorAll('details.grp')].filter(d => d.open).length") == 1,
+    check(page.evaluate("[...document.querySelectorAll('.sections details.grp')].filter(d => d.open).length") == 1,
           "every other section closes")
     check(box.is_hidden(), "box closes after a pick")
     page.wait_for_timeout(1500)
@@ -96,6 +96,72 @@ with sync_playwright() as p:
     page.wait_for_timeout(2500)
     check("ly=" in page.url and "at=" in page.url, "typing a generated name moves the view")
     if SHOTS: page.screenshot(path=str(SHOTS / "search-system.png"))
+    page.goto(url + "?mat=Phosphorus")
+    page.wait_for_timeout(1500)
+    note = page.locator("#mat + p.note").inner_text()
+    check("26–41%" in note and "Rock Planet 30%" in note, f"material note gives share and planets ({note!r})")
+    mining = page.locator("details.grp>summary", has_text="Mining")
+    mark = mining.locator(".secWiki")
+    check(mark.evaluate("e => getComputedStyle(e).visibility") == "hidden", "section W hides until hover")
+    mining.hover()
+    check(mark.evaluate("e => getComputedStyle(e).visibility") == "visible", "section W shows on hover")
+    was_open = mining.evaluate("s => s.parentElement.open")
+    mark.click()
+    page.wait_for_timeout(500)
+    check(page.locator("#wikiPanel").is_visible()
+          and page.locator("#wikiFrame").get_attribute("src").endswith("#Galaxy_Genome_Map#Mining"),
+          "section W opens the wiki at that section")
+    check(mining.evaluate("s => s.parentElement.open") == was_open, "section W leaves the section as it was")
+    mark.click()
+    page.wait_for_timeout(300)
+    check(page.locator("#wikiPanel").is_hidden(), "a second press on the same W closes the wiki")
+
+    # One filter section open at a time; the route section keeps its own state.
+    page.goto(url)
+    page.wait_for_timeout(1500)
+    route_open = page.evaluate("document.getElementById('routeSec').open")
+    for name in ("Mining", "Trading"):
+        page.locator("details.grp>summary", has_text=name).locator("span").click()
+        page.wait_for_timeout(100)
+    opened = page.evaluate("[...document.querySelectorAll('.sections details.grp')].filter(d => d.open)"
+                           ".map(d => d.querySelector('summary > span').textContent)")
+    check(opened == ["Trading"], f"opening a section closes the others ({opened})")
+    check(page.evaluate("document.getElementById('routeSec').open") == route_open, "route section untouched")
+
+    # Filters from two sections do not combine.
+    page.locator("details.grp>summary", has_text="Mining").locator("span").click()
+    page.select_option("#ore", label="Diamonds")
+    page.wait_for_timeout(200)
+    page.locator("details.grp>summary", has_text="Trading").locator("span").click()
+    page.click('button[data-f="trophyBuyer"]')
+    page.wait_for_timeout(200)
+    check(page.input_value("#ore") == "" and page.get_attribute('button[data-f="trophyBuyer"]', "aria-pressed") == "true",
+          "a Trading chip releases the Mining ore")
+    page.locator("details.grp>summary", has_text="Upgrade Materials").locator("span").click()
+    page.select_option("#mat", label="Phosphorus")
+    page.wait_for_timeout(200)
+    check(page.get_attribute('button[data-f="trophyBuyer"]', "aria-pressed") == "false"
+          and page.input_value("#mat") != "" and page.is_enabled("#matPctMin"),
+          "a material releases the Trading chip and keeps its own Min %")
+    page.fill("#matPctMin", "35")
+    page.wait_for_timeout(200)
+    check(page.input_value("#mat") != "", "Min % in the same section keeps the material")
+    page.locator("details.grp>summary", has_text="Show me").locator("span").click()
+    page.click('[data-preset]')
+    page.wait_for_timeout(300)
+    page.locator("details.grp>summary", has_text="Mining").locator("span").click()
+    page.select_option("#ore", label="Painite")
+    page.wait_for_timeout(300)
+    check(page.input_value("#ore") != "" and page.locator('[data-preset][aria-pressed="true"]').count() == 0,
+          "an ore releases a Show me preset and survives it")
+    page.goto(url + "?ore=Painite&pct=40&mat=Iron")
+    page.wait_for_timeout(2000)
+    check(page.input_value("#ore") != "" and page.input_value("#mat") != "", "a link's combined filters are kept")
+    touch = b.new_page(viewport={"width": 400, "height": 800}, has_touch=True, is_mobile=True)
+    touch.goto(url)
+    touch.wait_for_timeout(1500)
+    check(touch.evaluate("getComputedStyle(document.querySelector('.secWiki')).visibility") == "visible",
+          "section W always shows on touch")
     check(not errors, f"no page errors {errors[:2]}")
     b.close()
 srv.shutdown()

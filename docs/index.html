@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=92590aef0b">
+<link rel="stylesheet" href="style.css?v=058444ba48">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -58,12 +58,12 @@
 
   <div class="sections">
   <details class="grp" open>
-    <summary data-ui="showMe">Show me…</summary>
+    <summary><span data-ui="showMe">Show me…</span></summary>
     <div class="body" id="presetRow"></div>
   </details>
 
   <details class="grp">
-    <summary data-ui="exploration">Exploration</summary>
+    <summary><span data-ui="exploration">Exploration</span></summary>
     <div class="body">
       <label class="f"><span class="ask" data-help="what:scanner" tabindex="0" data-ui="scanner">Planet Scanner</span></label>
       <select id="scanner"></select>
@@ -79,7 +79,7 @@
   </details>
 
   <details class="grp">
-    <summary data-ui="mining">Mining</summary>
+    <summary><span data-ui="mining">Mining</span></summary>
     <div class="body">
       <label class="f"><span class="ask" data-help="what:ore" tabindex="0" data-ui="orePresent">Ore present</span></label>
       <select id="ore"><option value="">any</option></select>
@@ -89,7 +89,7 @@
   </details>
 
   <details class="grp">
-    <summary data-ui="trading">Trading</summary>
+    <summary><span data-ui="trading">Trading</span></summary>
     <div class="body">
       <button class="chip" data-one="trade" data-f="sellsBlack" data-help="trade:sells" aria-pressed="false"><span class="box"></span><span data-ui="sellsBlack">Sells contraband</span><span class="n" data-n="sellsBlack"></span></button>
       <button class="chip" data-one="trade" data-f="buysBlack" data-help="trade:buys" aria-pressed="false"><span class="box"></span><span data-ui="buysBlack">Buys contraband</span><span class="n" data-n="buysBlack"></span></button>
@@ -100,7 +100,7 @@
   </details>
 
   <details class="grp">
-    <summary data-ui="outfitting">Outfitting</summary>
+    <summary><span data-ui="outfitting">Outfitting</span></summary>
     <div class="body">
       <label class="f"><span class="ask" data-help="what:module" tabindex="0" data-ui="moduleSale">Module for sale</span></label>
       <select id="module"><option value="">any</option></select>
@@ -117,12 +117,12 @@
   </details>
 
   <details class="grp">
-    <summary data-ui="security">Security</summary>
+    <summary><span data-ui="security">Security</span></summary>
     <div class="body" id="secRow"></div>
   </details>
 
   <details class="grp">
-    <summary data-ui="crafting">Upgrade Materials</summary>
+    <summary><span data-ui="crafting">Upgrade Materials</span></summary>
     <div class="body">
       <label class="f"><span class="ask" data-help="what:mat" tabindex="0" data-ui="materialPresent">Material to dig</span></label>
       <select id="mat"><option value="">any</option></select>
@@ -133,7 +133,7 @@
   </details>
 
   <details class="grp">
-    <summary data-ui="calculators">Calculators</summary>
+    <summary><span data-ui="calculators">Calculators</span></summary>
     <div class="body">
       <label class="f"><span data-ui="calcShip">Ship</span></label>
       <select id="calcShip"><option value="" data-ui="pickShip">pick a ship</option></select>
@@ -150,7 +150,7 @@
   </details>
 
   <details class="grp">
-    <summary data-ui="wikiPages">Wiki pages</summary>
+    <summary><span data-ui="wikiPages">Wiki pages</span></summary>
     <div class="body">
       <div class="row wikiGo">
         <select id="wikiPage"></select>
@@ -245,9 +245,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=92590aef0b");
+    const galaxy = await load("data/galaxy.json?v=058444ba48");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=92590aef0b`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=058444ba48`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -256,7 +256,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=92590aef0b";
+    s.src = "app.js?v=058444ba48";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

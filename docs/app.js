@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=92590aef0b"), read("data/reachable.png?v=92590aef0b")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=058444ba48"), read("data/reachable.png?v=058444ba48")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=92590aef0b", 1), read("data/zones.webp?v=92590aef0b", 3)]);
+    [read("data/side.webp?v=058444ba48", 1), read("data/zones.webp?v=058444ba48", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1090,7 +1090,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=92590aef0b").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=058444ba48").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2757,9 +2757,13 @@ const wikiPanel = document.getElementById("wikiPanel");
 // Every link to the wiki follows the same rule, so a local map never sends a
 // reader to the published copy.
 for (const a of document.querySelectorAll('a.wikiLink')) a.href = WIKI_URL;
-function openWiki(page){
+function wikiUrl(page, section){
+  const slug = t => encodeURIComponent(t.replace(/ /g, "_"));
+  return WIKI_URL + (page ? "#" + slug(page) + (section ? "#" + slug(section) : "") : "");
+}
+function openWiki(page, section){
   const frame = document.getElementById("wikiFrame");
-  const want = WIKI_URL + (page ? "#" + encodeURIComponent(page.replace(/ /g, "_")) : "");
+  const want = wikiUrl(page, section);
   if (frame.src !== want) frame.src = want;
   wikiPanel.hidden = false;
   document.body.classList.add("wikiOpen");
@@ -2770,6 +2774,27 @@ function closeWiki(){
   document.body.classList.remove("wikiOpen");
 }
 document.getElementById("wikiClose").addEventListener("click", closeWiki);
+
+// Each sidebar section opens the wiki's Map page at the part that explains it.
+const SECTION_WIKI = {route: "Route", showMe: "Show me…", exploration: "Exploration",
+  mining: "Mining", trading: "Trading", outfitting: "Outfitting", security: "Security",
+  crafting: "Upgrade Materials", calculators: "Calculators", wikiPages: null};
+for (const sum of document.querySelectorAll("details.grp>summary")){
+  const head = sum.querySelector(":scope > span");
+  const slot = head.id === "routeHead" ? "route" : head.dataset.ui;
+  if (!(slot in SECTION_WIKI)) continue;
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "secWiki"; b.textContent = "W";
+  b.dataset.uiAria = "wikiLink"; b.setAttribute("aria-label", ui("wikiLink"));
+  // A second press on the page already showing puts the wiki away.
+  b.addEventListener("click", e => {
+    e.preventDefault(); e.stopPropagation();
+    const [page, sec] = SECTION_WIKI[slot] ? ["Galaxy Genome Map", SECTION_WIKI[slot]] : ["", null];
+    if (!wikiPanel.hidden && document.getElementById("wikiFrame").src === wikiUrl(page, sec)) closeWiki();
+    else openWiki(page, sec);
+  });
+  sum.append(b);
+}
 // Escape closes the wiki before it means anything to the route beneath it.
 addEventListener("keydown", e => {
   if (e.key === "Escape" && !wikiPanel.hidden){ closeWiki(); e.stopImmediatePropagation(); }
@@ -2906,7 +2931,7 @@ const helpBox = document.getElementById("help");
 // A help value is either literal data or {k: slot} pointing at a translated string.
 const say = v => {
   if (!v || typeof v !== "object") return v;
-  if (v.mods) return v.mods.map(t).join(", ") || "\u2014";   // module lists translate too
+  if (v.mods) return v.mods.map((k, i) => t(k) + (v.pct ? ` ${v.pct[i]}%` : "")).join(", ") || "\u2014";   // name lists translate too
   if (v.k) return fmt(v.k, v);      // any other key on the object fills a {slot}
   if (v.g) return t(v.g);                                    // the game's own words
   return v;
@@ -3172,6 +3197,7 @@ function bindSelectHelp(id, prefix, names){
   update();
 }
 bindSelectHelp("ore", "ore:", D.oreRaw);
+bindSelectHelp("mat", "mat:", D.matRaw);
 {
   // Selecting an ore arms the min-% box at the poorest value in the galaxy,
   // so it starts showing everything and only ever narrows.
@@ -3309,6 +3335,60 @@ function clearFilters(quiet){
   document.getElementById("moduleNote").textContent = "";
 }
 
+// One section open at a time among the filter sections; the route section keeps
+// its own rule.
+const FILTER_SECTIONS = [...document.querySelectorAll(".sections details.grp")]
+  .filter(d => !d.querySelector("#calcShip, #wikiPage"));
+for (const d of document.querySelectorAll(".sections details.grp"))
+  d.addEventListener("toggle", () => {
+    if (!d.open) return;
+    for (const other of document.querySelectorAll(".sections details.grp"))
+      if (other !== d) other.open = false;
+  });
+
+// Filters answer one section's question at a time. Setting one releases whatever
+// another section had set, through that section's own controls, before the new
+// choice takes effect. Links arrive whole and are left as they are.
+function releaseOtherSections(here){
+  for (const d of FILTER_SECTIONS){
+    if (d === here) continue;
+    for (const b of d.querySelectorAll('button.chip[aria-pressed="true"], button.pill[aria-pressed="true"]'))
+      if (b.id !== "fullOnly") b.click();
+    for (const s of d.querySelectorAll("select"))
+      if (s.value !== "" && [...s.options].some(o => o.value === "")){
+        s.value = "";
+        s.dispatchEvent(new Event("change", {bubbles: true}));
+      }
+    for (const n of d.querySelectorAll('input[type="number"]'))
+      if (n.value !== "" && !n.disabled){
+        n.value = "";
+        n.dispatchEvent(new Event("input", {bubbles: true}));
+      }
+  }
+}
+for (const d of FILTER_SECTIONS){
+  // A choice is kept across the release: clearing a preset clears every box,
+  // including the one being set.
+  const guard = (el, isSetting) => {
+    if (urlBusy || !isSetting || releasing) return;
+    releasing = true;
+    const kept = el.value;
+    try { releaseOtherSections(d); } finally { releasing = false; }
+    if ("value" in el && el.value !== kept) el.value = kept;
+  };
+  d.addEventListener("change", e => {
+    if (e.target.tagName === "SELECT") guard(e.target, e.target.value !== "");
+  }, true);
+  d.addEventListener("input", e => {
+    if (e.target.type === "number") guard(e.target, e.target.value !== "");
+  }, true);
+  d.addEventListener("click", e => {
+    const b = e.target.closest("button.chip, button.pill");
+    if (b && b.id !== "fullOnly") guard(b, b.getAttribute("aria-pressed") !== "true");
+  }, true);
+}
+let releasing = false;
+
 for (const b of document.querySelectorAll(".resetFilters"))
   b.onclick = () => { clearFilters(); draw(); };
 
@@ -3334,7 +3414,7 @@ function filterHits(q){
   for (const el of els){
     if (el.closest("[hidden]") || (el.hasAttribute("data-spoiler") && !spoilers)) continue;
     const sec = el.closest("details.grp");
-    const secName = (sec ? sec.querySelector("summary") : jumpTo.querySelector("h2")).textContent.trim();
+    const secName = (sec ? sec.querySelector("summary > span") : jumpTo.querySelector("h2")).textContent.trim();
     if (el.tagName === "SELECT"){
       let label = el.previousElementSibling;
       label = label && label.matches("label.f") ? label.textContent.trim() : "";
@@ -3358,7 +3438,8 @@ function filterHits(q){
 }
 function pickFilter(hit){
   if (hit.sec){
-    for (const d of document.querySelectorAll("details.grp")) d.open = d === hit.sec;
+    if (hit.sec.id !== "routeSec")
+      for (const d of document.querySelectorAll(".sections details.grp")) d.open = d === hit.sec;
     hit.sec.scrollIntoView({block: "nearest"});
   }
   hit.pick();

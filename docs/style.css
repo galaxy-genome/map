@@ -212,6 +212,12 @@ details.grp>summary{list-style:none;cursor:pointer;font-size:10px;letter-spacing
   color:var(--dim);text-transform:uppercase;font-weight:600;display:flex;
   align-items:center;gap:6px;padding-bottom:8px}
 details.grp>summary::-webkit-details-marker{display:none}
+/* The wiki mark shows on hover where there is hover, and always where there is not. */
+.secWiki{margin-left:auto;font:700 10px/1 var(--mono);letter-spacing:0;color:var(--cyan);
+  background:none;border:1px solid var(--cyan);border-radius:2px;padding:2px 3px;cursor:pointer;
+  visibility:hidden}
+details.grp>summary:hover .secWiki,.secWiki:focus-visible,body.touch .secWiki{visibility:visible}
+.secWiki:hover,.secWiki:focus-visible{color:#fff;border-color:#fff;outline:none}
 /* A chevron the same weight as the heading, turned down when the section is
    open: the old + was a mono glyph in the border colour and read as nothing. */
 details.grp>summary::before{content:"";width:7px;height:7px;flex:none;

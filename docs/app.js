@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=ec07dc92be"), read("data/reachable.png?v=ec07dc92be")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=92590aef0b"), read("data/reachable.png?v=92590aef0b")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=ec07dc92be", 1), read("data/zones.webp?v=ec07dc92be", 3)]);
+    [read("data/side.webp?v=92590aef0b", 1), read("data/zones.webp?v=92590aef0b", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1090,7 +1090,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=ec07dc92be").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=92590aef0b").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1976,12 +1976,13 @@ const matRow = spans => {
     ? row("materials", parts.map((p, i) => p + (i === parts.length - 1 ? "" : i % 5 === 4 ? ",<br>" : ", ")).join(""))
     : "";
 };
-// A catalogue planet with a name gets its own line: its three materials, likeliest first.
-const namedMatRows = planets => planets.map(([name, trio], i) => {
+// A catalogue planet with a name gets its own line: its distance from the star and
+// its three materials, likeliest first.
+const namedMatRows = planets => planets.map(([name, orbit, trio], i) => {
   const total = trio.reduce((s, k) => s + D.matRare[k], 0);
   const mats = trio.map(k => [MATS[D.matRaw.indexOf(k)], Math.round(100 * D.matRare[k] / total)])
     .sort((a, b) => b[1] - a[1]).map(([m, p]) => `${m} ${p}%`).join(", ");
-  return `<dt>${i ? "" : ui("materials")}</dt><dd>${name}: ${mats}</dd>`;
+  return `<dt>${i ? "" : ui("materials")}</dt><dd>${name} (${num(orbit)} ls): ${mats}</dd>`;
 }).join("");
 function matSpans(trios){
   const out = {};

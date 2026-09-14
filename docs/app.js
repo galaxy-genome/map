@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=058444ba48"), read("data/reachable.png?v=058444ba48")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=c61a1dd18a"), read("data/reachable.png?v=c61a1dd18a")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=058444ba48", 1), read("data/zones.webp?v=058444ba48", 3)]);
+    [read("data/side.webp?v=c61a1dd18a", 1), read("data/zones.webp?v=c61a1dd18a", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1090,7 +1090,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=058444ba48").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=c61a1dd18a").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -4729,6 +4729,10 @@ async function applyParams(){
   else if (placed) goto(at[0], at[1], scale);
   // A link opens where it says it opens; the flight is for a choice made here.
   else if (p.get("view") === "galaxy") showGalaxy(true);
+  // An ore, material, planet type or module link is a search near home: framing
+  // every match would open on the whole galaxy.
+  else if (!from && !only && ["ore", "mat", "ptype", "module"].some(k => p.get(k)))
+    goto(0, 0, scaleFor(150));
   else if (!from && !only && anyFilter()) fitToMatches();
   draw();
   reveal(touched[0]);

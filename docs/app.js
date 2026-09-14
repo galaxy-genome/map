@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=ed281fe26b"), read("data/reachable.png?v=ed281fe26b")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=cbbcce2eb9"), read("data/reachable.png?v=cbbcce2eb9")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=ed281fe26b", 1), read("data/zones.webp?v=ed281fe26b", 3)]);
+    [read("data/side.webp?v=cbbcce2eb9", 1), read("data/zones.webp?v=cbbcce2eb9", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -752,7 +752,7 @@ let spoilers = false;
 const F = {sec:new Set(), purp:new Set(), fac:new Set(),
            ore:-1, ptype:-1, mat:-1, startype:"", module:-1, fullOnly:true,
            lyMin:null, lyMax:null, valMin:null, oneHop:false, plMin:null,
-           pctMin:null, laMin:null};
+           pctMin:null, matPctMin:null, laMin:null};
 
 // Which Planet Scanner the reader has fitted. At 1,000 CR and no mass the 1D is
 // the first thing anyone buys, so it is what the map assumes unless told
@@ -823,6 +823,13 @@ function orePct(s, oi){
   return 0;
 }
 
+// Dig chance for material `mi` across this system's planets, [low, high], or null
+// when no planet yields it. The filter reads the high end; the label shows both.
+const matSpan = (s, mi) => (D.matPct[s[NAME]] || {})[D.matRaw[mi]] || null;
+const generatedMatSpan = (st, mi) =>
+  matSpans(starBodies(st).planets.map(p => p.mats).filter(m => m.length))[D.matRaw[mi]] || null;
+const spanText = ([lo, hi]) => lo === hi ? `${lo}%` : `${lo}–${hi}%`;
+
 // How much of the window the sidebar takes from the map.
 let inset = 0;
 
@@ -884,6 +891,7 @@ function passes(s){
   if (F.valMin != null && worth(s) < F.valMin) return false;
   if (F.plMin   != null && s[PL]   < F.plMin)   return false;
   if (F.ore >= 0 && F.pctMin != null && orePct(s, F.ore) < F.pctMin) return false;
+  if (F.mat >= 0 && F.matPctMin != null && (matSpan(s, F.mat) || [0, 0])[1] < F.matPctMin) return false;
   if (F.laMin   != null && s[LA]   < F.laMin)   return false;
   return true;
 }
@@ -891,7 +899,7 @@ function passes(s){
 function anyFilter(){
   return filters.size || F.sec.size || F.purp.size || F.fac.size ||
          F.ore >= 0 || F.ptype >= 0 || F.mat >= 0 || F.startype || F.module >= 0 ||
-         [F.lyMin,F.lyMax,F.valMin,F.plMin,F.pctMin,F.laMin]
+         [F.lyMin,F.lyMax,F.valMin,F.plMin,F.pctMin,F.matPctMin,F.laMin]
            .some(v => v != null);
 }
 
@@ -1016,7 +1024,7 @@ function filterCount(){
   return filters.size + F.sec.size + F.purp.size + F.fac.size +
     [F.ore, F.ptype, F.mat, F.module].filter(v => v >= 0).length +
     (F.startype ? 1 : 0) +
-    [F.lyMin, F.lyMax, F.valMin, F.plMin, F.pctMin, F.laMin]
+    [F.lyMin, F.lyMax, F.valMin, F.plMin, F.pctMin, F.matPctMin, F.laMin]
       .filter(v => v != null).length;
 }
 
@@ -1082,7 +1090,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=ed281fe26b").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=cbbcce2eb9").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1829,6 +1837,9 @@ function draw(){
       if (F.ore >= 0){
         const pct = orePct(s, F.ore);
         if (pct) label(px, py, r, key, [[pct + "%  ", ORE_INK], [s[NAME], INK]]);
+      } else if (F.mat >= 0){
+        const span = matSpan(s, F.mat);
+        if (span) label(px, py, r, key, [[spanText(span) + "  ", ORE_INK], [s[NAME], INK]]);
       // Which of the five it is was decided when the save was made, so the odds
       // are the only thing the map can say, and they are worth saying at any
       // width the chip is on.
@@ -3127,6 +3138,10 @@ refreshCounts();
 
 // The two dropdowns explain the option you land on, under the control.
 // Where the percentage box starts for an ore: a quarter into its range.
+const matDefault = i => {
+  const [lo, hi] = D.matRange[i];
+  return Math.round(lo + (hi - lo) / 4);
+};
 const oreDefault = i => {
   const [lo, hi] = D.oreRange[i];
   return Math.round(lo + (hi - lo) / 4);
@@ -3167,6 +3182,25 @@ bindSelectHelp("ore", "ore:", D.oreRaw);
     draw();
   });
 }
+{
+  // A material's box works as the ore's: armed a quarter into what that material
+  // can be when one is picked, empty and disabled when none is.
+  const sel = document.getElementById("mat"), box = document.getElementById("matPctMin");
+  sel.addEventListener("change", () => {
+    if (sel.value === ""){
+      box.disabled = true; box.value = ""; box.placeholder = ui("pickMaterial");
+      box.removeAttribute("max");
+      F.matPctMin = null;
+    } else {
+      const [lo, hi] = D.matRange[+sel.value];
+      box.disabled = false; box.value = matDefault(+sel.value);
+      box.placeholder = `${lo}–${hi}`;
+      box.min = lo; box.max = hi;
+      F.matPctMin = +box.value;
+    }
+    draw();
+  });
+}
 bindSelectHelp("ptype", "pt:", D.ptypeRaw);
 
 // Module availability. Full grade means the shop sells every class; the rest is
@@ -3202,7 +3236,7 @@ bindSelectHelp("ptype", "pt:", D.ptypeRaw);
 
 // Below half a million nothing is worth the jump, so the boxes do not offer it.
 const VALUE_FLOOR = 500000;
-for (const id of ["valMin","plMin","pctMin","laMin"]){
+for (const id of ["valMin","plMin","pctMin","matPctMin","laMin"]){
   const el = document.getElementById(id);
   el.oninput = e => {
     F[id] = e.target.value === "" ? null : +e.target.value;
@@ -3246,10 +3280,10 @@ function clearFilters(quiet){
   F.ore = F.ptype = F.mat = F.module = -1;
   F.startype = "";
   F.fullOnly = true;
-  for (const k of ["lyMin","lyMax","valMin","plMin","pctMin","laMin"]) F[k] = null;
+  for (const k of ["lyMin","lyMax","valMin","plMin","pctMin","matPctMin","laMin"]) F[k] = null;
   F.oneHop = false;
   if (quiet) return;
-  for (const k of ["valMin","plMin","pctMin","laMin"])
+  for (const k of ["valMin","plMin","pctMin","matPctMin","laMin"])
     document.getElementById(k).value = "";
   document.getElementById("oneHop").checked = false;
   // The highlight toggles are not filters and keep their state.
@@ -3258,6 +3292,7 @@ function clearFilters(quiet){
   for (const el of document.querySelectorAll("#ore,#ptype,#mat,#startype,#module")) el.value = "";
   const pct = document.getElementById("pctMin");
   pct.disabled = true; pct.value = "";
+  document.getElementById("matPctMin").disabled = true;
   document.getElementById("moduleNote").textContent = "";
 }
 
@@ -3698,6 +3733,9 @@ function drawGenerated(){
     if (F.ore >= 0){
       const pct = generatedOrePct(st, F.ore);
       if (pct) label(px, py, r, st.name, [[pct + "%  ", ORE_INK], [st.name, INK]]);
+    } else if (F.mat >= 0 && deep){
+      const span = generatedMatSpan(st, F.mat);
+      if (span) label(px, py, r, st.name, [[spanText(span) + "  ", ORE_INK], [st.name, INK]]);
     } else if (valueAsked() && deep){
       label(px, py, r, st.name, [[worthLabel(systemValue(st)), VALUE_INK]]);
     } else if (scale > 4 || onRoute.has(st.name)){
@@ -3757,6 +3795,7 @@ function passesGenerated(st, deep){
   if (F.laMin != null && b.landable < F.laMin) return false;
   if (F.ptype >= 0 && !b.planets.some(p => p.type === PTYPES[F.ptype])) return false;
   if (F.mat >= 0 && !b.planets.some(p => p.mats.includes(D.matRaw[F.mat]))) return false;
+  if (F.mat >= 0 && F.matPctMin != null && generatedMatSpan(st, F.mat)[1] < F.matPctMin) return false;
   if (F.ore >= 0){
     const best = generatedOrePct(st, F.ore);
     if (!best) return false;
@@ -4538,7 +4577,7 @@ async function applyParams(){
     if (v != null && v !== "") F[id] = +v;
   }
 
-  for (const [key, id] of [["pct", "pctMin"], ["value", "valMin"], ["planets", "plMin"],
+  for (const [key, id] of [["pct", "pctMin"], ["mpct", "matPctMin"], ["value", "valMin"], ["planets", "plMin"],
                            ["landable", "laMin"]]){
     const v = p.get(key);
     if (v == null) continue;
@@ -4634,7 +4673,10 @@ function currentParams(){
     if (F.pctMin != null && F.pctMin !== oreDefault(F.ore)) put("pct", F.pctMin);
   }
   if (F.ptype >= 0) put("ptype", D.ptypeRaw[F.ptype]);
-  if (F.mat >= 0) put("mat", D.matRaw[F.mat]);
+  if (F.mat >= 0){
+    put("mat", D.matRaw[F.mat]);
+    if (F.matPctMin != null && F.matPctMin !== matDefault(F.mat)) put("mpct", F.matPctMin);
+  }
   if (F.module >= 0){
     put("module", D.moduleRaw[F.module]);
     if (!F.fullOnly) put("fullgrade", "0");

@@ -54,6 +54,19 @@ with sync_playwright() as p:
     page.wait_for_timeout(1500)
     check(searched == page.url, f"URL matches picking it by hand ({searched} vs {page.url})")
 
+    mbox = page.locator("#matPctMin")
+    check(mbox.is_enabled() and mbox.input_value() != "", f"Min % arms at {mbox.input_value()}")
+    check(mbox.get_attribute("placeholder") == "26–41", f"Min % spans Phosphorus ({mbox.get_attribute('placeholder')})")
+    mbox.fill("40")
+    page.wait_for_timeout(1500)
+    check("mpct=40" in page.url, "Min % reaches the URL")
+    page.goto(url + "?mat=Phosphorus&mpct=40&at=0,0&ly=300")
+    page.wait_for_timeout(2500)
+    check(page.input_value("#matPctMin") == "40", "mpct in a link fills the box")
+    if SHOTS: page.screenshot(path=str(SHOTS / "mat-labels.png"))
+    page.select_option("#mat", "")
+    check(mbox.is_disabled(), "clearing the material disables Min %")
+
     for q, sel, what in [("trophies", 'button[data-f="trophyBuyer"]', "Trading chip"),
                          ("clear route", "#clearRoute", "Clear route"),
                          ("high-value", "[data-preset]", "Show me preset"),

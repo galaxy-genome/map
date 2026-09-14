@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=c61a1dd18a"), read("data/reachable.png?v=c61a1dd18a")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=a4f3462151"), read("data/reachable.png?v=a4f3462151")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=c61a1dd18a", 1), read("data/zones.webp?v=c61a1dd18a", 3)]);
+    [read("data/side.webp?v=a4f3462151", 1), read("data/zones.webp?v=a4f3462151", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1090,7 +1090,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=c61a1dd18a").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=a4f3462151").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2775,10 +2775,11 @@ function closeWiki(){
 }
 document.getElementById("wikiClose").addEventListener("click", closeWiki);
 
-// Each sidebar section opens the wiki's Map page at the part that explains it.
+// Each sidebar section opens the wiki's Map page at the part that explains it, or
+// the article that does it better.
 const SECTION_WIKI = {route: "Route", showMe: "Show me…", exploration: "Exploration",
   mining: "Mining", trading: "Trading", outfitting: "Outfitting", security: "Security",
-  crafting: "Upgrade Materials", calculators: "Calculators", wikiPages: null};
+  crafting: ["Module Mods", "Landing"], calculators: "Calculators", wikiPages: null};
 for (const sum of document.querySelectorAll("details.grp>summary")){
   const head = sum.querySelector(":scope > span");
   const slot = head.id === "routeHead" ? "route" : head.dataset.ui;
@@ -2789,7 +2790,8 @@ for (const sum of document.querySelectorAll("details.grp>summary")){
   // A second press on the page already showing puts the wiki away.
   b.addEventListener("click", e => {
     e.preventDefault(); e.stopPropagation();
-    const [page, sec] = SECTION_WIKI[slot] ? ["Galaxy Genome Map", SECTION_WIKI[slot]] : ["", null];
+    const target = SECTION_WIKI[slot];
+    const [page, sec] = Array.isArray(target) ? target : target ? ["Galaxy Genome Map", target] : ["", null];
     if (!wikiPanel.hidden && document.getElementById("wikiFrame").src === wikiUrl(page, sec)) closeWiki();
     else openWiki(page, sec);
   });

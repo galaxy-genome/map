@@ -112,6 +112,12 @@ with sync_playwright() as p:
           and page.locator("#wikiFrame").get_attribute("src").endswith("#Galaxy_Genome_Map#Mining"),
           "section W opens the wiki at that section")
     check(mining.evaluate("s => s.parentElement.open") == was_open, "section W leaves the section as it was")
+    page.locator("details.grp>summary", has_text="Upgrade Materials").locator(".secWiki").click(force=True)
+    page.wait_for_timeout(300)
+    check(page.locator("#wikiFrame").get_attribute("src").endswith("#Module_Mods#Landing"),
+          "Upgrade Materials W opens Module Mods#Landing")
+    page.locator("details.grp>summary", has_text="Mining").locator(".secWiki").click(force=True)
+    page.wait_for_timeout(300)
     mark.click()
     page.wait_for_timeout(300)
     check(page.locator("#wikiPanel").is_hidden(), "a second press on the same W closes the wiki")

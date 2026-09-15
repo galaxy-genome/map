@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=ec8ae8181e"), read("data/reachable.png?v=ec8ae8181e")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=71acb8d3fe"), read("data/reachable.png?v=71acb8d3fe")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=ec8ae8181e", 1), read("data/zones.webp?v=ec8ae8181e", 3)]);
+    [read("data/side.webp?v=71acb8d3fe", 1), read("data/zones.webp?v=71acb8d3fe", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1093,7 +1093,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=ec8ae8181e").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=71acb8d3fe").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;

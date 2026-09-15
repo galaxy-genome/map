@@ -62,3 +62,9 @@ planet layouts as a good estimate.
 
 The code is MIT. The game data is not ours to license: it belongs to SKV Games
 and is published here with their permission.
+
+The wiki the map opens in its side panel is licensed separately. The CC BY-SA 4.0
+licence covers the wiki's prose and the arrangement of the articles. The ship and
+module artwork, and any text taken from the game, belong to SKV Games and are
+included with their permission. That permission does not extend to reuse beyond
+this wiki.

@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=71acb8d3fe"), read("data/reachable.png?v=71acb8d3fe")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=4185adc5b7"), read("data/reachable.png?v=4185adc5b7")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=71acb8d3fe", 1), read("data/zones.webp?v=71acb8d3fe", 3)]);
+    [read("data/side.webp?v=4185adc5b7", 1), read("data/zones.webp?v=4185adc5b7", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -750,7 +750,7 @@ const filters = new Set();
 let spoilers = false;
 // Everything the sidebar can narrow by. Empty / null means "don't care".
 const F = {sec:new Set(), purp:new Set(), fac:new Set(),
-           ore:-1, ptype:-1, mat:-1, startype:"", module:-1, fullOnly:true,
+           ore:-1, ptype:-1, mat:-1, arena:null, startype:"", module:-1, fullOnly:true,
            lyMin:null, lyMax:null, valMin:null, oneHop:false, plMin:null,
            pctMin:null, matPctMin:null, laMin:null};
 
@@ -880,6 +880,8 @@ function passes(s){
   if (F.ore    >= 0 && !(s[ORE] >> F.ore    & 1))         return false;
   if (F.ptype  >= 0 && !(s[PTY] >> F.ptype  & 1))         return false;
   if (F.mat    >= 0 && !(s[MAT] >> F.mat    & 1))         return false;
+  if (F.arena === "all" && !ARENA_SYS.has(s[NAME]))       return false;
+  if (typeof F.arena === "number" && s[NAME] !== ARENA[F.arena - 1][1]) return false;
   if (F.startype && D.typeRaw[s[TY]] !== F.startype)      return false;
   if (F.module >= 0){
     const stock = D.sysModules[s[NAME]];
@@ -901,7 +903,7 @@ function passes(s){
 
 function anyFilter(){
   return filters.size || F.sec.size || F.purp.size || F.fac.size ||
-         F.ore >= 0 || F.ptype >= 0 || F.mat >= 0 || F.startype || F.module >= 0 ||
+         F.ore >= 0 || F.ptype >= 0 || F.mat >= 0 || F.arena != null || F.startype || F.module >= 0 ||
          [F.lyMin,F.lyMax,F.valMin,F.plMin,F.pctMin,F.matPctMin,F.laMin]
            .some(v => v != null);
 }
@@ -1025,7 +1027,7 @@ const FLASH_MS = 900, FLASHES = 1;
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function filterCount(){
   return filters.size + F.sec.size + F.purp.size + F.fac.size +
-    [F.ore, F.ptype, F.mat, F.module].filter(v => v >= 0).length +
+    [F.ore, F.ptype, F.mat, F.module].filter(v => v >= 0).length + (F.arena != null ? 1 : 0) +
     (F.startype ? 1 : 0) +
     [F.lyMin, F.lyMax, F.valMin, F.plMin, F.pctMin, F.matPctMin, F.laMin]
       .filter(v => v != null).length;
@@ -1093,7 +1095,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=71acb8d3fe").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=4185adc5b7").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1119,7 +1121,7 @@ function loadRich(){
 // The layer carries value and position and nothing else, so it can only answer
 // while no filter asks about anything else.
 function richAnswerable(){
-  return F.ore < 0 && F.ptype < 0 && F.mat < 0 && F.module < 0 && !F.startype
+  return F.ore < 0 && F.ptype < 0 && F.mat < 0 && F.arena == null && F.module < 0 && !F.startype
       && F.plMin == null && F.laMin == null && filters.size === 0
       && F.sec.size === 0 && F.purp.size === 0 && F.fac.size === 0;
 }
@@ -2793,6 +2795,7 @@ const SECTION_WIKI = {
   exploration: ["Exploration"], mining: ["Mining"], trading: ["Trading"],
   outfitting: ["Modules"], security: ["Galaxy Genome Map", "Security"],
   crafting: ["Module Mods"],
+  ratingBattles: ["Combat", "Rating battles"],
   calculators: ["Navigation", "Geeking out: what mass actually costs you"],
   wikiPages: [""]};
 for (const sum of document.querySelectorAll("details.grp>summary")){
@@ -2884,6 +2887,28 @@ function fill(sel, items, labelOf){
   el.onchange = () => { F.ore = el.value === "" ? -1 : +el.value; draw(); };
 }
 fill("mat", MATS);
+// The Rating battles ladder: 83 fixed fights, each at one of nine anarchy systems.
+// "all" marks every host; a level marks the one system that hosts it.
+const ARENA = D.arena || [];
+const ARENA_SYS = new Set(ARENA.map(a => a[1]));
+{
+  const el = document.getElementById("arena");
+  for (const [lvl, sys, bots, reward] of ARENA){
+    const o = document.createElement("option");
+    o.value = String(lvl);
+    o.textContent = `${lvl} · ${sys} · ${bots} · ${num(reward)} CR`;
+    el.append(o);
+  }
+  el.onchange = () => {
+    F.arena = el.value === "" ? null : el.value === "all" ? "all" : +el.value;
+    draw();
+    // A level names one system, so go to it rather than leaving the reader to hunt.
+    const one = typeof F.arena === "number" && byName.get(ARENA[F.arena - 1][1]);
+    if (one) focusOn(one, 14, flyTrip);
+    else if (F.arena === "all") fitToMatches();
+  };
+}
+
 
 // Planet types, split by whether you can land on one. Surface work needs a
 // landing; a scan does not, and the two lists never overlap.
@@ -3079,6 +3104,7 @@ const PRESETS = [
   {slot: "pOutfit",    purp: "HiTech",           show: '#purpRow .pill[aria-pressed="true"]'},
   {slot: "pStation",   on: ["wreck"]},
   {slot: "pBlackMarket", on: ["sellsBlack"],     show: '[data-f="sellsBlack"]'},
+  {slot: "pArena",     set: {arena: "all"},    show: "#arena"},
   {slot: "pEngineers", on: ["eng"], spoil: true},
   {slot: "pGates",     on: ["gate"], spoil: true},
 ];
@@ -3361,6 +3387,7 @@ function clearFilters(quiet){
   filters.clear();
   F.sec.clear(); F.purp.clear(); F.fac.clear();
   F.ore = F.ptype = F.mat = F.module = -1;
+  F.arena = null;
   F.startype = "";
   F.fullOnly = true;
   for (const k of ["lyMin","lyMax","valMin","plMin","pctMin","matPctMin","laMin"]) F[k] = null;
@@ -3372,7 +3399,7 @@ function clearFilters(quiet){
   // The highlight toggles are not filters and keep their state.
   for (const el of document.querySelectorAll('.grp [aria-pressed="true"]'))
     if (el.id !== "hlRich") el.setAttribute("aria-pressed", "false");
-  for (const el of document.querySelectorAll("#ore,#ptype,#mat,#startype,#module")) el.value = "";
+  for (const el of document.querySelectorAll("#ore,#ptype,#mat,#arena,#startype,#module")) el.value = "";
   const pct = document.getElementById("pctMin");
   pct.disabled = true; pct.value = "";
   document.getElementById("matPctMin").disabled = true;
@@ -3916,7 +3943,7 @@ function needsBodies(){
 
 function passesGenerated(st, deep){
   for (const f of IMPOSSIBLE) if (filters.has(f)) return false;
-  if (F.purp.size || F.fac.size || F.module >= 0) return false;
+  if (F.purp.size || F.fac.size || F.module >= 0 || F.arena != null) return false;
   if (filters.has("fuel") && !st.fuel) return false;
   if (F.startype && st.raw !== F.startype) return false;
   if (F.sec.size && !F.sec.has("A")) return false;          // generated space is Anarchy
@@ -4683,6 +4710,13 @@ async function applyParams(){
   choose("ore", D.oreRaw, p.get("ore"));
   choose("ptype", D.ptypeRaw, p.get("ptype"));
   choose("mat", D.matRaw, p.get("mat"));
+  {
+    const v = p.get("arena");
+    if (v){
+      const el = document.getElementById("arena");
+      el.value = v; fire(el); touched.push(el);
+    }
+  }
   choose("module", D.moduleRaw, p.get("module"));
 
   // Faction and shop-purpose are rows of toggles rather than dropdowns.
@@ -4823,6 +4857,7 @@ function currentParams(){
     if (F.pctMin != null && F.pctMin !== oreDefault(F.ore)) put("pct", F.pctMin);
   }
   if (F.ptype >= 0) put("ptype", D.ptypeRaw[F.ptype]);
+  if (F.arena != null) put("arena", String(F.arena));
   if (F.mat >= 0){
     put("mat", D.matRaw[F.mat]);
     if (F.matPctMin != null && F.matPctMin !== matDefault(F.mat)) put("mpct", F.matPctMin);

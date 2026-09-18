@@ -224,6 +224,33 @@ with sync_playwright() as p:
     page.wait_for_timeout(300)
     check(page.locator("#wikiFrame").get_attribute("src").endswith("#Galaxy_Genome_Map"),
           "Show me W opens the top of the Map page")
+    # Rating battles: the preset marks every host, a level marks its own system.
+    page.goto(url)
+    page.wait_for_timeout(1500)
+    page.evaluate("document.querySelector('[data-preset=\"pArena\"]').closest('details').open = true")
+    page.click('[data-preset="pArena"]')
+    page.wait_for_timeout(1500)
+    hosts = page.evaluate("S.filter(s => passes(s)).map(s => s[0])")
+    check(len(hosts) == 9 and "LHS 1920" in hosts, f"the preset marks the nine host systems ({hosts})")
+    check("arena=all" in page.url, f"the preset reaches the URL ({page.url})")
+    sec = page.locator("details.grp", has=page.locator("#arena"))
+    check(sec.evaluate("d => d.open"), "the preset opens the Rating battles section")
+    opts = page.evaluate("[...document.querySelectorAll('#arena option')].map(o => o.textContent)")
+    check(len(opts) == 85 and "83 · LHS 2447 · Zentarks Hunter 1 x5 · 900,000 CR" in opts[-1],
+          f"83 levels listed with system, opponents and prize ({opts[-1]!r})")
+    page.select_option("#arena", "12")
+    page.wait_for_timeout(1500)
+    only = page.evaluate("S.filter(s => passes(s)).map(s => s[0])")
+    check(only == ["LP 104-2"], f"level 12 marks only its host ({only})")
+    page.goto(url + "?arena=77")
+    page.wait_for_timeout(2500)
+    check(page.evaluate("document.getElementById('arena').value") == "77"
+          and page.evaluate("S.filter(s => passes(s)).map(s => s[0])") == ["Ross 720"],
+          "a level link opens on that battle")
+    page.locator("details.grp>summary", has_text="Rating battles").locator(".secWiki").click(force=True)
+    page.wait_for_timeout(400)
+    check(page.locator("#wikiFrame").get_attribute("src").endswith("#Combat#Rating_battles"),
+          "its W opens Combat#Rating battles")
     check(not errors, f"no page errors {errors[:2]}")
     b.close()
 srv.shutdown()

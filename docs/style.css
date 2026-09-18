@@ -24,6 +24,20 @@ canvas:active{cursor:grabbing}
 /* The game's name in white, what this tool adds to it in the accent, as the
    wiki's title does. */
 .brand .game{color:#fff}
+/* The brand opens the product switcher; the map itself is the ticked entry. */
+.apps{position:relative;min-width:0}
+.apps summary{list-style:none;cursor:pointer}
+.apps summary::-webkit-details-marker{display:none}
+.apps summary::after{content:" \25BE";color:var(--dim)}
+.appList{position:absolute;top:100%;left:0;z-index:5;margin-top:6px;display:flex;
+  flex-direction:column;min-width:160px;background:var(--deep);border:1px solid var(--cyan);
+  border-radius:2px;font-family:var(--mono);font-size:12px;font-weight:400;
+  letter-spacing:.04em;text-transform:none}
+.appList>*{padding:6px 10px;color:var(--cyan);text-decoration:none}
+.appList a:hover,.appList a:focus-visible{color:#fff;background:rgba(255,255,255,.04);outline:none}
+.appList [aria-current]{color:#fff}
+.appList [aria-current]::before{content:"\2713  "}
+.planFit{display:inline-block;margin-top:6px;color:var(--cyan);font-size:12px}
 #langFlag{margin-left:auto;background:none;border:0;padding:0 2px;font-size:15px;
   line-height:1;cursor:pointer;filter:saturate(.8)}
 #langFlag:hover,#langFlag:focus-visible{filter:none;outline:none}

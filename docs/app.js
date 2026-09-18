@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=4185adc5b7"), read("data/reachable.png?v=4185adc5b7")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=2d19f2dd2c"), read("data/reachable.png?v=2d19f2dd2c")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=4185adc5b7", 1), read("data/zones.webp?v=4185adc5b7", 3)]);
+    [read("data/side.webp?v=2d19f2dd2c", 1), read("data/zones.webp?v=2d19f2dd2c", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -1095,7 +1095,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=4185adc5b7").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=2d19f2dd2c").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2766,6 +2766,12 @@ for (const d of document.querySelectorAll("details.grp")){
 // map points at the local wiki preview.
 const WIKI_URL = /^(localhost|127\.0\.0\.1)$/.test(location.hostname)
   ? "http://localhost:8790/" : "https://galaxy-genome.github.io/wiki/";
+// The four apps share one site; the product switcher on the brand opens the others.
+const LOADOUTS_URL = "https://galaxy-genome.github.io/loadouts/";
+const APP_URL = {mods: "https://galaxy-genome.github.io/mods/", loadouts: LOADOUTS_URL,
+                 wiki: WIKI_URL};
+for (const a of document.querySelectorAll("#appMenu a[data-app]")) a.href = APP_URL[a.dataset.app];
+const shipName = sh => sh.n[D.langCodes.indexOf(lang)] || sh.n[0];
 const wikiPanel = document.getElementById("wikiPanel");
 // Every link to the wiki follows the same rule, so a local map never sends a
 // reader to the published copy.
@@ -3982,11 +3988,12 @@ function passesGenerated(st, deep){
   const C = D.calc;
   const byClass = list => [...list].sort((a, b) => a.cls - b.cls ||
     "EDCBA".indexOf(a.g) - "EDCBA".indexOf(b.g));
-  // Abramowitz and Stegun 7.1.26; the shield curve is an error function.
+  // Abramowitz and Stegun 7.1.26 with MathE.erf's constants; the shield curve
+  // is an error function.
   const erf = x => {
     const t = 1 / (1 + 0.3275911 * Math.abs(x));
     const y = 1 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t
-                    - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+                    - 0.284496736) * t + 0.25482952) * t * Math.exp(-x * x);
     return x < 0 ? -y : y;
   };
   const GRADE = {E: 1, D: 2, C: 3, B: 4, A: 5};
@@ -4013,9 +4020,17 @@ function passesGenerated(st, deep){
   const shipBox = document.getElementById("calcShip");
   (D.calc.ships || []).forEach((sh, i) => {
     const o = document.createElement("option");
-    o.value = String(i); o.textContent = sh.n;
+    o.value = String(i); o.textContent = shipName(sh);
     shipBox.append(o);
   });
+  // The loadout planner opens on the chosen ship's build, or on its ship list.
+  const planFit = document.getElementById("planFit");
+  const setPlan = () => {
+    const sh = shipBox.value === "" ? null : D.calc.ships[+shipBox.value];
+    planFit.href = LOADOUTS_URL + (sh ? "#/build/" + encodeURIComponent(sh.key) : "#/ships");
+  };
+  shipBox.addEventListener("change", setPlan);
+  setPlan();
   // Choosing a ship fills the mass box with the hull's own mass, unless the
   // reader has typed a mass of their own: a figure the ship box put there is
   // the ship box's to replace.
@@ -4567,6 +4582,8 @@ jumpBox.addEventListener("input", () => {
       const el = document.getElementById(id);
       for (const o of el.options) if (o.value !== "") o.textContent = list[+o.value];
     }
+    for (const o of document.getElementById("calcShip").options)
+      if (o.value !== "") o.textContent = shipName(D.calc.ships[+o.value]);
     document.querySelectorAll("#secRow .pill").forEach((b, i) => b.textContent = ui(SECS[i][1]));
     document.querySelectorAll("#scanner option").forEach((o, i) => {
       o.textContent = (i ? D.scanners[i][0] : ui("scannerNone"))

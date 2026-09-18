@@ -251,6 +251,22 @@ with sync_playwright() as p:
     page.wait_for_timeout(400)
     check(page.locator("#wikiFrame").get_attribute("src").endswith("#Combat#Rating_battles"),
           "its W opens Combat#Rating battles")
+    page.click("#appMenu summary")
+    apps = page.locator("#appMenu [role=menuitem]")
+    check(apps.all_inner_texts() == ["Star Map", "Quest Editor", "Loadouts", "Wiki"],
+          f"the brand switches between the four apps ({apps.all_inner_texts()})")
+    hrefs = [apps.nth(i).get_attribute("href") for i in range(1, 4)]
+    check(hrefs == ["https://galaxy-genome.github.io/mods/",
+                    "https://galaxy-genome.github.io/loadouts/", "http://localhost:8790/"],
+          f"the switcher links the other three ({hrefs})")
+    page.click("#appMenu summary")
+    plan = page.locator("#planFit")
+    check(plan.get_attribute("href") == "https://galaxy-genome.github.io/loadouts/#/ships",
+          "Plan a fit opens the ship list with no ship chosen")
+    page.locator("details.grp>summary", has_text="Calculators").click()
+    page.select_option("#calcShip", label="Ion")
+    check(plan.get_attribute("href") == "https://galaxy-genome.github.io/loadouts/#/build/ShipType.ION",
+          f"Plan a fit opens the chosen ship's build ({plan.get_attribute('href')})")
     check(not errors, f"no page errors {errors[:2]}")
     b.close()
 srv.shutdown()

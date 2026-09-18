@@ -6,14 +6,19 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=4185adc5b7">
+<link rel="stylesheet" href="style.css?v=2d19f2dd2c">
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
         data-ui-aria="menu" aria-label="Menu"><span class="bars"></span><span class="badge" id="fCount"></span></button>
 
 <nav class="rail" id="rail">
-  <div class="brand"><span class="name"><span id="brandTitle"><span class="game">Galaxy Genome</span> Map</span><button
+  <div class="brand"><span class="name"><details class="apps" id="appMenu"><summary data-ui-title="switchApp" title="Switch app"><span
+      id="brandTitle"><span class="game">Galaxy Genome</span> Map</span></summary><div class="appList"
+      role="menu"><span role="menuitem" aria-current="page" data-ui="appMap">Star Map</span><a
+      role="menuitem" data-app="mods" data-ui="appEditor">Quest Editor</a><a role="menuitem"
+      data-app="loadouts" data-ui="appLoadouts">Loadouts</a><a role="menuitem" data-app="wiki"
+      data-ui="appWiki">Wiki</a></div></details><button
       type="button" id="langFlag" data-ui-aria="language" aria-label="Language"></button></span>
     <span class="sub"><small class="unofficial" data-ui="unofficial">Unofficial fan tool</small><a
       class="wikiLink" href="https://galaxy-genome.github.io/wiki/" target="_blank" rel="noopener"
@@ -156,6 +161,7 @@
       <label class="f"><span data-ui="calcThruster">Thrusters</span></label>
       <select id="calcThruster"></select>
       <dl class="calcOut" id="calcOut"></dl>
+      <a class="planFit" id="planFit" href="https://galaxy-genome.github.io/loadouts/#/ships" data-ui="planFit">Plan a fit</a>
     </div>
   </details>
 
@@ -255,9 +261,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=4185adc5b7");
+    const galaxy = await load("data/galaxy.json?v=2d19f2dd2c");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=4185adc5b7`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=2d19f2dd2c`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -266,7 +272,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=4185adc5b7";
+    s.src = "app.js?v=2d19f2dd2c";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

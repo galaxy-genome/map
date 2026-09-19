@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=2d19f2dd2c"), read("data/reachable.png?v=2d19f2dd2c")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=84818e60b6"), read("data/reachable.png?v=84818e60b6")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=2d19f2dd2c", 1), read("data/zones.webp?v=2d19f2dd2c", 3)]);
+    [read("data/side.webp?v=84818e60b6", 1), read("data/zones.webp?v=84818e60b6", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -794,7 +794,7 @@ function computeValue(s){
   const gen = !Array.isArray(s);
   const b = gen ? starBodies(s) : null;
   const full = gen ? b.scan : s[SCAN];
-  if (!full) return {arrival: 0, full: 0, hops: 0, reach: 0};
+  if (!full) return {arrival: 0, full: 0, hops: 0, reach: 0, oneHop: 0};
   const r = scanRange(), worth = D.worthTheTrip;
   let arrival = gen ? b.starScan : s[STARV], hops = 0, reach = 0, best = 0;
   const each = (orbit, value) => {
@@ -1095,7 +1095,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=2d19f2dd2c").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=84818e60b6").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -2611,7 +2611,9 @@ function flyStep(now){
   const at = [cx, cz, Math.log(scale)];
   // Critically damped: one pole at 1/tau, integrated semi-implicitly so it stays
   // stable when a frame is late.
-  const zoomingIn = flyTo[2] > at[2];
+  // The slow close-in only exists so a pan keeps up; a zoom in place (the
+  // buttons, the keys) has nothing to wait for.
+  const zoomingIn = flyTo[2] > at[2] && (flyTo[0] !== at[0] || flyTo[1] !== at[1]);
   let rest = 0;
   for (let i = 0; i < 3; i++){
     const w = flySpeed / (i < 2 ? FLY_TAU : zoomingIn ? FLY_TAU_IN : FLY_TAU_OUT);
@@ -4012,6 +4014,13 @@ function passesGenerated(st, deep){
                 thruster: fill("calcThruster", C.thrust)};
   const lists = {warp: byClass(C.warp), shield: byClass(C.shield),
                  thruster: byClass(C.thrust)};
+  // The stock hull is first: the lightest, and what every ship is sold with.
+  const hullBox = document.getElementById("calcHull");
+  C.hull.forEach((h, i) => {
+    const o = document.createElement("option");
+    o.value = String(i); o.textContent = shipName(h);
+    hullBox.append(o);
+  });
   const massBox = document.getElementById("calcMass");
   const loadBox = document.getElementById("calcLoad");
   const out = document.getElementById("calcOut");
@@ -4046,7 +4055,10 @@ function passesGenerated(st, deep){
     const ship = shipBox.value === "" ? null : D.calc.ships[+shipBox.value];
     // Speed is rated against the hull and what it carries, never against the
     // modules bolted to it; shields are rated against the bare hull alone.
-    const flying = ship ? ship.mass + (+loadBox.value || 0) : 0;
+    // ShipInfo.SpeedMax_calc: the hull module scales the hull's mass, within 0.8-2x.
+    const hullMass = ship ? Math.min(Math.max(ship.mass * (1 + C.hull[+hullBox.value].mul),
+                                              0.8 * ship.mass), 2 * ship.mass) : 0;
+    const flying = ship ? hullMass + (+loadBox.value || 0) : 0;
     const rows = [];
     const pick = k => sels[k].value === "" ? null : lists[k][+sels[k].value];
     const warp = pick("warp"), shield = pick("shield"), thr = pick("thruster");
@@ -4105,7 +4117,7 @@ function passesGenerated(st, deep){
         recalc();
       };
   }
-  for (const el of [massBox, loadBox, shipBox, sels.warp, sels.shield, sels.thruster]){
+  for (const el of [massBox, loadBox, shipBox, hullBox, sels.warp, sels.shield, sels.thruster]){
     el.addEventListener("input", recalc);
     el.addEventListener("change", recalc);
   }

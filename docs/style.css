@@ -264,6 +264,7 @@ details.grp .body{display:flex;flex-direction:column;gap:6px;padding-bottom:6px}
 .pill[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan);
   background:rgba(53,224,245,.1)}
 .pill:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+.pill.rep{display:block;width:100%;text-align:left;margin-bottom:3px}
 select,input[type=number]{width:100%;padding:6px 7px;background:rgba(4,12,22,.9);
   border:1px solid var(--edge);color:var(--ink);font-family:var(--mono);font-size:12px;
   border-radius:2px}

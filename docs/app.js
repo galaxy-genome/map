@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=84818e60b6"), read("data/reachable.png?v=84818e60b6")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=f0e16b115d"), read("data/reachable.png?v=f0e16b115d")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -329,7 +329,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=84818e60b6", 1), read("data/zones.webp?v=84818e60b6", 3)]);
+    [read("data/side.webp?v=f0e16b115d", 1), read("data/zones.webp?v=f0e16b115d", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -752,7 +752,7 @@ let spoilers = false;
 const F = {sec:new Set(), purp:new Set(), fac:new Set(),
            ore:-1, ptype:-1, mat:-1, arena:null, startype:"", module:-1, fullOnly:true,
            lyMin:null, lyMax:null, valMin:null, oneHop:false, plMin:null,
-           pctMin:null, matPctMin:null, laMin:null};
+           pctMin:null, matPctMin:null, laMin:null, stLs:null};
 
 // Which Planet Scanner the reader has fitted. At 1,000 CR and no mass the 1D is
 // the first thing anyone buys, so it is what the map assumes unless told
@@ -898,13 +898,23 @@ function passes(s){
   if (F.ore >= 0 && F.pctMin != null && !deepDigit(F.ore) && orePct(s, F.ore) < F.pctMin) return false;
   if (F.mat >= 0 && F.matPctMin != null && (matSpan(s, F.mat) || [0, 0])[1] < F.matPctMin) return false;
   if (F.laMin   != null && s[LA]   < F.laMin)   return false;
+  if (F.stLs != null && !closeStations(s[NAME]).length) return false;
   return true;
+}
+
+// Stations within F.stLs light seconds of where a jump drops you, of a picked
+// faction when any is picked. Missions and reputation are earned at a station,
+// and crossing a system at sublight is the slow part of taking them.
+const REP_LS = 500;
+function closeStations(name, limit = F.stLs){
+  return (D.stations[name] || []).filter(st => st[4] <= limit &&
+    (!F.fac.size || [...F.fac].some(i => D.factions[i] === st[2])));
 }
 
 function anyFilter(){
   return filters.size || F.sec.size || F.purp.size || F.fac.size ||
          F.ore >= 0 || F.ptype >= 0 || F.mat >= 0 || F.arena != null || F.startype || F.module >= 0 ||
-         [F.lyMin,F.lyMax,F.valMin,F.plMin,F.pctMin,F.matPctMin,F.laMin]
+         [F.lyMin,F.lyMax,F.valMin,F.plMin,F.pctMin,F.matPctMin,F.laMin,F.stLs]
            .some(v => v != null);
 }
 
@@ -1029,7 +1039,7 @@ function filterCount(){
   return filters.size + F.sec.size + F.purp.size + F.fac.size +
     [F.ore, F.ptype, F.mat, F.module].filter(v => v >= 0).length + (F.arena != null ? 1 : 0) +
     (F.startype ? 1 : 0) +
-    [F.lyMin, F.lyMax, F.valMin, F.plMin, F.pctMin, F.matPctMin, F.laMin]
+    [F.lyMin, F.lyMax, F.valMin, F.plMin, F.pctMin, F.matPctMin, F.laMin, F.stLs]
       .filter(v => v != null).length;
 }
 
@@ -1095,7 +1105,7 @@ let rich = null, richLoading = false;
 function loadRich(){
   if (rich || richLoading) return;
   richLoading = true;
-  fetch("data/rich2m.bin?v=84818e60b6").then(r => r.arrayBuffer()).then(b => {
+  fetch("data/rich2m.bin?v=f0e16b115d").then(r => r.arrayBuffer()).then(b => {
     const v = new DataView(b), n = v.getUint32(0, true);
     rich = [];
     let o = 4;
@@ -1122,7 +1132,7 @@ function loadRich(){
 // while no filter asks about anything else.
 function richAnswerable(){
   return F.ore < 0 && F.ptype < 0 && F.mat < 0 && F.arena == null && F.module < 0 && !F.startype
-      && F.plMin == null && F.laMin == null && filters.size === 0
+      && F.plMin == null && F.laMin == null && F.stLs == null && filters.size === 0
       && F.sec.size === 0 && F.purp.size === 0 && F.fac.size === 0;
 }
 
@@ -1758,8 +1768,41 @@ function drawGates(){
   ctx.globalAlpha = 1;
 }
 
+// The nearest systems to Sol, per faction, with a station of that faction
+// within reach of the arrival point: where reputation comes cheapest.
+let repKey = "";
+function renderRepList(){
+  const limit = F.stLs ?? REP_LS;
+  const key = limit + "|" + lang;
+  if (key === repKey) return;
+  repKey = key;
+  const box = document.getElementById("repList");
+  box.innerHTML = "";
+  D.factions.forEach((fac, i) => {
+    const hits = [];
+    for (const s of S){
+      const near = (D.stations[s[NAME]] || []).filter(st => st[2] === fac && st[4] <= limit);
+      if (near.length) hits.push([s, near.reduce((a, b) => a[4] <= b[4] ? a : b)]);
+    }
+    hits.sort((a, b) => a[0][LY] - b[0][LY]).splice(5);
+    if (!hits.length) return;
+    const h = document.createElement("p");
+    h.className = "note"; h.textContent = t(D.factionKeys[i]);
+    box.append(h);
+    for (const [s, st] of hits){
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "pill rep";
+      b.innerHTML = `<b>${s[NAME]}</b> <span class="muted">${num(Math.round(s[LY]))} ly \u00b7 ` +
+                    `${st[0]} \u00b7 ${num(st[4])} ls</span>`;
+      b.onclick = () => focusOn(s);
+      box.append(b);
+    }
+  });
+}
+
 function draw(){
   clampView();
+  renderRepList();
   const n = filterCount();
   document.getElementById("fCount").textContent = n ? n : "";
   document.getElementById("ctr").textContent =
@@ -2096,13 +2139,13 @@ function tradeRow(s){
 function stationRows(s){
   const list = D.stations[s[NAME]];
   if (!list || !list.length) return "";
-  const rows = list.slice(0, 6).map(([nm, model, fac, purp]) => {
+  const rows = list.slice(0, 6).map(([nm, model, fac, purp, ls]) => {
     const stock = F.module >= 0 ? D.purposeStock[purp] : null;
     const mark = !stock ? ""
       : stock[0].includes(F.module) ? ` <b class="chev">\u203a\u203a</b>`
       : stock[1].includes(F.module) ? ` <b class="chev">\u203a</b>` : "";
     return `<dd class="stn">${nm}${mark}<span class="muted"> \u00b7 ` +
-           `${t(D.stationModel[model]) || model}${fac ? " \u00b7 " + fac : ""}</span></dd>`;
+           `${t(D.stationModel[model]) || model}${fac ? " \u00b7 " + fac : ""} \u00b7 ${num(ls)} ls</span></dd>`;
   });
   return `<dt>${ui("stations")}</dt>` + rows.join("") +
          (list.length > 6 ? `<dd class="muted">+${list.length - 6}</dd>` : "");
@@ -3112,6 +3155,7 @@ const PRESETS = [
   {slot: "pOutfit",    purp: "HiTech",           show: '#purpRow .pill[aria-pressed="true"]'},
   {slot: "pStation",   on: ["wreck"]},
   {slot: "pBlackMarket", on: ["sellsBlack"],     show: '[data-f="sellsBlack"]'},
+  {slot: "pRep",       set: {stLs: REP_LS},    show: "#stLs"},
   {slot: "pArena",     set: {arena: "all"},    show: "#arena"},
   {slot: "pEngineers", on: ["eng"], spoil: true},
   {slot: "pGates",     on: ["gate"], spoil: true},
@@ -3353,7 +3397,7 @@ bindSelectHelp("ptype", "pt:", D.ptypeRaw);
 
 // Below half a million nothing is worth the jump, so the boxes do not offer it.
 const VALUE_FLOOR = 500000;
-for (const id of ["valMin","plMin","pctMin","matPctMin","laMin"]){
+for (const id of ["valMin","plMin","pctMin","matPctMin","laMin","stLs"]){
   const el = document.getElementById(id);
   el.oninput = e => {
     F[id] = e.target.value === "" ? null : +e.target.value;
@@ -3398,10 +3442,10 @@ function clearFilters(quiet){
   F.arena = null;
   F.startype = "";
   F.fullOnly = true;
-  for (const k of ["lyMin","lyMax","valMin","plMin","pctMin","matPctMin","laMin"]) F[k] = null;
+  for (const k of ["lyMin","lyMax","valMin","plMin","pctMin","matPctMin","laMin","stLs"]) F[k] = null;
   F.oneHop = false;
   if (quiet) return;
-  for (const k of ["valMin","plMin","pctMin","matPctMin","laMin"])
+  for (const k of ["valMin","plMin","pctMin","matPctMin","laMin","stLs"])
     document.getElementById(k).value = "";
   document.getElementById("oneHop").checked = false;
   // The highlight toggles are not filters and keep their state.
@@ -3951,7 +3995,7 @@ function needsBodies(){
 
 function passesGenerated(st, deep){
   for (const f of IMPOSSIBLE) if (filters.has(f)) return false;
-  if (F.purp.size || F.fac.size || F.module >= 0 || F.arena != null) return false;
+  if (F.purp.size || F.fac.size || F.module >= 0 || F.arena != null || F.stLs != null) return false;
   if (filters.has("fuel") && !st.fuel) return false;
   if (F.startype && st.raw !== F.startype) return false;
   if (F.sec.size && !F.sec.has("A")) return false;          // generated space is Anarchy
@@ -4785,7 +4829,7 @@ async function applyParams(){
   }
 
   for (const [key, id] of [["pct", "pctMin"], ["mpct", "matPctMin"], ["value", "valMin"], ["planets", "plMin"],
-                           ["landable", "laMin"]]){
+                           ["landable", "laMin"], ["stationls", "stLs"]]){
     const v = p.get(key);
     if (v == null) continue;
     const el = document.getElementById(id);
@@ -4903,7 +4947,7 @@ function currentParams(){
   const purp = pressed("purpRow").map(i => D.purposes[i]);
   if (purp.length) put("purpose", purp.join(","));
   for (const [key, id] of [["value", "valMin"], ["planets", "plMin"],
-                           ["landable", "laMin"], ["lymin", "lyMin"],
+                           ["landable", "laMin"], ["stationls", "stLs"], ["lymin", "lyMin"],
                            ["lymax", "lyMax"]])
     if (F[id] != null) put(key, F[id]);
   if (F.oneHop) put("onehop", "1");

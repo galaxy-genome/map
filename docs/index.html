@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=3a9b5b70be">
+<link rel="stylesheet" href="style.css?v=f7253e1825">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 </head>
@@ -58,6 +58,7 @@
       <ul class="hits" data-for="to"></ul>
     </div>
     <label class="f"><span data-ui="maxJump">Max jump</span><input type="number" id="jump" min="1" max="500" step="1" value="10"> <span data-ui-unit="ly">ly</span></label>
+    <button type="button" id="gatesBtn"></button>
     <button id="clearRoute" data-ui="clearRoute">Clear route</button>
     <button class="resetFilters" data-ui="reset">Clear all filters</button>
     <p class="note" id="routeNote"></p>
@@ -260,6 +261,13 @@
   <iframe id="wikiFrame" title="Galaxy Genome Wiki"></iframe>
 </aside>
 
+<dialog id="gatesDlg">
+  <h3 data-ui="gatesTitle">Repaired gate ends</h3>
+  <p class="note" data-ui="gatesNote"></p>
+  <div id="gatesList"></div>
+  <p><a href="#" class="gateHow" data-ui="gateHowTo">How to repair a gate</a></p>
+  <button type="button" id="gatesDone" data-ui="done">Done</button>
+</dialog>
 <div class="tip" id="tip" role="status"></div>
 <div class="help" id="help"></div>
 
@@ -273,9 +281,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=3a9b5b70be");
+    const galaxy = await load("data/galaxy.json?v=f7253e1825");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=3a9b5b70be`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=f7253e1825`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -284,7 +292,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=3a9b5b70be";
+    s.src = "app.js?v=f7253e1825";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=3a9b5b70be"), read("data/reachable.png?v=3a9b5b70be")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=f7253e1825"), read("data/reachable.png?v=f7253e1825")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -343,7 +343,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=3a9b5b70be", 1), read("data/zones.webp?v=3a9b5b70be", 3)]);
+    [read("data/side.webp?v=f7253e1825", 1), read("data/zones.webp?v=f7253e1825", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -2039,6 +2039,12 @@ function factionsOf(s){
 
 const row = (slot, value) => `<dt>${ui(slot)}</dt><dd>${value}</dd>`;
 
+// A gate end says whether it is repaired, by the ends ticked under the jump
+// range, and how to repair one.
+const gateRow = name => !gateOther.has(name) ? "" :
+  row("gate", `\u2192 ${gateOther.get(name)} \u00b7 ${ui(gateEndRepaired(name) ? "gateRepaired" : "gateBroken")}` +
+    `<br><a href="#" class="gateHow">${ui("gateHowTo")}</a>`);
+
 // With a planet type filtered, where each planet of that type orbits: light
 // seconds from its own star, which for a companion's planet is not the primary.
 function ptypeRow(orbits){
@@ -2131,6 +2137,11 @@ function showTip(s, mx, my){
     .join("");
   // A row is only worth its line when it says something. Nothing the system
   // does not have is listed.
+  // A card with a link stays where it opened, so the pointer can reach it.
+  const live = gateOther.has(s[NAME]);
+  if (live && tip.classList.contains("live") && tip.dataset.sys === s[NAME] && tip.style.display === "block") return;
+  tip.classList.toggle("live", live);
+  tip.dataset.sys = s[NAME];
   tip.innerHTML = flownLine(s[NAME]) +
     `<h3>${s[NAME]}${coords(s[X], s[Z])}</h3>` +
     deepBanner(i => s[ORE] >> i & 1) + `<dl>` +
@@ -2144,6 +2155,7 @@ function showTip(s, mx, my){
     ptypeRow(catalogueOrbits(s)) +
     (D.namedMats[s[NAME]] ? namedMatRows(D.namedMats[s[NAME]]) : matRow(D.matPct[s[NAME]] || {})) +
     stationRows(s) +
+    gateRow(s[NAME]) +
     (factionsOf(s) ? row("faction", factionsOf(s)) : "") +
     tradeRow(s) +
     valueRows(s) +
@@ -2210,10 +2222,28 @@ function tipAt(mx, my){
   // under it is two answers to one question.
   if (acrossLy() > SYSTEM_LY / 2){ tip.style.display = "none"; return; }
   const s = pick(mx, my);
-  if (s){ showTip(s, mx, my); return; }
+  if (s){ clearTimeout(tipHide); showTip(s, mx, my); return; }
+  // A card with a link waits a moment, for the pointer on its way to it.
+  if (!TOUCH && tip.classList.contains("live") && tip.style.display === "block"){
+    clearTimeout(tipHide);
+    tipHide = setTimeout(() => { if (!tip.matches(":hover")) hideTip(); }, 400);
+    return;
+  }
   const gen = pickGenerated(mx, my);
+  tip.classList.remove("live");
   gen ? showGenTip(gen, mx, my) : (tip.style.display = "none");
 }
+let tipHide = 0;
+function hideTip(){ tip.style.display = "none"; tip.classList.remove("live"); }
+tip.addEventListener("pointerenter", () => clearTimeout(tipHide));
+tip.addEventListener("pointerleave", () => { if (!TOUCH) hideTip(); });
+// Every "how to repair a gate" link opens the wiki beside the map.
+function gateHow(e){
+  e.preventDefault();
+  document.getElementById("gatesDlg").close();
+  openWiki("Navigation", "Activating warp gates");
+}
+addEventListener("click", e => { if (e.target.closest && e.target.closest(".gateHow")) gateHow(e); });
 
 cv.addEventListener("pointerdown", e => {
   // The keyboard is in the way of a map being panned.
@@ -2362,9 +2392,13 @@ for (const el of [tip, document.getElementById("help")])
   for (const type of ["pointerdown", "pointerup", "click"])
     el.addEventListener(type, e => {
       e.stopPropagation();
+      // Its one link is the exception: it opens the wiki and leaves the card up.
+      if (e.target.closest && e.target.closest(".gateHow")){ if (type === "click") gateHow(e); return; }
       if (type === "pointerup") el.style.display = "none";
     });
-cv.addEventListener("pointerleave", () => { if (!TOUCH) tip.style.display = "none"; });
+cv.addEventListener("pointerleave", e => {
+  if (!TOUCH && !(e.relatedTarget && tip.contains(e.relatedTarget))) hideTip();
+});
 
 cv.addEventListener("wheel", e => {
   flyStop();
@@ -4310,14 +4344,26 @@ function searchSystems(nodes, byCell, startIdx, goalIdx, range){
   return {path, gates, partial, total: dist[target]};
 }
 
-// Warp gates join two named systems; they are edges like any other.
+// Every gate starts broken and carries nobody until both its ends are repaired,
+// so a gate is an edge only once the player has ticked both. Ends are bits: gate
+// i's first end is bit 2i, its second 2i+1.
+let gatesMask = +(localStorage.getItem("gg.gates") || 0);
+const gateEndRepaired = name => {
+  const i = D.gates.findIndex(g => g.includes(name));
+  return i >= 0 && !!(gatesMask >> (2 * i + D.gates[i].indexOf(name)) & 1);
+};
+const gatesWorking = () => D.gates.filter(([a, b]) => gateEndRepaired(a) && gateEndRepaired(b));
 const gateLinks = new Map();
-for (const [a, b] of D.gates){
-  if (!gateLinks.has(a)) gateLinks.set(a, []);
-  if (!gateLinks.has(b)) gateLinks.set(b, []);
-  gateLinks.get(a).push(b);
-  gateLinks.get(b).push(a);
+function buildGateLinks(){
+  gateLinks.clear();
+  for (const [a, b] of gatesWorking()){
+    if (!gateLinks.has(a)) gateLinks.set(a, []);
+    if (!gateLinks.has(b)) gateLinks.set(b, []);
+    gateLinks.get(a).push(b);
+    gateLinks.get(b).push(a);
+  }
 }
+buildGateLinks();
 
 function nearestNode(nodes, p){
   let best = -1, bd = Infinity;
@@ -4510,6 +4556,37 @@ addEventListener("keydown", e => {
 });
 document.getElementById("clearRoute").onclick = clearRoute;
 
+// The repaired ends, ticked in a dialog under the jump range.
+function setGatesMask(m){
+  gatesMask = m;
+  try { localStorage.setItem("gg.gates", String(m)); } catch (_) {}
+  buildGateLinks();
+  gatesBtnLabel();
+  recomputeRoute();
+}
+const gatesBtnLabel = () =>
+  document.getElementById("gatesBtn").textContent = fmt("gatesBtn", {n: gatesWorking().length});
+{
+  const dlg = document.getElementById("gatesDlg");
+  const list = document.getElementById("gatesList");
+  D.gates.forEach(([a, b], i) => {
+    const box = document.createElement("fieldset");
+    box.innerHTML = `<legend>${a} \u2194 ${b}</legend>` + [a, b].map((end, k) =>
+      `<label><input type="checkbox" data-bit="${2 * i + k}"> ${end}</label>`).join("");
+    list.append(box);
+  });
+  list.addEventListener("change", e => {
+    const bit = +e.target.dataset.bit;
+    setGatesMask(e.target.checked ? gatesMask | 1 << bit : gatesMask & ~(1 << bit));
+  });
+  document.getElementById("gatesBtn").onclick = () => {
+    for (const cb of list.querySelectorAll("input")) cb.checked = !!(gatesMask >> +cb.dataset.bit & 1);
+    dlg.showModal();
+  };
+  document.getElementById("gatesDone").onclick = () => dlg.close();
+  gatesBtnLabel();
+}
+
 const jumpBox = document.getElementById("jump");
 jumpBox.value = jumpLy;
 jumpBox.addEventListener("input", () => {
@@ -4562,6 +4639,7 @@ jumpBox.addEventListener("input", () => {
     const esc = t => t.replace(/[&<>]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;"})[c]);
     document.getElementById("brandTitle").innerHTML = esc(ui("title"))
       .replace("Galaxy Genome", '<span class="game">Galaxy Genome</span>');
+    gatesBtnLabel();
   };
   sel.addEventListener("change", () => {
     sel.hidden = true;
@@ -4778,6 +4856,7 @@ async function applyParams(){
     if (i >= 0){ el.value = String(i); fire(el); touched.push(el); }
   }
 
+  if (p.get("gates")) setGatesMask(+p.get("gates") || 0);
   const jump = p.get("jump") || p.get("warp");
   if (jump){
     const el = document.getElementById("jump");
@@ -4887,6 +4966,7 @@ function currentParams(){
   if (F.oneHop) put("onehop", "1");
   if (scanner !== 1) put("scanner", D.scanners[scanner][0]);
   if (jumpLy !== 10) put("jump", jumpLy);
+  if (gatesMask) put("gates", gatesMask);
   // One end is where you are, which is worth sharing and drives the From-here
   // row. It is only a route once both ends are named, and only then does a line
   // get drawn or a route note appear.

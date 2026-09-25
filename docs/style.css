@@ -116,6 +116,15 @@ label.f:has(#jump){justify-content:flex-start;gap:6px}
   background:var(--panel);border:1px solid var(--cyan);padding:9px 11px;
   font-family:var(--mono);font-size:12px;line-height:1.55;
   box-shadow:0 0 0 1px rgba(4,8,16,.9),0 8px 28px rgba(0,0,0,.6)}
+.tip.live{pointer-events:auto}
+.tip a{color:var(--accent,#5ec8e5)}
+#gatesDlg{background:#0b1422;color:var(--ink);border:1px solid var(--edge);border-radius:8px;max-width:340px}
+#gatesDlg::backdrop{background:rgba(0,0,0,.5)}
+#gatesDlg h3{margin:0 0 6px;font-size:14px}
+#gatesDlg fieldset{border:1px solid var(--edge);border-radius:6px;margin:6px 0;padding:4px 10px 8px}
+#gatesDlg legend{color:var(--dim);font-size:12px}
+#gatesDlg label{display:block;padding:3px 0}
+#gatesDlg a{color:var(--accent,#5ec8e5)}
 .tip h3{margin:0 0 5px;font-size:13px;color:#fff;font-family:var(--ui);font-weight:600;
   letter-spacing:.03em;display:flex;align-items:baseline;gap:12px}
 .tip h3 .coords{margin-left:auto;font-family:var(--mono);font-size:10px;font-weight:400;

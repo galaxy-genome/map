@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=f0e16b115d"), read("data/reachable.png?v=f0e16b115d")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=348687ec01"), read("data/reachable.png?v=348687ec01")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -133,10 +133,24 @@ const GEN = {
   CAP: 20000,
 };
 
+// The Park-Miller start noise() uses for a uint seed: noise() takes an int, and
+// every seed of 2^31 or more (a negative int) gives the one bitmap from 2147483646.
+const noiseSeed = seed => seed >= 2147483648 ? 2147483646 : (seed || 1);
+
+// The noise bitmap is transparent, so Flash stores it premultiplied and
+// getPixel32 converts back, moving some colour bytes by one: ROUND_TRIP[a * 256 + c]
+// is what reads back for colour c at alpha a (rndm.py's premultiply.bin).
+let ROUND_TRIP = null;
+function pixelFromBytes(r, g, b, a){
+  if (!ROUND_TRIP) ROUND_TRIP = Uint8Array.from(atob(D.gen.roundTrip), ch => ch.charCodeAt(0));
+  const t = a * 256;
+  return ((a << 24) | (ROUND_TRIP[t + r] << 16) | (ROUND_TRIP[t + g] << 8) | ROUND_TRIP[t + b]) >>> 0;
+}
+
 // The game's own PRNG: BitmapData.noise seeded per cell, walked as a stream.
 class Rndm {
   constructor(seed){
-    this.x = (seed <= 0 ? -seed + 1 : seed) >>> 0;
+    this.x = noiseSeed(seed >>> 0);
     this.p = 0;
     this.buf = [];
   }
@@ -145,7 +159,7 @@ class Rndm {
     this.p = (this.p + 1) % 200000;
     while (this.buf.length <= this.p){
       const r = this.byte(), g = this.byte(), b = this.byte(), a = this.byte();
-      this.buf.push(((a << 24) | (r << 16) | (g << 8) | b) >>> 0);
+      this.buf.push(pixelFromBytes(r, g, b, a));
     }
     return (this.buf[this.p] * 0.999999999999998 + 1e-15) / 4294967295;
   }
@@ -329,7 +343,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=f0e16b115d", 1), read("data/zones.webp?v=f0e16b115d", 3)]);
+    [read("data/side.webp?v=348687ec01", 1), read("data/zones.webp?v=348687ec01", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -355,20 +369,30 @@ function cellStars(cx, cy, share = 1){
   const name = sectorName(cx, cy);
 
   const want = share >= 1 ? Infinity : Math.max(1, Math.round(side * side * share));
+  // GalaxyMap.GetStars drops a star that lands within the clash distance of any
+  // star already in the cell, catalogue or generated; a dropped star spends no
+  // type draw. Its number (name and seed index) is its place in the walk plus
+  // the cell's unnamed catalogue stars.
+  const placed = real.map(([rx, ry]) => [rx, ry]);
+  const offset = real.filter(r => !r[2]).length;
   let gx = cx + step / 2, gy = cy, out = [];
   for (let i = 0; i < side * side && out.length < want; i++){
     const x = gx + rng.float(0, step / 1.3);
     const y = gy + rng.float(0, step / 1.3);
     let clash = false;
-    for (const [rx, ry] of real)
+    for (const [rx, ry] of placed)
       if (step * step / 2 > (rx - x) ** 2 + (ry - y) ** 2){ clash = true; break; }
     if (!clash){
+      placed.push([x, y]);
       const t = starByZone(rng, r, g, b);
       out.push({
         x: (x - 1025) * CELL_LY, z: (1591 - y) * CELL_LY,
         type: t[4], colour: t[3], fuel: !!t[5], raw: t[0],
-        name: `${name.zone} ${name.sector}${i}`,
-        seed: (((cx & 0xFFF) << 20) + ((cy & 0xFFF) << 8) + ((real.length + i) & 0xFF)) >>> 0,
+        name: `${name.zone} ${name.sector}${i + offset}`,
+        // GalaxyMap seeds from the whole-number pixel of the star's own position,
+        // which a star in the cell's last column can carry past its right edge.
+        seed: ((((Math.floor(x)) & 0xFFF) << 20) + ((Math.floor(y) & 0xFFF) << 8)
+               + ((i + offset) & 0xFF)) >>> 0,
       });
     }
     gx += step;
@@ -394,7 +418,7 @@ function catalogueInCell(cx, cy){
       const k = (py | 0) * GRID + (px | 0);
       let bucket = catalogueCells.get(k);
       if (!bucket) catalogueCells.set(k, bucket = []);
-      bucket.push([px, py]);
+      bucket.push([px, py, s[NAME]]);
     }
   }
   return catalogueCells.get(cy * GRID + cx) || [];
@@ -484,14 +508,16 @@ function planetMaterials(seed, type){
   if (!entry) return [];
   const [looks, n, sets] = entry;
   if (n === 1) return sets[0];
+  // Seed 0 (an alpha-0 noise pixel): PlanetNew skips reseeding and draws on from
+  // wherever the stream stands, which this does not model.
+  if (seed === 0) return [];
   const p = (seed + 3 + looks + 1) % 200000;
-  const s = seed | 0;                          // noise takes an int
-  let x = Number(powmod(16807n, BigInt(4 * p + 1)) * BigInt(s <= 0 ? -s + 1 : s) % LEHMER_M);
+  let x = Number(powmod(16807n, BigInt(4 * p + 1)) * BigInt(noiseSeed(seed)) % LEHMER_M);
   const r = x % 256; x = (x * 16807) % 2147483647;
   const g = x % 256; x = (x * 16807) % 2147483647;
   const b = x % 256; x = (x * 16807) % 2147483647;
   const a = x % 256;
-  const px = ((a << 24) | (r << 16) | (g << 8) | b) >>> 0;
+  const px = pixelFromBytes(r, g, b, a);
   return sets[Math.floor((px * 0.999999999999998 + 1e-15) / 4294967295 * n)];
 }
 
@@ -500,8 +526,20 @@ function systemBodies(seed, starType){
   rng.integer(0, 1);                      // MakePlanetsFromDB bails after two draws
   rng.float(0, Math.PI * 2);
   const lum = genGetRandomStar(rng, starType);
-  return generateBodies(rng, starType, lum, 0, -1,
-                        {stars: [], planets: [], belts: []});
+  const out = generateBodies(rng, starType, lum, 0, -1,
+                             {stars: [], planets: [], belts: [], groups: []});
+  // Where the jump drops the ship, in light seconds from the centre
+  // (StarSystemGenerator.warpOutRadius and PlanetManager, as gen.drop_ls): the
+  // largest star of the first group x1.3, x1.5 for every group of two or more,
+  // 350 more for a neutron star or black hole, and 150 more. A planet pays on
+  // arrival for sure when it circles the primary and its orbit plus that is in
+  // the scanner's range; a companion's planets never do.
+  let px = Math.max(...out.groups[0].map(t => D.gen.starSize[t] || 0)) * 1.3;
+  for (const g of out.groups) if (g.length > 1) px *= 1.5;
+  if (D.gen.warpExtra.includes(starType)) px += 350;
+  const drop = (px + 150) / 20;
+  for (const pl of out.planets) pl.reach = pl.group === 0 ? pl.orbit + drop : Infinity;
+  return out;
 }
 
 function generateBodies(rng, starType, lum, group, budget, out){
@@ -513,6 +551,7 @@ function generateBodies(rng, starType, lum, group, budget, out){
     rng.integer(-2147483647, 2147483646);
     out.stars.push(st);
   }
+  out.groups.push(stars);
   if (rng.integer(0, 100) < 10) return out;
 
   let count;
@@ -572,7 +611,7 @@ function generateBodies(rng, starType, lum, group, budget, out){
       const pct = orePercents(triple);
       out.belts.push({orbit, ores: triple.map((t, i) => ({name: t[0], pct: pct[i]}))});
     } else {
-      out.planets.push({orbit, type: body[4], scan: body[5], landable: !!body[6],
+      out.planets.push({orbit, group, type: body[4], scan: body[5], landable: !!body[6],
                         mats: planetMaterials(seed, body[0])});
     }
   }
@@ -594,9 +633,13 @@ function generateBodies(rng, starType, lum, group, budget, out){
 const SOL_DISCOVER_LY = 300, VOID_DISCOVER_LY = 150;
 const VOID_X = (973 - 1025) * CELL_LY, VOID_Z = (1591 - 1682) * CELL_LY;
 
+// Measured from the whole-number map pixel of the star's own position
+// (RoutePoint.secX = floor(marker.x)), as gen.explored: a star's jitter can carry
+// it past the edge of the cell that generated it.
 function isExplored(x, z){
-  return Math.hypot(x, z) <= SOL_DISCOVER_LY
-      || Math.hypot(x - VOID_X, z - VOID_Z) <= VOID_DISCOVER_LY;
+  const px = Math.floor(x / CELL_LY + 1025), py = Math.floor(1591 - z / CELL_LY);
+  return !(Math.hypot(px - 1025, py - 1591) * CELL_LY > SOL_DISCOVER_LY
+           && Math.hypot(px - 973, py - 1682) * CELL_LY > VOID_DISCOVER_LY);
 }
 
 // Bodies are only produced when something asks for them, and remembered after.
@@ -643,7 +686,8 @@ const ui = slot => (D.ui[lang] || D.ui.en)[slot] || D.ui.en[slot] || slot;
 const fmt = (slot, vals) =>
   ui(slot).replace(/\{(\w+)\}/g, (_, k) => vals[k] ?? "");
 // Locale-aware digits: Russian groups with spaces, German with dots.
-const num = n => Number(n).toLocaleString(lang === "cn" ? "zh" : lang);
+// A string passes through: estimated counts too rare to sample arrive as "<N".
+const num = n => typeof n === "string" ? n : Number(n).toLocaleString(lang === "cn" ? "zh" : lang);
 // Russian needs three plural forms where English needs two; Intl knows which.
 const plural = (family, n) => {
   const cat = new Intl.PluralRules(lang === "cn" ? "zh" : lang).select(n);
@@ -764,7 +808,9 @@ const scanRange = () => D.scanners[scanner][1];
 // What a system is worth, in the two numbers that decide whether to go.
 //
 //   arrival  banked the moment you drop out of warp: every star, at any
-//            distance, plus every planet already inside the scanner's range
+//            distance, plus every planet sure to be inside the scanner's range
+//            of where the jump drops you (a catalogue row's pairs are already
+//            that distance; a generated planet carries it as reach)
 //   full     the whole system, once you have flown to everything in it
 //   hops     bodies outside the scanner's range worth crossing the system for
 //   reach    arrival plus those bodies, which is what the trip actually pays
@@ -801,7 +847,7 @@ function computeValue(s){
     if (orbit <= r) arrival += value;
     else if (value >= worth){ hops++; reach += value; if (value > best) best = value; }
   };
-  if (gen) for (const pl of b.planets) each(pl.orbit, pl.scan);
+  if (gen) for (const pl of b.planets) each(pl.reach, pl.scan);
   else for (let i = 0; i < s[PB].length; i += 2) each(s[PB][i], s[PB][i + 1]);
   // One hop is the single body worth crossing the system for. Everything past
   // that is a second trip, and a second decision.
@@ -953,10 +999,9 @@ function drawGrid(){
 // Highlights answer the question a player did not know to ask, so they are on
 // until turned off.
 // A system worth this much is drawn gold wherever it appears, and nothing else
-// marks value. Two million is what the shipped layer can answer galaxy-wide, so
-// it is the only threshold the map can state the same way at every zoom.
+// marks value.
 const RICH_MIN = 2000000;
-const HL = {rich: true, sectors: true};
+const HL = {sectors: true};
 // Hovering a legend row answers "which of these is that": its own layer keeps
 // full strength and the rest of the map falls back to a ghost of itself.
 const DIM = .15;
@@ -1026,8 +1071,8 @@ let visible = [], focused = [], focusStart = 0, focusRAF = 0;
 let genVisible = [];              // generated stars currently on screen
 // Where the map stops drawing individual systems. Everything about the wide
 // views hangs off this one number: the zoom at which generated stars stop being
-// drawn, how many cells a frame will cover, and how much of the shipped layer a
-// view has earned. Turning it is the whole of that decision.
+// drawn and how many cells a frame will cover. Turning it is the whole of that
+// decision.
 const SYSTEM_LY = 2000;           // the width a full field is drawn to
 const FILTER_MAX_LY = 2500;     // a filter makes every system in view, so it stops sooner
 const GEN_MAX_LY = 10000;         // wider than this, no generated stars at all
@@ -1082,65 +1127,24 @@ const GOLD_R = () => {
 };
 const DOT_SM = () => Math.max(0.35, Math.min(DOT_R, DOT_R * DOT_FULL_LY / acrossLy()));
 
-// What a system's mark looks like, wherever its row came from. The catalogue,
-// the generator and the shipped layer each hand their own rows to these, so the
-// three cannot drift apart, and none of them can ask which it is holding.
+// What a system's mark looks like, wherever its row came from. The catalogue and
+// the generator each hand their own rows to these, so the two cannot drift
+// apart, and neither can ask which it is holding.
 function dot(px, py, fill, r = DOT_R){
   ctx.fillStyle = fill;
   ctx.beginPath(); ctx.arc(px, py, r, 0, 6.283); ctx.fill();
 }
 // Gold is the one mark for value, at one threshold, in every source.
-const markFill = (cr, plain) => HL.rich && cr >= RICH_MIN ? "#ffd666" : plain;
+const markFill = (cr, plain) => cr >= RICH_MIN ? "#ffd666" : plain;
 
-// Whether the generated pass actually drew this frame. It gives up on zoom and
-// again on how many cells the view covers, and the shipped layer answers for
-// every frame it does not.
-let genDrew = false;
 // The share of each cell the generated field draws. Below one the field is
-// thinned, so the shipped layer is what keeps the valuable systems on the map
-// and the catalogue is held to the same bargain.
+// thinned, and the catalogue is held to the same bargain.
 const genShare = () => anyFilter() ? 1 : Math.min(1, (SYSTEM_LY / acrossLy()) ** 2 / 4);
 const genThin = () => genShare() < 1;
-let rich = null, richLoading = false;
-function loadRich(){
-  if (rich || richLoading) return;
-  richLoading = true;
-  fetch("data/rich2m.bin?v=f0e16b115d").then(r => r.arrayBuffer()).then(b => {
-    const v = new DataView(b), n = v.getUint32(0, true);
-    rich = [];
-    let o = 4;
-    for (let i = 0; i < n; i++){
-      const row = [];
-      row[X] = v.getInt32(o, true) / 10;
-      row[Z] = v.getInt32(o + 4, true) / 10;
-      row[STARV] = v.getUint32(o + 8, true) * 100;
-      row[SCAN] = v.getUint32(o + 12, true) * 100;
-      const np = v.getUint8(o + 16);
-      o += 17;
-      const pb = row[PB] = new Array(np * 2);
-      for (let j = 0; j < np; j++, o += 4){
-        pb[j * 2] = v.getUint16(o, true);
-        pb[j * 2 + 1] = v.getUint16(o + 2, true) * 100;
-      }
-      rich.push(row);
-    }
-    resettleLabels();
-  }).catch(() => {}).finally(() => { richLoading = false; });
-}
 
-// The layer carries value and position and nothing else, so it can only answer
-// while no filter asks about anything else.
-function richAnswerable(){
-  return F.ore < 0 && F.ptype < 0 && F.mat < 0 && F.arena == null && F.module < 0 && !F.startype
-      && F.plMin == null && F.laMin == null && F.stLs == null && filters.size === 0
-      && F.sec.size === 0 && F.purp.size === 0 && F.fac.size === 0;
-}
-
-
-// One routine draws systems, and the three sources differ only in how they
-// produce rows: the catalogue is shipped whole, generated space is made on
-// demand, and the rich layer is shipped for the zooms where making it is not an
-// option. A source hands over rows plus the few things only it can answer.
+// One routine draws systems, and the two sources differ only in how they
+// produce rows: the catalogue is shipped whole and generated space is made on
+// demand. A source hands over rows plus the few things only it can answer.
 //
 //   at(row)      -> [x, z] in light years
 //   ok(row)      -> does it pass the filters
@@ -1294,54 +1298,6 @@ function drawSystems(rows, src){
   }
   ctx.globalAlpha = 1;
 }
-
-
-function drawRich(){
-  // The shipped layer is the only thing that knows a generated system is worth
-  // the gold without making its planets, so it draws at every zoom it can
-  // answer for. Where the field draws the same system, the mark lands on it.
-  if (!richAnswerable()) return;
-  if (!rich) return loadRich();
-  // At the whole galaxy every one of these would be a solid gold field, so the
-  // view earns them: an eighth at 150,000 ly across, twice as many for every
-  // halving after that, all of them by 18,750. The file is ordered richest
-  // first, so the cut is the best of them rather than an accident of where the
-  // marks happen to land.
-  // An eighth of them at 150,000 ly across, twice as many for every halving,
-  // all of them once the view is close enough to draw systems properly.
-  const REF_LY = 150000, REF_SHARE = 8;
-  const cap = Math.min(rich.length, Math.ceil(
-    rich.length / REF_SHARE * (REF_LY / acrossLy())));
-  const r = GOLD_R();
-  soloA("rich");
-  let n = 0;
-  richVisible = [];
-  drawSystems(rich, {
-    at: row => [row[X], row[Z]],
-    kept: row => richVisible.push(row),
-    // Every system here is already worth two million, so the only question is
-    // whether this view has earned the right to show it.
-    ok: row => {
-      if (n >= cap) return false;
-      const ly = Math.hypot(row[X], row[Z]);
-      if (F.lyMin != null && ly < F.lyMin) return false;
-      if (F.lyMax != null && ly > F.lyMax) return false;
-      const v = systemValue(row);
-      if (F.valMin != null && (F.oneHop ? v.oneHop : v.arrival) < F.valMin) return false;
-      n++;
-      return true;
-    },
-    r,
-    plain: () => "#ffd666",
-    value: () => null,
-    label: (row, px, py) => {
-      if (valueAsked())
-        label(px, py, 4, row[X] + "," + row[Z],
-              [[worthLabel(systemValue(row)), VALUE_INK]]);
-    },
-  });
-}
-
 
 
 // The rim of the galaxy: the hull of every cell the density map lights, which
@@ -1923,7 +1879,6 @@ function draw(){
 
   ctx.globalAlpha = solo && solo !== "star" ? DIM : 1;
   drawGenerated();
-  drawRich();
   ctx.globalAlpha = solo ? DIM : 1;
   drawRoute();
   drawFlashBox();
@@ -1979,27 +1934,6 @@ function placeTip(mx, my){
   const top  = TOUCH ? my - r.height - 22 : my + 16;
   tip.style.left = Math.max(8, Math.min(left, window.innerWidth - r.width - 10)) + "px";
   tip.style.top  = Math.max(8, Math.min(top, window.innerHeight - r.height - 10)) + "px";
-}
-
-// The shipped layer carries a position and a value and no name, so a mark from
-// it is answered by generating the cell it falls in and taking the system that
-// stands there: what is picked is always the real one.
-let richVisible = [];
-function pickRich(mx, my){
-  let best = null, bd = TOUCH ? 22 * 22 : 12 * 12;
-  for (const row of richVisible){
-    const dx = sx(row[X]) - mx, dy = sy(row[Z]) - my, d = dx*dx + dy*dy;
-    if (d < bd){ bd = d; best = row; }
-  }
-  if (!best) return null;
-  const cx = Math.floor(best[X] / CELL_LY + 1025);
-  const cy = Math.floor(1591 - best[Z] / CELL_LY);
-  let st = null, sd = Infinity;
-  for (const c of cellStars(cx, cy)){
-    const d = (c.x - best[X]) ** 2 + (c.z - best[Z]) ** 2;
-    if (d < sd){ sd = d; st = c; }
-  }
-  return sd < 1 ? st : null;
 }
 
 function pickGenerated(mx, my){
@@ -2233,7 +2167,7 @@ function armPress(x, y){
   cancelPress();
   pressTimer = setTimeout(() => {
     pressTimer = 0;
-    const target = pick(x, y) || pickRich(x, y) || pickGenerated(x, y);
+    const target = pick(x, y) || pickGenerated(x, y);
     if (!target) return;
     pressedEnd = true;
     // The hold has been spent; what follows is finger drift, not a pan. Left
@@ -2253,7 +2187,7 @@ function tipAt(mx, my){
   if (acrossLy() > SYSTEM_LY / 2){ tip.style.display = "none"; return; }
   const s = pick(mx, my);
   if (s){ showTip(s, mx, my); return; }
-  const gen = pickRich(mx, my) || pickGenerated(mx, my);
+  const gen = pickGenerated(mx, my);
   gen ? showGenTip(gen, mx, my) : (tip.style.display = "none");
 }
 
@@ -2295,7 +2229,7 @@ function dowseCross(){
   if (performance.now() - dowseAt < 100) return;
   dowseAt = performance.now();
   const mx = W / 2, my = H / 2;
-  const hit = pick(mx, my) || pickRich(mx, my) || pickGenerated(mx, my);
+  const hit = pick(mx, my) || pickGenerated(mx, my);
   if (!hit) return;
   const end = endpointOf(hit);
   if (routeTo && routeTo.name === end.name) return;
@@ -2312,7 +2246,7 @@ function dowse(x, y){
   clearTimeout(dowseTimer);
   const wait = Math.max(0, 100 - (performance.now() - dowseAt));
   dowseTimer = setTimeout(() => {
-    const hit = pick(x, y) || pickRich(x, y) || pickGenerated(x, y);
+    const hit = pick(x, y) || pickGenerated(x, y);
     if (!hit) return;
     const end = endpointOf(hit);
     if (routeTo && routeTo.name === end.name) return;
@@ -2379,7 +2313,7 @@ function endPointer(e){
   const btn = mapButtons.find(b => evX(e) >= b.x0 && evX(e) <= b.x1
                                 && e.clientY >= b.y0 && e.clientY <= b.y1);
   if (btn){ clearFocus(); focusOn(btn.to, 14, flyPath); return; }
-  const hit = pick(evX(e), e.clientY) || pickRich(evX(e), e.clientY)
+  const hit = pick(evX(e), e.clientY)
             || pickGenerated(evX(e), e.clientY);
   // A tap is a decision: the destination stops being provisional and the
   // gesture stands down.
@@ -2391,7 +2325,7 @@ addEventListener("pointercancel", endPointer);
 // runs after the single click has already filled an end, and overwrites it.
 cv.addEventListener("dblclick", e => {
   e.preventDefault();
-  const target = pick(evX(e), e.clientY) || pickRich(evX(e), e.clientY)
+  const target = pick(evX(e), e.clientY)
                || pickGenerated(evX(e), e.clientY);
   if (!target) return;
   routeTo = null;
@@ -3004,9 +2938,11 @@ const ARENA_SYS = new Set(ARENA.map(a => a[1]));
     hunted.add(raw);
     const o = document.createElement("option");
     o.value = raw;
-    o.textContent = `${label} — ${num(have)} ${ui("hSystems").toLowerCase()}` +
-                    (need > 1 ? ` (${need})` : "");
-    if (have === 0 || have < need){ o.textContent += "  \u26a0"; impossible++; }
+    // Estimated figures: a number rounded to its accuracy, or "<N" for a type
+    // too rare for the sample to meet.
+    o.textContent = `${label} — ${typeof have === "number" ? num(have) : have} `
+                    + `${ui("hSystems").toLowerCase()}` + (need > 1 ? ` (${need})` : "");
+    if (typeof have === "number" && have < need){ o.textContent += "  \u26a0"; impossible++; }
     gExp.append(o);
   }
   el.append(gExp);
@@ -3268,8 +3204,6 @@ function syncPills(host, i){
 // Every count on a chip depends on the scanner, so they are all rebuilt when it
 // changes rather than going quietly stale.
 function refreshCounts(){
-  document.getElementById("hlRichN").textContent =
-    num(D.genCounts[D.scanners[scanner][0] + ":" + RICH_MIN] || 0);
   for (const pre of PRESETS){
     // The sweep's figure already covers the catalogue.
     for (const el of document.querySelectorAll(`[data-preset="${pre.slot}"] .n`))
@@ -3279,7 +3213,7 @@ function refreshCounts(){
 
 // The toggle carries its own count, so it says how much it is worth pressing.
 {
-  for (const [id, key] of [["hlRich", "rich"], ["hlSectors", "sectors"]]){
+  for (const [id, key] of [["hlSectors", "sectors"]]){
     const btn = document.getElementById(id);
     btn.addEventListener("click", () => {
       HL[key] = !HL[key];
@@ -3450,7 +3384,7 @@ function clearFilters(quiet){
   document.getElementById("oneHop").checked = false;
   // The highlight toggles are not filters and keep their state.
   for (const el of document.querySelectorAll('.grp [aria-pressed="true"]'))
-    if (el.id !== "hlRich") el.setAttribute("aria-pressed", "false");
+    el.setAttribute("aria-pressed", "false");
   for (const el of document.querySelectorAll("#ore,#ptype,#mat,#arena,#startype,#module")) el.value = "";
   const pct = document.getElementById("pctMin");
   pct.disabled = true; pct.value = "";
@@ -3852,7 +3786,6 @@ addEventListener("visibilitychange", () => { if (!document.hidden) resize(); });
 let genLoading = false;
 function drawGenerated(){
   genVisible = [];
-  genDrew = false;
   // Generated systems can never host a mission, a station or an engineer, so
   // that filter simply hides them.
   if (scale < GEN_MIN_SCALE() || filters.has("catalogue")) return;
@@ -3872,33 +3805,14 @@ function drawGenerated(){
   const y1 = Math.ceil(1591 - (wzOf(H + pad) / CELL_LY));
   const deep = needsBodies();
   if ((x1 - x0) * (y1 - y0) > 60000) return;
-  genDrew = true;
   // Too wide to draw every star, so each cell contributes a share of its own,
   // scattered across the cell rather than sitting in the corner the walk starts
   // from. The systems are real: the position is the lie, and it lasts only
   // until the view is close enough to draw the cell in full.
   // A filter is answered by making every system in view, which is only
-  // affordable while the view is narrow. Wider than that the shipped layer is
-  // the answer, and it knows about two million and up.
+  // affordable while the view is narrow.
   if (anyFilter() && acrossLy() > FILTER_MAX_LY) return;
   const share = genShare();
-  // A gold mark must stay the thing under the pointer, so while the field is
-  // thinned no generated star is drawn on top of one.
-  const taken = new Set();
-  if (share < 1 && rich)
-    for (const row of rich){
-      const px = sx(row[X]), py = sy(row[Z]);
-      if (px < -20 || px > W + 20 || py < -20 || py > H + 20) continue;
-      taken.add(((px / 14) | 0) + "," + ((py / 14) | 0));
-    }
-  const clear = st => {
-    if (!taken.size) return true;
-    const [ax, az] = st.at || [st.x, st.z];
-    const gx = (sx(ax) / 14) | 0, gy = (sy(az) / 14) | 0;
-    for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++)
-      if (taken.has((gx + i) + "," + (gy + j))) return false;
-    return true;
-  };
   const spread = st => {
     if (share >= 1 || st.at) return;
     const h = mix(st.seed);
@@ -3928,7 +3842,7 @@ function drawGenerated(){
           if (n < 1 && mix(Math.imul(cx, 374761393) + Math.imul(cy, 668265263)) / 4294967296 > n)
             continue;
         }
-        for (const st of cellStars(cx, cy, share)){ spread(st); if (clear(st)) yield st; }
+        for (const st of cellStars(cx, cy, share)){ spread(st); yield st; }
       }
     }
   }
@@ -4742,10 +4656,6 @@ async function applyParams(){
     const sel = document.getElementById("lang");
     sel.value = lang0; fire(sel);
   }
-  if (p.has("highlights")){
-    const want = p.get("highlights").split(",").includes("rich");
-    if (HL.rich !== want) document.getElementById("hlRich").click();
-  }
   if (p.get("spoilers") === "1"){
     const c = document.getElementById("spoilers");
     if (!c.checked){ c.checked = true; fire(c, "change"); }
@@ -4958,7 +4868,6 @@ function currentParams(){
   // get drawn or a route note appear.
   if (routeFrom) put("from", routeFrom.name);
   if (routeTo) put("to", routeTo.name);
-  p.set("highlights", HL.rich ? "rich" : "");
   if (spoilers) put("spoilers", "1");
   if (lang !== "en") put("lang", lang);
   // Where the link points. A picked system is the point of interest; otherwise

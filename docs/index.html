@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=f0e16b115d">
+<link rel="stylesheet" href="style.css?v=348687ec01">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 </head>
@@ -15,21 +15,22 @@
         data-ui-aria="menu" aria-label="Menu"><span class="bars"></span><span class="badge" id="fCount"></span></button>
 
 <nav class="rail" id="rail">
-  <div class="brand"><span class="name"><details class="apps" id="appMenu"><summary data-ui-title="switchApp" title="Switch app"><span
-      id="brandTitle"><span class="game">Galaxy Genome</span> Map</span></summary><div class="appList"
+  <div class="brand"><span class="name"><details class="apps" id="appMenu"><summary data-ui-title="switchApp" title="Switch app"
+      data-ui-aria="switchApp" aria-label="Switch app"><svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"
+      fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1.5" y="1.5" width="5.2" height="5.2" rx="1.6"/><rect
+      x="9.3" y="1.5" width="5.2" height="5.2" rx="1.6"/><rect x="1.5" y="9.3" width="5.2" height="5.2" rx="1.6"/><rect
+      x="9.3" y="9.3" width="5.2" height="5.2" rx="1.6"/></svg></summary><div class="appList"
       role="menu"><span role="menuitem" aria-current="page" data-ui="appMap">Star Map</span><a
       role="menuitem" data-app="mods" data-ui="appEditor">Quest Editor</a><a role="menuitem"
       data-app="loadouts" data-ui="appLoadouts">Loadouts</a><a role="menuitem" data-app="wiki"
-      data-ui="appWiki">Wiki</a></div></details><button
-      type="button" id="langFlag" data-ui-aria="language" aria-label="Language"></button></span>
-    <span class="sub"><small class="unofficial" data-ui="unofficial">Unofficial fan tool</small><a
-      class="wikiLink" href="https://galaxy-genome.github.io/wiki/" target="_blank" rel="noopener"
-      data-ui="wikiLink">Wiki</a></span>
+      data-ui="appWiki">Wiki</a></div></details><span id="brandTitle"><span class="game">Galaxy Genome</span> Map</span><span
+      class="tools"><button type="button" id="findBtn" data-ui-aria="search" aria-label="Search"><svg viewBox="0 0 16 16"
+      width="14" height="14" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor"
+      stroke-width="1.6"/><path d="M10 10l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button><button
+      type="button" id="langFlag" data-ui-aria="language" aria-label="Language"></button></span></span>
+    <div class="sub"><small class="unofficial" data-ui="unofficial">Unofficial fan tool</small><label class="spoil"><input
+      type="checkbox" id="spoilers"> <span data-ui="spoilers">show spoilers</span></label></div>
     <select id="lang" data-ui-aria="language" aria-label="Language" hidden></select>
-    <div class="spoilRow">
-      <label class="spoil"><input type="checkbox" id="spoilers"> <span data-ui="spoilers">show spoilers</span></label>
-      <button type="button" id="findBtn" data-ui-aria="search" aria-label="Search"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M10 10l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>
-    </div>
     <div id="findBox" hidden>
       <div class="findWrap">
         <input id="find" type="search" data-ui-ph="searchPlaceholder" placeholder="a system or a filter" autocomplete="off">
@@ -196,9 +197,7 @@
 
   <div class="grp">
     <h2 data-ui="highlights">Highlights</h2>
-    <button class="chip" id="hlRich" aria-pressed="true"><span class="box"
-      style="border-color:#ffd666"></span><span data-ui="hlRich">Million-credit scans</span><span
-      class="n" id="hlRichN"></span></button>
+
     <button class="chip" id="hlSectors" aria-pressed="true"><span class="box"
       style="border-color:#4fc3ff"></span><span data-ui="hlSectors">Sectors</span></button>
   </div>
@@ -274,9 +273,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=f0e16b115d");
+    const galaxy = await load("data/galaxy.json?v=348687ec01");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=f0e16b115d`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=348687ec01`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -285,7 +284,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=f0e16b115d";
+    s.src = "app.js?v=348687ec01";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

@@ -54,7 +54,8 @@ const src = read("app.js") + `
 ;globalThis.__T__ = { cellStars, starBodies, cellFromName, showGenTip, passesGenerated, passes,
                       systemValue, setScanner: i => { scanner = i; },
                       fitToMatches, currentParams, F, filters,
-                      view: () => ({ cx, cz, scale, W, focused }) };`;
+                      view: () => ({ cx, cz, scale, W, focused }),
+                      setGenMaps: (side, zones) => { GEN.side = side; GEN.zones = zones; GEN.cache.clear(); } };`;
 
 let fail = 0;
 const ok = (label, fn) => {
@@ -114,7 +115,8 @@ ok("the JS generator matches the Python one", () => {
                              name: "x", type: "x", fuel: false });
     const got = JSON.stringify({
       stars: b.stars,
-      planets: b.planets.map(p => [p.type.replace(/ /g, ""), p.orbit]),
+      planets: b.planets.map(p => [p.type.replace(/ /g, ""), p.orbit,
+                                   Math.floor(Math.min(p.reach, 1e6))]),
       belts: b.belts.map(t => t.ores.map(o => o.name)),
       materials: b.planets.map(p => p.mats),
     });
@@ -127,6 +129,32 @@ ok("the JS generator matches the Python one", () => {
     throw new Error(`${wrong.length}/${cases.length} differ, first: `
       + `seed ${wrong[0].seed}\n    js  ${wrong[0].got}\n    py  ${wrong[0].want}`);
   return `${cases.length} systems identical`;
+});
+// The cell walk exists twice as well: cellgen.py places the stars the database
+// holds, cellStars the ones the map draws. cell_cases.json is Python's answer for
+// 300 cells (gen_cases.py), with the side and zone values the map decodes from
+// its bitmaps, which Node cannot decode.
+ok("the JS cell walk matches the Python one", () => {
+  const cases = JSON.parse(read("../src/cell_cases.json"));
+  const GRID = 2048, side = new Uint8Array(GRID * GRID), zones = new Uint8Array(GRID * GRID * 3);
+  for (const c of cases){
+    side[c.cy * GRID + c.cx] = c.side;
+    zones.set(c.zone, (c.cy * GRID + c.cx) * 3);
+  }
+  T.setGenMaps(side, zones);
+  const wrong = [];
+  for (const c of cases){
+    const got = T.cellStars(c.cx, c.cy).map(s => [s.x, s.z, s.raw, s.seed]);
+    const same = (g, w) => g && Math.abs(g[0] - w[0]) < 1e-3 && Math.abs(g[1] - w[1]) < 1e-3
+                           && g[2] === w[2] && g[3] === w[3];
+    const at = c.stars.findIndex((w, i) => !same(got[i], w));
+    if (at >= 0 || got.length !== c.stars.length)
+      wrong.push({ cell: `${c.cx},${c.cy}`, at, got: JSON.stringify(got[at] || `${got.length} stars`),
+                   want: JSON.stringify(c.stars[at] || `${c.stars.length} stars`) });
+  }
+  if (wrong.length)
+    throw new Error(`${wrong.length}/${cases.length} cells differ, first: ${wrong[0].cell} star ${wrong[0].at}\n    js  ${wrong[0].got}\n    py  ${wrong[0].want}`);
+  return `${cases.length} cells, ${cases.reduce((n, c) => n + c.stars.length, 0)} stars identical`;
 });
 // The scanner is the one input that changes what a system is worth, and four
 // filters, two tooltips and nine chip counts read the same function for it.

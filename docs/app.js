@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=cfd69d2af7"), read("data/reachable.png?v=cfd69d2af7")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=3a9b5b70be"), read("data/reachable.png?v=3a9b5b70be")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -343,7 +343,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=cfd69d2af7", 1), read("data/zones.webp?v=cfd69d2af7", 3)]);
+    [read("data/side.webp?v=3a9b5b70be", 1), read("data/zones.webp?v=3a9b5b70be", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -539,6 +539,14 @@ function systemBodies(seed, starType){
   if (D.gen.warpExtra.includes(starType)) px += 350;
   const drop = (px + 150) / 20;
   for (const pl of out.planets) pl.reach = pl.group === 0 ? pl.orbit + drop : Infinity;
+  // The objects list's names (StarSystemGenerator): a letter per star group, then
+  // the group's stars followed by its planets and belts by orbit. Belts are only
+  // ever in the first group.
+  out.groups.forEach((stars, g) => {
+    const ranked = out.planets.filter(p => p.group === g)
+      .concat(g ? [] : out.belts).sort((a, b) => a.orbit - b.orbit);
+    ranked.forEach((b, i) => { if (b.mats) b.name = "ABCDEFGH"[g] + (stars.length + i); });
+  });
   return out;
 }
 
@@ -1999,6 +2007,7 @@ function showGenTip(st, mx, my){
     (b.planets.length
       ? row("planets", b.planets.length + (b.landable ? ` (${b.landable})` : "")) : "") +
     (b.belts.length ? row("belts", b.belts.length) : "") +
+    ptypeRow(b.planets.filter(p => p.type === PTYPES[F.ptype]).map(p => [p.name, p.orbit, p.group])) +
     matRow(matSpans(b.planets.map(p => p.mats).filter(m => m.length))) +
     valueRows(st) +
     `</dl>` + (ore.length ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "");
@@ -2029,6 +2038,20 @@ function factionsOf(s){
 }
 
 const row = (slot, value) => `<dt>${ui(slot)}</dt><dd>${value}</dd>`;
+
+// With a planet type filtered, where each planet of that type orbits: light
+// seconds from its own star, which for a companion's planet is not the primary.
+function ptypeRow(orbits){
+  if (F.ptype < 0 || !orbits.length) return "";
+  orbits.sort((a, b) => a[2] - b[2] || a[1] - b[1]);
+  return `<dt>${PTYPES[F.ptype]}</dt><dd>` + orbits.map(([name, o, g]) =>
+    `${name} \u00b7 ${num(o)} ls` + (g ? ` <span class="muted">${ui("ofCompanion")}</span>` : "")).join(", ") + `</dd>`;
+}
+function catalogueOrbits(s){
+  const flat = D.planetOrbits[s[NAME]] || [], out = [];
+  for (let i = 0; i < flat.length; i += 4) if (flat[i] === F.ptype) out.push([flat[i + 3], flat[i + 1], flat[i + 2]]);
+  return out;
+}
 
 // What the system pays, told as the trip it actually is: a figure banked on
 // arrival, and what more is out there for how many flights across the system.
@@ -2118,6 +2141,7 @@ function showTip(s, mx, my){
     fromHereRow(s[X], s[Z]) +
     (s[PL] ? row("planets", s[PL] + (s[LA] ? ` (${s[LA]})` : "")) : "") +
     (s[BE] ? row("belts", s[BE]) : "") +
+    ptypeRow(catalogueOrbits(s)) +
     (D.namedMats[s[NAME]] ? namedMatRows(D.namedMats[s[NAME]]) : matRow(D.matPct[s[NAME]] || {})) +
     stationRows(s) +
     (factionsOf(s) ? row("faction", factionsOf(s)) : "") +

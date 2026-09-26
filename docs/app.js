@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=f7253e1825"), read("data/reachable.png?v=f7253e1825")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=568f0ad36f"), read("data/reachable.png?v=568f0ad36f")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -343,7 +343,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=f7253e1825", 1), read("data/zones.webp?v=f7253e1825", 3)]);
+    [read("data/side.webp?v=568f0ad36f", 1), read("data/zones.webp?v=568f0ad36f", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -3356,8 +3356,7 @@ bindSelectHelp("mat", "mat:", D.matRaw);
 }
 bindSelectHelp("ptype", "pt:", D.ptypeRaw);
 
-// Module availability. Full grade means the shop sells every class; the rest is
-// capped below class 4, which is why some stations stop at grade 3.
+// Module availability. A full shop sells every class; the rest stop at class 3.
 {
   const sel = document.getElementById("module");
   MODULES.forEach((m, i) => {
@@ -4821,7 +4820,7 @@ async function applyParams(){
     const c = document.getElementById("oneHop");
     if (!c.checked){ c.checked = true; fire(c, "change"); }
   }
-  // Full grade is on by default, so a link only has to carry the other case.
+  // All classes is on by default, so a link only has to carry the other case.
   if (p.get("fullgrade") === "0"){
     const b = document.getElementById("fullOnly");
     if (b.getAttribute("aria-pressed") === "true"){ b.click(); touched.push(b); }

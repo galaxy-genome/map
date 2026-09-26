@@ -6,7 +6,7 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=f7253e1825">
+<link rel="stylesheet" href="style.css?v=568f0ad36f">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 </head>
@@ -114,7 +114,7 @@
       <label class="f"><span class="ask" data-help="what:module" tabindex="0" data-ui="moduleSale">Module for sale</span></label>
       <select id="module"><option value="">any</option></select>
       <div class="row">
-        <button class="pill" id="fullOnly" type="button" aria-pressed="true" data-ui="fullGrade">Full grade only</button>
+        <button class="pill" id="fullOnly" type="button" aria-pressed="true" data-ui="fullGrade">All classes</button>
       </div>
       <p class="note" id="moduleNote"></p>
       <label class="f"><span data-ui="shopPurpose">Shop purpose</span></label>
@@ -281,9 +281,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=f7253e1825");
+    const galaxy = await load("data/galaxy.json?v=568f0ad36f");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=f7253e1825`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=568f0ad36f`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -292,7 +292,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=f7253e1825";
+    s.src = "app.js?v=568f0ad36f";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

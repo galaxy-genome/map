@@ -328,8 +328,33 @@ label.f span{white-space:nowrap}
 }
 @media (prefers-reduced-motion:reduce){.rail{transition:none}}
 
+/* Embedded (?embed=1): the canvas and the zoom buttons, nothing else. The class is
+   on <html>, set before the body is drawn. */
+.embed:not(.withRail) .rail,.embed #menuBtn,.embed:not(.desk) .readout,.embed .wikiPanel,.embed:not(.desk) #zreset,
+.embed:not(.withCard):not(.desk) .tip,.embed:not(.withRail) .help{display:none!important}
+/* .desk: the page shows the old desktop map inside it (rail beside the map, the
+   hover card, the readout and reset), as the published map at that width. */
+/* .withRail: the page asked for the sidebar, which opens over the map as on a
+   phone. .withCard: a tap shows the system card. */
+.embed:not(.desk) .zoom{top:10px;bottom:auto;right:10px}
+/* The Map tab (.home): + and − at the bottom right, and the readout as one line at
+   the bottom left, both inside the map, so always above the page's panel. A short
+   map puts the buttons in a row. */
+#readLine{display:none}
+.embed.home:not(.desk) .zoom{top:auto;bottom:10px;right:10px}
+@media (max-height:300px){.embed.home:not(.desk) .zoom{flex-direction:row}}
+.embed.home:not(.desk) .readout{display:block!important;left:10px;bottom:10px;line-height:1.4}
+.embed.home:not(.desk) .readout > div:not(#readLine){display:none}
+.embed.home:not(.desk) #readLine{display:block}
+/* The Map tab has its own Route panel. */
+.embed:not(.desk) #routeSec{display:none!important}
+.embed.home .tip.mini{pointer-events:none;max-width:240px}
+.embed.home .tip.mini[style*="display: block"]{display:block!important}
+.tip .routeHere{display:inline-block;margin-top:8px;color:var(--cyan);font-weight:600;text-decoration:none}
+
 /* Docked tooltip. A tap on it closes it rather than reaching what it covers. */
-body.touch .tip,body.touch .help{pointer-events:auto;max-height:45vh;overflow-y:auto}
+body.touch .tip,body.touch .help,.embed.withCard .tip{pointer-events:auto;max-height:45vh;overflow-y:auto}
+.embed.withCard .tip{min-width:0;max-width:none}
 body.touch .tip{min-width:0}
 @media (orientation:portrait){body.touch .tip{max-width:none}}
 @media (orientation:landscape){body.touch .tip{max-width:min(46vw,380px)}}

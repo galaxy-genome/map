@@ -28,7 +28,7 @@ async function loadGrid(){
       if (px[i * 4] > 127) bits[i >> 3] |= 1 << (i & 7);
     return bits;
   };
-  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=568f0ad36f"), read("data/reachable.png?v=568f0ad36f")]);
+  [cellBits, mainBits] = await Promise.all([read("data/cells.png?v=b46afad697"), read("data/reachable.png?v=b46afad697")]);
 }
 
 const cellOf = (x, z) => [Math.floor(x / CELL_LY + 1025), Math.floor(-z / CELL_LY + 1591)];
@@ -343,7 +343,7 @@ async function loadGenerationMaps(){
     return out;
   };
   const [side, zones] = await Promise.all(
-    [read("data/side.webp?v=568f0ad36f", 1), read("data/zones.webp?v=568f0ad36f", 3)]);
+    [read("data/side.webp?v=b46afad697", 1), read("data/zones.webp?v=b46afad697", 3)]);
   GEN.side = side;
   GEN.zones = zones;
 }
@@ -503,6 +503,14 @@ function powmod(b, e){
   for (b %= LEHMER_M; e > 0n; e >>= 1n, b = b * b % LEHMER_M) if (e & 1n) r = r * b % LEHMER_M;
   return r;
 }
+function planetDraw(seed, p){
+  let x = Number(powmod(16807n, BigInt(4 * p + 1)) * BigInt(noiseSeed(seed)) % LEHMER_M);
+  const r = x % 256; x = (x * 16807) % 2147483647;
+  const g = x % 256; x = (x * 16807) % 2147483647;
+  const b = x % 256; x = (x * 16807) % 2147483647;
+  const a = x % 256;
+  return (pixelFromBytes(r, g, b, a) * 0.999999999999998 + 1e-15) / 4294967295;
+}
 function planetMaterials(seed, type){
   const entry = D.gen.planetMats[type];
   if (!entry) return [];
@@ -511,14 +519,18 @@ function planetMaterials(seed, type){
   // Seed 0 (an alpha-0 noise pixel): PlanetNew skips reseeding and draws on from
   // wherever the stream stands, which this does not model.
   if (seed === 0) return [];
-  const p = (seed + 3 + looks + 1) % 200000;
-  let x = Number(powmod(16807n, BigInt(4 * p + 1)) * BigInt(noiseSeed(seed)) % LEHMER_M);
-  const r = x % 256; x = (x * 16807) % 2147483647;
-  const g = x % 256; x = (x * 16807) % 2147483647;
-  const b = x % 256; x = (x * 16807) % 2147483647;
-  const a = x % 256;
-  const px = pixelFromBytes(r, g, b, a);
-  return sets[Math.floor((px * 0.999999999999998 + 1e-15) / 4294967295 * n)];
+  return sets[Math.floor(planetDraw(seed, (seed + 3 + looks + 1) % 200000) * n)];
+}
+// The size is PlanetNew's third draw; gravity runs 0.1G to 1G across the lower two
+// thirds of the type's size range and 1G to 9G across the rest. Floored to
+// hundredths, as the planet info screen shows it; null for seed 0.
+function planetGravity(seed, type){
+  const range = D.gen.planetSize[type];
+  if (!range || seed === 0) return null;
+  const [lo, hi] = range, mid = lo + (hi - lo) * 2 / 3;
+  const size = planetDraw(seed, (seed + 3) % 200000) * (hi - lo) + lo;
+  const g = size < mid ? 0.9 * (size - lo) / (mid - lo) + 0.1 : 8 * (size - mid) / (hi - mid) + 1;
+  return Math.floor(g * 100) / 100;
 }
 
 function systemBodies(seed, starType){
@@ -620,7 +632,7 @@ function generateBodies(rng, starType, lum, group, budget, out){
       out.belts.push({orbit, ores: triple.map((t, i) => ({name: t[0], pct: pct[i]}))});
     } else {
       out.planets.push({orbit, group, type: body[4], scan: body[5], landable: !!body[6],
-                        mats: planetMaterials(seed, body[0])});
+                        mats: planetMaterials(seed, body[0]), gravity: planetGravity(seed, body[0])});
     }
   }
 
@@ -728,6 +740,33 @@ for (const [label, si, kind] of D.aliases){
 }
 
 const cv = document.getElementById("sky"), ctx = cv.getContext("2d");
+// ?embed=1 (set on <html> by the page head): the canvas and the zoom buttons only,
+// for a map inside another page's panel. A tap selects; it never sets a route end.
+const EMBED = document.documentElement.classList.contains("embed");
+// An embedded map whose page asked for the system card (the Map tab) shows it on
+// a tap as the full page does.
+const cardShown = () => document.documentElement.classList.contains("withCard");
+// That card behaves as on a touch screen whatever the pointer: shown on a tap,
+// docked at the bottom, since the page around it is phone-sized.
+const tapCard = () => TOUCH || (EMBED && cardShown() && !deskView());
+// The Map tab draws its own card, so a hover there only names the star.
+const miniTip = () => EMBED && !TOUCH && !cardShown() && !deskView() && document.documentElement.classList.contains("home");
+function showMiniTip(name, bits, mx, my){
+  tip.classList.add("mini");
+  tip.innerHTML = `<h3>${name}</h3><div>${bits.filter(Boolean).join(" \u00b7 ")}</div>`;
+  tip.style.display = "block";
+  placeTip(mx, my);
+}
+// An embedded map whose page has its route panel open (.withRoute) plots as the full
+// page does: a tap fills the empty end, a long press restarts, a pan dowses.
+const deskView = () => EMBED && document.documentElement.classList.contains("desk");
+const routeOn = () => !EMBED || deskView() || document.documentElement.classList.contains("withRoute");
+// On the Map tab's card, the action that opens the page's route panel to here.
+const routeHereLink = name => EMBED && cardShown()
+  ? `<a href="#" class="routeHere" data-sys="${name.replace(/"/g, "&quot;")}">\u2933 ${ui("route")}</a>` : "";
+let onRouteHere = () => {};
+// The system the page API or an embedded tap picked, as a route end is kept.
+let selected = null;
 const tip = document.getElementById("tip");
 // A coarse pointer has no hover and no reliable double click, so a tap is spent
 // on the tooltip and the route ends are typed instead.
@@ -759,8 +798,11 @@ function fitViewport(){
   // overflows. Left out, the browser scales the layout down to fit the screen.
   setViewport(`width=${Math.round(dev / SHRINK)}`);
 }
-fitViewport();
-matchMedia("(orientation: portrait)").addEventListener("change", fitViewport);
+// An iframe has no viewport of its own to scale.
+if (!EMBED){
+  fitViewport();
+  matchMedia("(orientation: portrait)").addEventListener("change", fitViewport);
+}
 {
   const btn = document.getElementById("menuBtn");
   const setMenu = open => {
@@ -801,7 +843,7 @@ const filters = new Set();
 // gates and engineer postings are things the game means you to find.
 let spoilers = false;
 // Everything the sidebar can narrow by. Empty / null means "don't care".
-const F = {sec:new Set(), purp:new Set(), fac:new Set(),
+const F = {sec:new Set(), purp:new Set(), fac:new Set(), grav:new Set(),
            ore:-1, ptype:-1, mat:-1, arena:null, startype:"", module:-1, fullOnly:true,
            lyMin:null, lyMax:null, valMin:null, oneHop:false, plMin:null,
            pctMin:null, matPctMin:null, laMin:null, stLs:null};
@@ -889,6 +931,11 @@ const spanText = ([lo, hi]) => lo === hi ? `${lo}%` : `${lo}–${hi}%`;
 
 // How much of the window the sidebar takes from the map.
 let inset = 0;
+// How much of the bottom of the window something else covers (a panel over an
+// embedded map). The view centres on what is left above it.
+let insetB = 0;
+const visH = () => Math.max(1, H - insetB);
+const midY = () => visH() / 2;
 
 function resize(){
   dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -896,7 +943,7 @@ function resize(){
   // map on purpose when it is. Only a rail that sits beside the map takes room
   // away from it.
   const rail = document.getElementById("rail").getBoundingClientRect();
-  inset = TOUCH ? 0 : Math.max(0, Math.min(rail.right, window.innerWidth / 2));
+  inset = TOUCH || (EMBED && !deskView()) ? 0 : Math.max(0, Math.min(rail.right, window.innerWidth / 2));
   W = window.innerWidth - inset; H = window.innerHeight;
   // A tab that loads in the background reports no size at all, and nothing
   // fires a resize when it is finally shown: every scale would be NaN.
@@ -911,9 +958,9 @@ function resize(){
 // Pointer coordinates arrive in window space; the canvas starts at `inset`.
 const evX = e => e.clientX - inset;
 const sx = wx => (wx - cx) * scale + W / 2;
-const sy = wz => (cz - wz) * scale + H / 2;
+const sy = wz => (cz - wz) * scale + midY();
 const wxOf = px => (px - W / 2) / scale + cx;
-const wzOf = py => cz - (py - H / 2) / scale;
+const wzOf = py => cz - (py - midY()) / scale;
 
 // The five systems a save's abandoned station can be waiting in. Which one it is
 // differs per save, so the map can only show the shortlist.
@@ -933,6 +980,7 @@ function passes(s){
   if (F.sec.size  && !F.sec.has(s[SEC] || "-"))          return false;
   if (F.ore    >= 0 && !(s[ORE] >> F.ore    & 1))         return false;
   if (F.ptype  >= 0 && !(s[PTY] >> F.ptype  & 1))         return false;
+  if (F.grav.size && !catalogueOrbits(s).length)           return false;
   if (F.mat    >= 0 && !(s[MAT] >> F.mat    & 1))         return false;
   if (F.arena === "all" && !ARENA_SYS.has(s[NAME]))       return false;
   if (typeof F.arena === "number" && s[NAME] !== ARENA[F.arena - 1][1]) return false;
@@ -966,7 +1014,7 @@ function closeStations(name, limit = F.stLs){
 }
 
 function anyFilter(){
-  return filters.size || F.sec.size || F.purp.size || F.fac.size ||
+  return filters.size || F.sec.size || F.purp.size || F.fac.size || F.grav.size ||
          F.ore >= 0 || F.ptype >= 0 || F.mat >= 0 || F.arena != null || F.startype || F.module >= 0 ||
          [F.lyMin,F.lyMax,F.valMin,F.plMin,F.pctMin,F.matPctMin,F.laMin,F.stLs]
            .some(v => v != null);
@@ -1089,7 +1137,7 @@ const GEN_MIN_SCALE = () => mapW() / GEN_MAX_LY;
 const FLASH_MS = 900, FLASHES = 1;
 const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
 function filterCount(){
-  return filters.size + F.sec.size + F.purp.size + F.fac.size +
+  return filters.size + F.sec.size + F.purp.size + F.fac.size + F.grav.size +
     [F.ore, F.ptype, F.mat, F.module].filter(v => v >= 0).length + (F.arena != null ? 1 : 0) +
     (F.startype ? 1 : 0) +
     [F.lyMin, F.lyMax, F.valMin, F.plMin, F.pctMin, F.matPctMin, F.laMin, F.stLs]
@@ -1204,7 +1252,7 @@ function resettleLabels(){ settledAt = 0; draw(); }
 function drawLabels(){
   // Panning brings in stars the settled set never considered, so the view
   // moving a fair way across itself settles again just as zooming does.
-  const here = [wxOf(W / 2), wzOf(H / 2)];
+  const here = [wxOf(W / 2), wzOf(midY())];
   // Asking about value makes the figures the point of the frame, so they are
   // settled fresh each time rather than held steady from the last one.
   const resettle = valueAsked() || !settledAt
@@ -1509,7 +1557,7 @@ const QUAD_TINT = {B: "rgba(79,195,255,.05)", C: "rgba(255,171,61,.05)",
 // pan the map and whatever lands under the cross becomes the destination.
 function drawDowseCross(){
   if (!dowsingTouch()) return;
-  const mx = W / 2, my = H / 2;
+  const mx = W / 2, my = midY();
   ctx.save();
   ctx.strokeStyle = "rgba(79,195,255,.65)";
   ctx.lineWidth = 1;
@@ -1758,7 +1806,7 @@ function renderRepList(){
       b.type = "button"; b.className = "pill rep";
       b.innerHTML = `<b>${s[NAME]}</b> <span class="muted">${num(Math.round(s[LY]))} ly \u00b7 ` +
                     `${st[0]} \u00b7 ${num(st[4])} ls</span>`;
-      b.onclick = () => focusOn(s);
+      b.onclick = () => { selected = endpointOf(s); focusOn(s); };
       box.append(b);
     }
   });
@@ -1918,15 +1966,33 @@ function draw(){
 }
 
 function finish(){
+  if (selected){
+    const px = sx(selected.x), py = sy(selected.z);
+    ctx.save();
+    ctx.strokeStyle = "#35e0f5"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(px, py, 11, 0, 6.283); ctx.stroke();
+    ctx.globalAlpha = .4;
+    ctx.beginPath(); ctx.arc(px, py, 17, 0, 6.283); ctx.stroke();
+    ctx.restore();
+  }
   syncURL();
   document.getElementById("scl").textContent = num(Math.round(acrossLy()));
+  readLine();
+}
+// The readout in one line, for the Map tab: the centre and the width, and on a
+// mouse where the pointer is.
+let cursorAt = null;
+function readLine(){
+  document.getElementById("readLine").textContent =
+    `${num(Math.round(cx))}, ${num(Math.round(cz))} \u00b7 ${num(Math.round(acrossLy()))} ${ui("lyAcross")}` +
+    (cursorAt ? ` \u00b7 ${ui("cursor")} ${num(Math.round(cursorAt[0]))}, ${num(Math.round(cursorAt[1]))}` : "");
 }
 
 const portrait = () => matchMedia("(orientation: portrait)").matches;
 
 function placeTip(mx, my){
   document.getElementById("help").style.display = "none";
-  if (TOUCH){
+  if (tapCard()){
     // Docked out of the way: a panel that follows the finger on a small screen
     // always lands on something worth seeing. Portrait has room for the full
     // width; landscape keeps it in the corner so the map stays readable.
@@ -1940,8 +2006,14 @@ function placeTip(mx, my){
   // The tooltip is positioned in the window; its caller works in canvas space.
   const left = (TOUCH ? mx - r.width / 2 : mx + 16) + inset;
   const top  = TOUCH ? my - r.height - 22 : my + 16;
-  tip.style.left = Math.max(8, Math.min(left, window.innerWidth - r.width - 10)) + "px";
-  tip.style.top  = Math.max(8, Math.min(top, window.innerHeight - r.height - 10)) + "px";
+  const x = Math.max(8, Math.min(left, window.innerWidth - r.width - 10));
+  let y = Math.max(8, Math.min(top, window.innerHeight - r.height - 10));
+  // Pushed back over the pointer by a narrow window, the card would take the next
+  // click meant for the map, so it goes above the pointer instead.
+  const px = mx + inset;
+  if (px >= x && px <= x + r.width && my >= y && my <= y + r.height) y = Math.max(8, my - r.height - 16);
+  tip.style.left = x + "px";
+  tip.style.top  = y + "px";
 }
 
 function pickGenerated(mx, my){
@@ -1968,11 +2040,11 @@ const matRow = spans => {
 };
 // A catalogue planet with a name gets its own line: its distance from the star and
 // its three materials, likeliest first.
-const namedMatRows = planets => planets.map(([name, orbit, trio], i) => {
+const namedMatRows = planets => planets.map(([name, orbit, trio, _type, grav], i) => {
   const total = trio.reduce((s, k) => s + D.matRare[k], 0);
   const mats = trio.map(k => [MATS[D.matRaw.indexOf(k)], Math.round(100 * D.matRare[k] / total)])
     .sort((a, b) => b[1] - a[1]).map(([m, p]) => `${m} ${p}%`).join(", ");
-  return `<dt>${i ? "" : ui("materials")}</dt><dd>${name} (${num(orbit)} ls): ${mats}</dd>`;
+  return `<dt>${i ? "" : ui("materials")}</dt><dd>${name} (${num(orbit)} ls${gravText(grav)}): ${mats}</dd>`;
 }).join("");
 function matSpans(trios){
   const out = {};
@@ -1995,6 +2067,9 @@ const deepBanner = has => {
 
 function showGenTip(st, mx, my){
   const b = starBodies(st);
+  if (miniTip()) return showMiniTip(st.name, [t(st.raw + "Name") || st.type, `${ui("planets")}: ${b.planets.length}`,
+                                            st.fuel && ui("fuel")], mx, my);
+  tip.classList.remove("mini");
   const ore = b.belts.flatMap(belt =>
     belt.ores.map(o => `${t("Goods" + o.name) || o.name} ${o.pct}%`));
   tip.innerHTML = flownLine(st.name) + `<h3>${st.name}${coords(st.x, st.z)}</h3>` +
@@ -2007,10 +2082,12 @@ function showGenTip(st, mx, my){
     (b.planets.length
       ? row("planets", b.planets.length + (b.landable ? ` (${b.landable})` : "")) : "") +
     (b.belts.length ? row("belts", b.belts.length) : "") +
-    ptypeRow(b.planets.filter(p => p.type === PTYPES[F.ptype]).map(p => [p.name, p.orbit, p.group])) +
+    ptypeRow(b.planets.filter(p => planetListed(p.type === PTYPES[F.ptype], p.gravity))
+      .map(p => [p.name, p.orbit, p.group, p.gravity, p.type])) +
     matRow(matSpans(b.planets.map(p => p.mats).filter(m => m.length))) +
     valueRows(st) +
-    `</dl>` + (ore.length ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "");
+    `</dl>` + (ore.length ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "") +
+    routeHereLink(st.name);
   tip.style.display = "block";
   placeTip(mx, my);
 }
@@ -2045,17 +2122,30 @@ const gateRow = name => !gateOther.has(name) ? "" :
   row("gate", `\u2192 ${gateOther.get(name)} \u00b7 ${ui(gateEndRepaired(name) ? "gateRepaired" : "gateBroken")}` +
     `<br><a href="#" class="gateHow">${ui("gateHowTo")}</a>`);
 
-// With a planet type filtered, where each planet of that type orbits: light
+// Planet gravity bands, by the figure the planet info screen shows.
+const GRAVS = [["gravLow", "low"], ["gravMedium", "medium"], ["gravHigh", "high"]];
+const gravLevel = g => g == null ? -1 : g < 0.5 ? 0 : g <= 2 ? 1 : 2;
+const gravText = g => g == null ? "" : ` \u00b7 ${g}G`;
+// A planet the filter asks about: of the picked type, in a picked gravity band.
+const planetListed = (isType, g) =>
+  (F.ptype >= 0 || F.grav.size) && (F.ptype < 0 || isType) && (!F.grav.size || F.grav.has(gravLevel(g)));
+
+// With a planet type or gravity filtered, where each matching planet orbits: light
 // seconds from its own star, which for a companion's planet is not the primary.
 function ptypeRow(orbits){
-  if (F.ptype < 0 || !orbits.length) return "";
+  if (!orbits.length) return "";
   orbits.sort((a, b) => a[2] - b[2] || a[1] - b[1]);
-  return `<dt>${PTYPES[F.ptype]}</dt><dd>` + orbits.map(([name, o, g]) =>
-    `${name} \u00b7 ${num(o)} ls` + (g ? ` <span class="muted">${ui("ofCompanion")}</span>` : "")).join(", ") + `</dd>`;
+  const typed = F.ptype >= 0;
+  return `<dt>${typed ? PTYPES[F.ptype] : ui("gravity")}</dt><dd>` + orbits.map(([name, o, g, grav, type]) =>
+    `${name}${typed ? "" : ` \u00b7 ${type}`} \u00b7 ${num(o)} ls${gravText(grav)}` +
+    (g ? ` <span class="muted">${ui("ofCompanion")}</span>` : "")).join(typed ? ", " : "<br>") + `</dd>`;
 }
+// D.planetOrbits: per planet, ptype index, orbit, star group, name and gravity.
 function catalogueOrbits(s){
   const flat = D.planetOrbits[s[NAME]] || [], out = [];
-  for (let i = 0; i < flat.length; i += 4) if (flat[i] === F.ptype) out.push([flat[i + 3], flat[i + 1], flat[i + 2]]);
+  for (let i = 0; i < flat.length; i += 5)
+    if (planetListed(flat[i] === F.ptype, flat[i + 4]))
+      out.push([flat[i + 3], flat[i + 1], flat[i + 2], flat[i + 4], PTYPES[flat[i]]]);
   return out;
 }
 
@@ -2128,6 +2218,8 @@ const flownLine = name =>
     : "";
 
 function showTip(s, mx, my){
+  if (miniTip()) return showMiniTip(s[NAME], [TYPES[s[TY]], `${ui("planets")}: ${s[PL]}`, s[FUEL] && ui("fuel")], mx, my);
+  tip.classList.remove("mini");
   const ore = D.oreDetail[s[NAME]];
   const alias = aliasBySystem.get(indexOfName.get(s[NAME])) || {};
   const aliasRows = ["body", "engineer", "landmark"]
@@ -2138,7 +2230,7 @@ function showTip(s, mx, my){
   // A row is only worth its line when it says something. Nothing the system
   // does not have is listed.
   // A card with a link stays where it opened, so the pointer can reach it.
-  const live = gateOther.has(s[NAME]);
+  const live = gateOther.has(s[NAME]) || !!routeHereLink(s[NAME]);
   if (live && tip.classList.contains("live") && tip.dataset.sys === s[NAME] && tip.style.display === "block") return;
   tip.classList.toggle("live", live);
   tip.dataset.sys = s[NAME];
@@ -2148,7 +2240,7 @@ function showTip(s, mx, my){
     row("starType", TYPES[s[TY]]) +
     row("security", ui(SEC_SLOT[s[SEC]] || "secAnarchy")) +
     (s[FUEL] ? row("fuel", "\u2713") : "") +
-    row("distance", `${num(s[LY])} ly`) +
+    row("distance", `${num(Math.round(Math.hypot(s[X], s[Z])))} ly`) +
     fromHereRow(s[X], s[Z]) +
     (s[PL] ? row("planets", s[PL] + (s[LA] ? ` (${s[LA]})` : "")) : "") +
     (s[BE] ? row("belts", s[BE]) : "") +
@@ -2161,7 +2253,8 @@ function showTip(s, mx, my){
     valueRows(s) +
     (aliasRows ? `<dt class="rule"></dt><dd class="rule"></dd>` + aliasRows : "") +
     `</dl>` +
-    (ore ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "");
+    (ore ? `<div class="ore">${ore.map(o => `<span>${o}</span>`).join("")}</div>` : "") +
+    routeHereLink(s[NAME]);
   tip.style.display = "block";
   placeTip(mx, my);
 }
@@ -2230,13 +2323,13 @@ function tipAt(mx, my){
     return;
   }
   const gen = pickGenerated(mx, my);
-  tip.classList.remove("live");
+  tip.classList.toggle("live", EMBED && cardShown());
   gen ? showGenTip(gen, mx, my) : (tip.style.display = "none");
 }
 let tipHide = 0;
 function hideTip(){ tip.style.display = "none"; tip.classList.remove("live"); }
 tip.addEventListener("pointerenter", () => clearTimeout(tipHide));
-tip.addEventListener("pointerleave", () => { if (!TOUCH) hideTip(); });
+tip.addEventListener("pointerleave", () => { if (!tapCard()) hideTip(); });
 // Every "how to repair a gate" link opens the wiki beside the map.
 function gateHow(e){
   e.preventDefault();
@@ -2259,7 +2352,7 @@ cv.addEventListener("pointerdown", e => {
     tip.style.display = "none";
   } else if (ptrs.size === 1){
     drag = {x: evX(e), y: e.clientY, cx, cz, moved: false};
-    if (TOUCH) armPress(evX(e), e.clientY);
+    if (TOUCH && routeOn()) armPress(evX(e), e.clientY);
   }
   if (ptrs.size > 1) cancelPress();
   cv.setPointerCapture(e.pointerId);
@@ -2274,7 +2367,7 @@ let dowseAt = 0, dowseTimer = 0;
 // keeps the gesture armed until a click or a tap settles on one.
 let dowseProvisional = false;
 let showNotes = () => {};
-const dowsing = () => !!routeFrom && (!routeTo || dowseProvisional);
+const dowsing = () => routeOn() && !!routeFrom && (!routeTo || dowseProvisional);
 const dowsingTouch = () => TOUCH && dowsing();
 
 function dowseCross(){
@@ -2282,7 +2375,7 @@ function dowseCross(){
   // frame and the search is not free.
   if (performance.now() - dowseAt < 100) return;
   dowseAt = performance.now();
-  const mx = W / 2, my = H / 2;
+  const mx = W / 2, my = midY();
   const hit = pick(mx, my) || pickGenerated(mx, my);
   if (!hit) return;
   const end = endpointOf(hit);
@@ -2292,7 +2385,7 @@ function dowseCross(){
   recomputeRoute();
   // A pan is this device's hover, so the destination it lands on describes
   // itself the way a hovered one does.
-  if (TOUCH && acrossLy() <= SYSTEM_LY / 2) showTipFor(hit, W / 2, H / 2);
+  if (TOUCH && acrossLy() <= SYSTEM_LY / 2) showTipFor(hit, W / 2, midY());
 }
 
 function dowse(x, y){
@@ -2325,7 +2418,7 @@ cv.addEventListener("pointermove", e => {
     scale = clampScale(pinch.scale * d / pinch.d);
     const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
     cx = pinch.wx - (mx - W / 2) / scale;
-    cz = pinch.wz + (my - H / 2) / scale;
+    cz = pinch.wz + (my - midY()) / scale;
     draw();
     return;
   }
@@ -2343,7 +2436,9 @@ cv.addEventListener("pointermove", e => {
   draw();
   document.getElementById("cur").textContent =
     num(Math.round(wxOf(evX(e)))) + ", " + num(Math.round(wzOf(e.clientY)));
-  tipAt(evX(e), e.clientY);
+  cursorAt = [wxOf(evX(e)), wzOf(e.clientY)];
+  readLine();
+  if (!tapCard()) tipAt(evX(e), e.clientY);
 });
 
 function endPointer(e){
@@ -2359,7 +2454,7 @@ function endPointer(e){
   if (wasDrag && dowsingTouch()){ dowseAt = 0; dowseCross(); }
   if (many || ptrs.size || wasDrag || e.type === "pointercancel") return;
   if (e.target !== cv) return;
-  if (TOUCH){
+  if (tapCard() || (TOUCH && routeOn())){
     // The lift that ends a long press is not also a tap.
     if (pressedEnd){ pressedEnd = false; return; }
     tipAt(evX(e), e.clientY);
@@ -2371,6 +2466,16 @@ function endPointer(e){
             || pickGenerated(evX(e), e.clientY);
   // A tap is a decision: the destination stops being provisional and the
   // gesture stands down.
+  if (EMBED){
+    if (!hit){ if (!routeOn()) selectHit(null); return; }
+    selectHit(hit);
+    // With the route panel open a tap also fills the end still wanted.
+    if (routeOn()){
+      if (!routeFrom) setEnd("from", hit);
+      else if (!routeTo || dowseProvisional){ dowseProvisional = false; setEnd("to", hit); }
+    }
+    return;
+  }
   if (hit){ dowseProvisional = false; setEnd(routeFrom == null ? "from" : "to", hit); }
 }
 addEventListener("pointerup", endPointer);
@@ -2379,6 +2484,7 @@ addEventListener("pointercancel", endPointer);
 // runs after the single click has already filled an end, and overwrites it.
 cv.addEventListener("dblclick", e => {
   e.preventDefault();
+  if (!routeOn()) return;
   const target = pick(evX(e), e.clientY)
                || pickGenerated(evX(e), e.clientY);
   if (!target) return;
@@ -2394,10 +2500,14 @@ for (const el of [tip, document.getElementById("help")])
       e.stopPropagation();
       // Its one link is the exception: it opens the wiki and leaves the card up.
       if (e.target.closest && e.target.closest(".gateHow")){ if (type === "click") gateHow(e); return; }
+      const here = e.target.closest && e.target.closest(".routeHere");
+      if (here){ if (type === "click"){ e.preventDefault(); el.style.display = "none"; onRouteHere(here.dataset.sys); } return; }
       if (type === "pointerup") el.style.display = "none";
     });
 cv.addEventListener("pointerleave", e => {
-  if (!TOUCH && !(e.relatedTarget && tip.contains(e.relatedTarget))) hideTip();
+  cursorAt = null;
+  readLine();
+  if (!tapCard() && !(e.relatedTarget && tip.contains(e.relatedTarget))) hideTip();
 });
 
 cv.addEventListener("wheel", e => {
@@ -2408,9 +2518,9 @@ cv.addEventListener("wheel", e => {
   scale = clampScale(scale);
   // The pointer has not moved but what is under it has, so the tooltip is about
   // to describe a system that is no longer there.
-  if (!TOUCH) requestAnimationFrame(() => tipAt(evX(e), e.clientY));
+  if (!tapCard()) requestAnimationFrame(() => tipAt(evX(e), e.clientY));
   cx = wx - (evX(e) - W / 2) / scale;
-  cz = wz + (e.clientY - H / 2) / scale;
+  cz = wz + (e.clientY - midY()) / scale;
   tip.style.display = "none";
   draw();
 }, {passive: false});
@@ -2572,14 +2682,14 @@ function showGalaxy(instant){
   const go = instant ? goto : flyPath;
   if (!isFinite(x0)){ go(0, 0, scaleFor(GALAXY_LY)); return; }
   // Both axes have to fit, so the scale is whichever is tighter.
-  const fit = Math.min(W / (x1 - x0), H / (z1 - z0)) * GALAXY_MARGIN;
+  const fit = Math.min(W / (x1 - x0), visH() / (z1 - z0)) * GALAXY_MARGIN;
   go((x0 + x1) / 2, (z0 + z1) / 2, fit);
 }
 
 function flyToBounds(x0, z0, x1, z1, fill = FILL, fly = flyView){
   const wide = W;
   const span = Math.max(Math.abs(x1 - x0), Math.abs(z1 - z0), CELL_LY);
-  fly((x0 + x1) / 2, (z0 + z1) / 2, Math.min(wide, H) * fill / span);
+  fly((x0 + x1) / 2, (z0 + z1) / 2, Math.min(wide, visH()) * fill / span);
 }
 
 // What the search has narrowed to, as a rectangle in light years, at whatever
@@ -2836,7 +2946,7 @@ document.getElementById("wikiClose").addEventListener("click", closeWiki);
 const SECTION_WIKI = {
   route: ["Navigation"], showMe: ["Galaxy Genome Map"],
   exploration: ["Exploration"], mining: ["Mining"], trading: ["Trading"],
-  outfitting: ["Modules"], security: ["Galaxy Genome Map", "Security"],
+  outfitting: ["Modules"], faction: ["Factions"], security: ["Galaxy Genome Map", "Security"],
   crafting: ["Module Mods"],
   ratingBattles: ["Combat", "Rating battles"],
   calculators: ["Navigation", "Geeking out: what mass actually costs you"],
@@ -2899,7 +3009,8 @@ for (const b of document.querySelectorAll(".chip[data-f]")){
     // Some of these match a single system in the whole catalogue. Turning one on
     // and being left with empty sky reads as a broken filter rather than a rare
     // answer, so go to the nearest one instead.
-    if (!on && !visible.length) fitToMatches(true);
+    // A link sets its own view, so only a reader's press flies.
+    if (!on && !visible.length && !urlBusy) fitToMatches(true);
   };
 }
 
@@ -2947,7 +3058,7 @@ const ARENA_SYS = new Set(ARENA.map(a => a[1]));
     draw();
     // A level names one system, so go to it rather than leaving the reader to hunt.
     const one = typeof F.arena === "number" && byName.get(ARENA[F.arena - 1][1]);
-    if (one) focusOn(one, 14, flyTrip);
+    if (one){ selected = endpointOf(one); focusOn(one, 14, flyTrip); }
     else if (F.arena === "all") fitToMatches();
   };
 }
@@ -3096,16 +3207,11 @@ function pillGroup(hostId, items, bucketName, perRow, keyOf = i => i, helpOf = n
     const b = document.createElement("button");
     b.className = "pill"; b.type = "button"; b.textContent = label;
     b.setAttribute("aria-pressed", "false");
+    // Any of the pressed ones: a system matches when one of its stations does.
     b.onclick = () => {
       const on = b.getAttribute("aria-pressed") === "true";
-      const bucket = F[bucketName];
-      // One at a time: a system has one security level, a station one purpose
-      // and one faction, so two of these together can only answer nothing.
-      for (const other of box.querySelectorAll(".pill"))
-        other.setAttribute("aria-pressed", "false");
-      bucket.clear();
       b.setAttribute("aria-pressed", String(!on));
-      if (!on) bucket.add(keyOf(i));
+      on ? F[bucketName].delete(keyOf(i)) : F[bucketName].add(keyOf(i));
       draw();
     };
     if (helpOf) bindHelp(b, helpOf(i));
@@ -3121,6 +3227,19 @@ pillGroup("purpRow", D.purposeSlots.map(ui), "purp", 2, i => i,
           i => "purp:" + D.purposes[i]);
 pillGroup("facRow", D.factionKeys.map(t), "fac", 2, i => i,
           i => "fac:" + D.factions[i]);
+// Gravity bands are checkboxes: a system matches when any planet is in a ticked band.
+for (const [i, [slot]] of GRAVS.entries()){
+  const b = document.createElement("button");
+  b.className = "chip"; b.type = "button"; b.setAttribute("aria-pressed", "false");
+  b.innerHTML = `<span class="box"></span><span data-ui="${slot}">${ui(slot)}</span>`;
+  b.onclick = () => {
+    const on = b.getAttribute("aria-pressed") === "true";
+    b.setAttribute("aria-pressed", String(!on));
+    on ? F.grav.delete(i) : F.grav.add(i);
+    draw();
+  };
+  document.getElementById("gravRow").append(b);
+}
 
 // The ring around a station system takes its faction's colour, so the legend is
 // built from the same table rather than repeating the names.
@@ -3170,7 +3289,7 @@ function presetCount(pre){
   // The sets are restored by their contents, never by replacing them: the pills
   // hold the set they were built with, and a fresh one is a set nothing reads.
   const kf = {...F};
-  const sets = {sec: [...F.sec], purp: [...F.purp], fac: [...F.fac]};
+  const sets = {sec: [...F.sec], purp: [...F.purp], fac: [...F.fac], grav: [...F.grav]};
   applyPreset(pre, true);
   const n = S.reduce((a, x) => a + (passes(x) ? 1 : 0), 0);
   filters.clear(); for (const k of keep) filters.add(k);
@@ -3428,7 +3547,7 @@ function escapeEmptyView(){
 
 function clearFilters(quiet){
   filters.clear();
-  F.sec.clear(); F.purp.clear(); F.fac.clear();
+  F.sec.clear(); F.purp.clear(); F.fac.clear(); F.grav.clear();
   F.ore = F.ptype = F.mat = F.module = -1;
   F.arena = null;
   F.startype = "";
@@ -3463,9 +3582,13 @@ for (const d of document.querySelectorAll(".sections details.grp"))
 // Filters answer one section's question at a time. Setting one releases whatever
 // another section had set, through that section's own controls, before the new
 // choice takes effect. Links arrive whole and are left as they are.
+// Faction and Outfitting are the exception: a faction's shops are an Outfitting
+// question, so the two combine.
+const COMBINE = new Set(["faction", "outfitting"]);
+const secSlot = d => d.querySelector("summary > span").dataset.ui;
 function releaseOtherSections(here){
   for (const d of FILTER_SECTIONS){
-    if (d === here) continue;
+    if (d === here || (COMBINE.has(secSlot(d)) && COMBINE.has(secSlot(here)))) continue;
     for (const b of d.querySelectorAll('button.chip[aria-pressed="true"], button.pill[aria-pressed="true"]'))
       if (b.id !== "fullOnly") b.click();
     for (const s of d.querySelectorAll("select"))
@@ -3566,7 +3689,9 @@ function bindSearch(id){
   // to move.
   let lastQuery = "", lastCells = "";
   const list = document.querySelector(`.hits[data-for="${id}"]`);
-  input.addEventListener("input", async () => {
+  // The running search is kept on the box, so the page API can wait for its hits.
+  input.addEventListener("input", () => { input.searching = search(); });
+  async function search(){
     const raw = input.value.trim();
     const q = raw.toLowerCase();
     list.innerHTML = "";
@@ -3575,7 +3700,7 @@ function bindSearch(id){
     if (!raw){
       if (id === "find") return;
       if (id === "from") clearRoute();
-      else if (routeTo){ routeTo = routePath = routeGates = null; draw(); }
+      else if (routeTo){ routeTo = routePath = routeGates = null; setRouteInfo({status: "none"}); draw(); }
       return;
     }
     if (q.length < 2) return;
@@ -3739,7 +3864,7 @@ function bindSearch(id){
         list.append(sub);
       }
     }
-  });
+  }
 }
 // Enter takes the first thing offered, which is what the list is ordered for.
 for (const id of ["from", "to", "find"])
@@ -3959,7 +4084,7 @@ const IMPOSSIBLE = ["catalogue", "station", "eng", "gate", "auth", "wreck",
                     ...Object.keys(TRADE_BIT)];
 
 function needsBodies(){
-  return F.ore >= 0 || F.ptype >= 0 || F.mat >= 0 || F.valMin != null ||
+  return F.ore >= 0 || F.ptype >= 0 || F.mat >= 0 || F.valMin != null || F.grav.size ||
          F.plMin != null || F.laMin != null ||
          filters.has("belt") || filters.has("land");
 }
@@ -3980,7 +4105,7 @@ function passesGenerated(st, deep){
   // still asks about them.
   if (F.valMin != null && worth(st) < F.valMin) return false;
   if (!(filters.has("belt") || filters.has("land") || F.plMin != null
-        || F.laMin != null || F.ptype >= 0 || F.mat >= 0 || F.ore >= 0)) return true;
+        || F.laMin != null || F.ptype >= 0 || F.mat >= 0 || F.ore >= 0 || F.grav.size)) return true;
 
   const b = starBodies(st);
   if (filters.has("belt") && !b.belts.length) return false;
@@ -3988,6 +4113,7 @@ function passesGenerated(st, deep){
   if (F.plMin != null && b.planets.length < F.plMin) return false;
   if (F.laMin != null && b.landable < F.laMin) return false;
   if (F.ptype >= 0 && !b.planets.some(p => p.type === PTYPES[F.ptype])) return false;
+  if (F.grav.size && !b.planets.some(p => planetListed(p.type === PTYPES[F.ptype], p.gravity))) return false;
   if (F.mat >= 0 && !b.planets.some(p => p.mats.includes(D.matRaw[F.mat]))) return false;
   if (F.mat >= 0 && F.matPctMin != null && generatedMatSpan(st, F.mat)[1] < F.matPctMin) return false;
   if (F.ore >= 0){
@@ -4156,7 +4282,15 @@ function passesGenerated(st, deep){
 let jumpLy = +(localStorage.getItem("gg.jump") || 10);
 let routeFrom = null, routeTo = null;      // {name, x, z}
 let routePath = null, routeGates = null, routePartial = false;
-let routeBusy = false;
+let routeBusy = false, routeAgain = false;
+// What the last plot came to, for a page that tells it in its own words: `status`
+// is none, same, plotting, isolated, noroute, approx, nothing, partial or ok.
+let routeInfo = {status: "none"};
+// The station a link named (station=), which says which of its system's stations it meant.
+let linkStation = null;
+// Called whenever the route changes (the page API listens).
+let routeChanged = () => {};
+const setRouteInfo = info => { routeInfo = info; routeChanged(); };
 
 const MAX_CORRIDOR_CELLS = 8000;           // beyond this the fine tier is refused
 const CORRIDOR_PAD = 0;                    // the jump range already widens it
@@ -4377,11 +4511,13 @@ function nearestNode(nodes, p){
 async function recomputeRoute(){
   const note = document.getElementById("routeNote");
   routePath = null; routeGates = null; routePartial = false; routeFlown = "";
-  if (!routeFrom || !routeTo){ note.textContent = ""; showNotes(); draw(); return; }
-  if (routeFrom.name === routeTo.name){ note.textContent = ui("sameSystem"); draw(); return; }
-  if (routeBusy) return;
+  if (!routeFrom || !routeTo){ note.textContent = ""; showNotes(); draw(); setRouteInfo({status: "none"}); return; }
+  if (routeFrom.name === routeTo.name){ note.textContent = ui("sameSystem"); draw(); setRouteInfo({status: "same"}); return; }
+  // A change while a plot runs is plotted once that one ends.
+  if (routeBusy){ routeAgain = true; return; }
   routeBusy = true;
   note.textContent = ui("plotting");
+  setRouteInfo({status: "plotting"});
   try {
     if (!cellBits) await loadGrid();
     if (!GEN.side) await loadGenerationMaps();
@@ -4389,12 +4525,14 @@ async function recomputeRoute(){
     if (!inMainComponent(routeTo.x, routeTo.z) &&
         inMainComponent(routeFrom.x, routeFrom.z)){
       note.innerHTML = "<b>" + ui("isolated") + "</b>";
+      setRouteInfo({status: "isolated"});
       draw();
       return;
     }
     const {cells, coarse} = corridorCells(routeFrom, routeTo, jumpLy);
     if (!cells){
       note.innerHTML = "<b>" + fmt("noRoute", {ly: jumpLy}) + "</b> " + ui("isolated");
+      setRouteInfo({status: "noroute"});
       draw();
       return;
     }
@@ -4408,14 +4546,15 @@ async function recomputeRoute(){
       routeGates = routePath.map(() => 0);
       note.innerHTML = fmt("approxRoute",
         {jumps: plural("jumps", Math.ceil(ly / jumpLy)), ly: num(ly)});
+      setRouteInfo({status: "approx", jumps: Math.ceil(ly / jumpLy), ly});
       draw();
       return;
     }
     const {nodes, byCell} = corridorSystems(cells);
     const a = nearestNode(nodes, routeFrom), b = nearestNode(nodes, routeTo);
-    if (a < 0 || b < 0){ note.textContent = ui("sameSystem"); draw(); return; }
+    if (a < 0 || b < 0){ note.textContent = ui("sameSystem"); setRouteInfo({status: "same"}); draw(); return; }
     const r = searchSystems(nodes, byCell, a, b, jumpLy);
-    if (!r){ note.innerHTML = "<b>" + fmt("noRoute", {ly: jumpLy}) + "</b>"; draw(); return; }
+    if (!r){ note.innerHTML = "<b>" + fmt("noRoute", {ly: jumpLy}) + "</b>"; setRouteInfo({status: "noroute"}); draw(); return; }
 
     routePath = r.path; routeGates = r.gates; routePartial = r.partial;
     const jumpsN = r.path.length - 1;
@@ -4423,6 +4562,7 @@ async function recomputeRoute(){
       routePath = null;
       note.innerHTML = "<b>" +
         fmt("nothingInRange", {ly: jumpLy, sys: routeFrom.name}) + "</b>";
+      setRouteInfo({status: "nothing"});
       draw();
       return;
     }
@@ -4447,15 +4587,19 @@ async function recomputeRoute(){
         fmt("stopsAt", {sys: stop.name, jumps: plural("jumps", jumpsN),
                         ly: num(Math.round(r.total))}) +
         `<br><b>${fmt("short", {ly: num(Math.round(gap)), sys: routeTo.name})}</b>`;
+      setRouteInfo({status: "partial", jumps: jumpsN, ly: r.total, viaGates, stop: stop.name, short: gap});
     } else {
       routeFlown = fmt("routeOk",
         {jumps: plural("jumps", jumpsN), ly: num(Math.round(r.total))});
       note.innerHTML = routeFlown + gateNote + payNote;
+      setRouteInfo({status: "ok", jumps: jumpsN, ly: r.total, viaGates});
     }
     showNotes();
   } finally {
     routeBusy = false;
     draw();
+    routeChanged();
+    if (routeAgain){ routeAgain = false; recomputeRoute(); }
   }
 }
 
@@ -4479,6 +4623,7 @@ function clearRoute(){
   document.getElementById("from").value = "";
   document.getElementById("to").value = "";
   document.getElementById("routeNote").textContent = "";
+  setRouteInfo({status: "none"});
   draw();
 }
 
@@ -4548,6 +4693,7 @@ addEventListener("keydown", e => {
     document.getElementById("routeNote").textContent = "";
     routeFlown = "";
     showNotes();
+    setRouteInfo({status: "none"});
     draw();
     return;
   }
@@ -4643,7 +4789,8 @@ jumpBox.addEventListener("input", () => {
   sel.addEventListener("change", () => {
     sel.hidden = true;
     lang = sel.value;
-    try { localStorage.setItem("gg.lang", lang); } catch (_) {}
+    // A link's lang shows this map in that language; only the reader's own pick is saved.
+    if (!sel.dataset.fromLink) try { localStorage.setItem("gg.lang", lang); } catch (_) {}
     TYPES = named(D.typeKeys, D.types);
     ORES = named(D.oreKeys, D.ores);
     PTYPES = named(D.ptypeKeys, D.ptypes);
@@ -4695,7 +4842,9 @@ resize();   // first paint, once route state exists
   };
   try { box.checked = localStorage.getItem("gg.spoilers") === "1"; } catch (_) {}
   box.addEventListener("change", () => {
-    try { localStorage.setItem("gg.spoilers", box.checked ? "1" : "0"); } catch (_) {}
+    // An embedded map's link turns spoilers on for that map only; the Map tab's are the reader's own.
+    if (!EMBED || document.documentElement.classList.contains("home"))
+      try { localStorage.setItem("gg.spoilers", box.checked ? "1" : "0"); } catch (_) {}
     apply();
   });
   apply();
@@ -4706,7 +4855,7 @@ function fitToRoute(){
   if (!routeFrom || !routeTo) return;
   const x0 = Math.min(routeFrom.x, routeTo.x), x1 = Math.max(routeFrom.x, routeTo.x);
   const z0 = Math.min(routeFrom.z, routeTo.z), z1 = Math.max(routeFrom.z, routeTo.z);
-  const span = Math.max((x1 - x0) * 1.3, (z1 - z0) * 1.3 * W / H, HOME_LY);
+  const span = Math.max((x1 - x0) * 1.3, (z1 - z0) * 1.3 * W / visH(), HOME_LY);
   goto((x0 + x1) / 2, (z0 + z1) / 2, scaleFor(span));
 }
 
@@ -4742,11 +4891,27 @@ function fitToMatches(fly = false){
 }
 
 // ---- deep links -------------------------------------------------------------
+// A named system may be catalogued or generated; both are ordinary here.
+async function resolveName(name){
+  const want = name.trim().toLowerCase();
+  for (const [nm, i] of indexOfName)
+    if (nm.toLowerCase() === want) return S[i];
+  if (typeof cellFromName === "function" && cellFromName(name)){
+    if (!GEN.side) await loadGenerationMaps();
+    const c = cellFromName(name);
+    return (cellStars(c.cx, c.cy) || []).find(
+      st => st.name.toLowerCase() === want) || null;
+  }
+  return null;
+}
+
 // A link can arrive pre-filtered or pre-routed, so a wiki page can point at
 // "belts holding Painite" rather than at the map's front door. Every parameter
 // drives the control a person would have used, which keeps the sidebar honest.
-async function applyParams(){
-  const p = new URLSearchParams(location.search);
+//   o.view    false leaves the view, the drawn shapes and the rail alone
+//   o.select  `system` becomes the selection as well as where the view goes
+async function applyParams(p = new URLSearchParams(location.search), o = {}){
+  const view = o.view !== false, select = o.select ?? EMBED;
   if (![...p.keys()].length) return;
   const fire = (el, ev = "change") => el.dispatchEvent(new Event(ev, {bubbles: true}));
   // Whatever a link switched on, so the sidebar can show its work afterwards.
@@ -4755,7 +4920,13 @@ async function applyParams(){
   const lang0 = p.get("lang");
   if (lang0 && D.langCodes.includes(lang0)){
     const sel = document.getElementById("lang");
-    sel.value = lang0; fire(sel);
+    sel.value = lang0; sel.dataset.fromLink = "1"; fire(sel); delete sel.dataset.fromLink;
+  }
+  // View options: the layer a legend row soloed, and Sectors switched off.
+  if (p.get("solo")) solo = p.get("solo");
+  if (p.get("sectors") === "0"){
+    HL.sectors = false;
+    document.getElementById("hlSectors").setAttribute("aria-pressed", "false");
   }
   if (p.get("spoilers") === "1"){
     const c = document.getElementById("spoilers");
@@ -4816,6 +4987,13 @@ async function applyParams(){
   pills("facRow", D.factions, p.get("faction"));
   pills("purpRow", D.purposes, p.get("purpose"));
   pills("secRow", SECS.map(x => x[0]), p.get("security"));
+  {
+    const btns = document.querySelectorAll("#gravRow .chip");
+    for (const one of (p.get("gravity") || "").split(",")){
+      const b = btns[GRAVS.findIndex(x => x[1] === one.trim().toLowerCase())];
+      if (b && b.getAttribute("aria-pressed") !== "true"){ b.click(); touched.push(b); }
+    }
+  }
   if (p.get("onehop") === "1"){
     const c = document.getElementById("oneHop");
     if (!c.checked){ c.checked = true; fire(c, "change"); }
@@ -4862,28 +5040,30 @@ async function applyParams(){
     el.value = jump; fire(el, "input"); fire(el);
   }
 
-  // A named system may be catalogued or generated; both are ordinary here.
-  const resolve = async name => {
-    const want = name.trim().toLowerCase();
-    for (const [nm, i] of indexOfName)
-      if (nm.toLowerCase() === want) return S[i];
-    if (typeof cellFromName === "function" && cellFromName(name)){
-      if (!GEN.side) await loadGenerationMaps();
-      const c = cellFromName(name);
-      return (cellStars(c.cx, c.cy) || []).find(
-        st => st.name.toLowerCase() === want) || null;
-    }
-    return null;
-  };
+  const resolve = resolveName;
 
   const from = p.get("from"), to = p.get("to"), only = p.get("system");
   if (from){ const s = await resolve(from); if (s) setEnd("from", s); }
   if (to){ const s = await resolve(to); if (s) setEnd("to", s); }
-  if (only){ const s = await resolve(only); if (s) focusOn(Array.isArray(s) ? s
+  if (only){ const s = await resolve(only);
+    if (s && select) selected = endpointOf(s);
+    if (s) focusOn(Array.isArray(s) ? s
     : {[NAME]: s.name, [X]: s.x, [Z]: s.z}); }
-  if (from && !to){ const s = await resolve(from); if (s) focusOn(Array.isArray(s) ? s
-    : {[NAME]: s.name, [X]: s.x, [Z]: s.z}); }
+  if (from && !to){ const s = await resolve(from);
+    if (s && select && !only) selected = endpointOf(s);
+    if (s) focusOn(Array.isArray(s) ? s : {[NAME]: s.name, [X]: s.x, [Z]: s.z}); }
+  const station = (p.get("station") || "").trim().toLowerCase();
+  if (station){
+    const sys = Object.keys(D.stations).find(k => D.stations[k].some(r => r[0].toLowerCase() === station));
+    const s = sys && byName.get(sys);
+    if (s){
+      linkStation = D.stations[sys].find(r => r[0].toLowerCase() === station)[0];
+      if (select) selected = endpointOf(s);
+      if (!only) focusOn(s);
+    }
+  }
   if (from && to) fitToRoute();
+  if (!view){ draw(); return; }
 
   // A link that filters but names no place would otherwise open on a patch of
   // sky with nothing in it, so the view widens to where the matches are.
@@ -4906,7 +5086,7 @@ async function applyParams(){
     goto(0, 0, scaleFor(D.deepOres[p.get("ore")] ? 1100 : 150));
   else if (!from && !only && anyFilter()) fitToMatches();
   draw();
-  reveal(touched[0]);
+  if (!EMBED) reveal(touched[0]);
 }
 
 // Show the reader which control a link just set: open its section, bring it into
@@ -4932,6 +5112,7 @@ function reveal(el){
 function currentParams(){
   const p = new URLSearchParams();
   const put = (k, v) => { if (v !== "" && v != null) p.set(k, v); };
+  if (EMBED) put("embed", "1");
   const pressed = host => [...document.querySelectorAll(`#${host} .pill`)]
     .map((b, i) => b.getAttribute("aria-pressed") === "true" ? i : -1)
     .filter(i => i >= 0);
@@ -4954,6 +5135,7 @@ function currentParams(){
   put("startype", F.startype);
   const sec = pressed("secRow").map(i => SECS[i][0]);
   if (sec.length) put("security", sec.join(","));
+  if (F.grav.size) put("gravity", [...F.grav].sort().map(i => GRAVS[i][1]).join(","));
   const fac = pressed("facRow").map(i => D.factions[i]);
   if (fac.length) put("faction", fac.join(","));
   const purp = pressed("purpRow").map(i => D.purposes[i]);
@@ -4971,7 +5153,11 @@ function currentParams(){
   // get drawn or a route note appear.
   if (routeFrom) put("from", routeFrom.name);
   if (routeTo) put("to", routeTo.name);
+  if (selected) put("system", selected.name);
+  if (selected && linkStation && (D.stations[selected.name] || []).some(r => r[0] === linkStation)) put("station", linkStation);
   if (spoilers) put("spoilers", "1");
+  if (solo) put("solo", solo);
+  if (!HL.sectors) put("sectors", "0");
   if (lang !== "en") put("lang", lang);
   // Where the link points. A picked system is the point of interest; otherwise
   // it is the middle of what you are looking at, in the same words the readout
@@ -4990,15 +5176,622 @@ function syncURL(){
   if (flyRAF) return;
   clearTimeout(urlTimer);
   // Panning calls draw every frame; the address bar only needs the last one.
-  urlTimer = setTimeout(() => {
-    // URLSearchParams serialises as form data, which escapes the commas in
-    // `at`, `filters`, `security` and the rest. A comma is legal in a query
-    // value and parses back the same, so the link stays readable.
-    const qs = currentParams().toString().replace(/%2C/g, ",");
-    history.replaceState(null, "", qs ? "?" + qs : location.pathname);
-  }, 400);
+  urlTimer = setTimeout(writeURL, 400);
 }
+
+function writeURL(){
+  clearTimeout(urlTimer);
+  // URLSearchParams serialises as form data, which escapes the commas in
+  // `at`, `filters`, `security` and the rest. A comma is legal in a query
+  // value and parses back the same, so the link stays readable.
+  const qs = currentParams().toString().replace(/%2C/g, ",");
+  history.replaceState(null, "", qs ? "?" + qs : location.pathname);
+  urlWritten();
+}
+
+// ---- the page API -----------------------------------------------------------
+// window.ggMap lets the page around the map drive it (same origin only). Every
+// call goes through the same controls and deep-link keys a reader or a link
+// uses, so the rail and the address bar stay true. README.md, "The page API".
+
+// The deep-link keys that narrow what is shown, as currentParams writes them.
+const FILTER_KEYS = ["filters", "ore", "pct", "ptype", "mat", "mpct", "arena", "module",
+  "fullgrade", "startype", "security", "gravity", "faction", "purpose", "value", "planets",
+  "landable", "stationls", "lymin", "lymax", "onehop", "scanner"];
+
+function filterParams(){
+  const all = currentParams(), p = new URLSearchParams();
+  for (const k of FILTER_KEYS) if (all.has(k)) p.set(k, all.get(k));
+  return p;
+}
+
+// Every filter back to where a fresh page starts, controls included.
+function resetFilters(){
+  clearFilters();
+  // clearFilters unpresses every toggle, but these two are on by default.
+  document.getElementById("fullOnly").setAttribute("aria-pressed", "true");
+  document.getElementById("hlSectors").setAttribute("aria-pressed", String(HL.sectors));
+  if (scanner !== 1){
+    const el = document.getElementById("scanner");
+    el.value = "1";
+    el.dispatchEvent(new Event("change", {bubbles: true}));
+  }
+}
+
+// Generated space never holds a station, a faction, a shop or anything else the
+// catalogue alone has, so a filter on one is answered by the catalogue in full.
+const genNever = () => IMPOSSIBLE.some(f => filters.has(f)) || F.purp.size || F.fac.size
+  || F.module >= 0 || F.arena != null || F.stLs != null || (F.sec.size && !F.sec.has("A"));
+
+// How many systems match: galaxy-wide where that is known (the catalogue answers
+// alone, or the sweep counted the value asked for), otherwise those in view,
+// catalogued and generated alike, as drawn.
+// `partial` marks a view count that leaves out generated systems because the view
+// is too wide to make them.
+function matchCount(){
+  if (!anyFilter()) return {count: null, scope: "galaxy", partial: false};
+  if (genNever()) return {count: S.filter(passes).length, scope: "galaxy", partial: false};
+  const swept = filterCount() === 1 && F.valMin != null && !F.oneHop
+    && D.genCounts[D.scanners[scanner][0] + ":" + F.valMin];
+  // The sweep's figure is an estimate, rounded to its accuracy.
+  if (typeof swept === "number") return {count: swept, scope: "galaxy", partial: false, estimate: true};
+  return {count: visible.length + genVisible.length, scope: "view",
+          partial: acrossLy() > FILTER_MAX_LY || scale < GEN_MIN_SCALE()};
+}
+
+// The filter in words, in the reader's language: "Painite 40%+".
+function filterLabel(){
+  const out = [];
+  const pct = v => v != null ? ` ${v}%+` : "";
+  if (F.ore >= 0) out.push(ORES[F.ore] + pct(F.pctMin));
+  if (F.mat >= 0) out.push(MATS[F.mat] + pct(F.matPctMin));
+  if (F.ptype >= 0) out.push(PTYPES[F.ptype]);
+  if (F.module >= 0) out.push(MODULES[F.module]);
+  if (F.startype){
+    const i = D.typeRaw.indexOf(F.startype);
+    out.push(i >= 0 ? TYPES[i] : F.startype);
+  }
+  if (F.arena === "all") out.push(`${ui("ratingBattles")}: ${ui("arenaAll")}`);
+  else if (typeof F.arena === "number") out.push(`${ui("arenaLevel")} ${F.arena}`);
+  for (const f of filters){
+    const chip = document.querySelector(`.chip[data-f="${CSS.escape(f)}"] [data-ui]`);
+    out.push(chip ? chip.textContent.trim() : f === "wreck" ? ui("pStation") : f);
+  }
+  for (const s of F.sec) out.push(ui(SEC_SLOT[s]));
+  if (F.grav.size) out.push(`${ui("gravity")} ${[...F.grav].sort().map(i => ui(GRAVS[i][0])).join("/")}`);
+  for (const i of F.purp) out.push(ui(D.purposeSlots[i]));
+  for (const i of F.fac) out.push(t(D.factionKeys[i]));
+  if (F.valMin != null) out.push(`${ui("minValue")} ${short(F.valMin)}`);
+  if (F.plMin != null) out.push(`${ui("minPlanets")} ${F.plMin}`);
+  if (F.laMin != null) out.push(`${ui("minLandable")} ${F.laMin}`);
+  if (F.stLs != null) out.push(`${ui("stationWithin")} ${num(F.stLs)}`);
+  if (F.lyMin != null) out.push(`≥ ${num(F.lyMin)} ly`);
+  if (F.lyMax != null) out.push(`≤ ${num(F.lyMax)} ly`);
+  return out.join(" · ");
+}
+
+function selectHit(hit){
+  selected = hit ? endpointOf(hit) : null;
+  if (!selected || !(D.stations[selected.name] || []).some(r => r[0] === linkStation)) linkStation = null;
+  draw();
+  writeURL();
+}
+
+// Pending filter edits run one after another, each reading what the last left.
+let filterQueue = Promise.resolve();
+function editFilters(edit){
+  const run = async () => {
+    const p = filterParams();
+    edit(p);
+    urlBusy = true;
+    try {
+      resetFilters();
+      await applyParams(p, {view: false, select: false});
+    } finally { urlBusy = false; draw(); writeURL(); }
+    return ggMap.getFilters();
+  };
+  return filterQueue = filterQueue.then(run, run);
+}
+const filterKey = k => {
+  if (!FILTER_KEYS.includes(k)) throw new Error(`ggMap: not a filter key: ${k}`);
+  return k;
+};
+
+const handlers = {select: new Set(), view: new Set(), filter: new Set(), route: new Set(), routeHere: new Set()};
+const emit = (ev, v) => { for (const cb of handlers[ev]){ try { cb(v); } catch (e) { console.error("ggMap", ev, e); } } };
+const lastSent = {};
+// Called whenever the address is written: whatever changed since is announced.
+function urlWritten(){
+  const now = {select: ggMap.getSelection(), view: ggMap.getView(), filter: ggMap.getFilters()};
+  const key = {select: JSON.stringify(now.select),
+               view: JSON.stringify([Math.round(now.view.x), Math.round(now.view.z), Math.round(now.view.ly)]),
+               filter: filterParams().toString()};
+  for (const ev in key){
+    if (lastSent[ev] === key[ev]) continue;
+    lastSent[ev] = key[ev];
+    for (const cb of handlers[ev]){
+      try { cb(now[ev]); } catch (e) { console.error("ggMap", ev, e); }
+    }
+  }
+}
+
+// ---- the sidebar, described for a page that draws its own -----------------
+// The filter sections are read from the sidebar itself, in its order and its
+// language, so a page drawing them offers exactly what the sidebar offers. Every
+// control is addressed by a ref and driven through its own events, so presets,
+// the one-section rule and the address behave as they do in the sidebar.
+let refN = 0;
+const refOf = el => el.id || (el.dataset.gg ||= "g" + ++refN);
+const byRef = ref => document.getElementById(ref) || document.querySelector(`[data-gg="${CSS.escape(ref)}"]`);
+const onPage = el => !el.closest("[hidden], .hidden");
+const textOf = el => [...el.childNodes]
+  .filter(n => !(n.classList && (n.classList.contains("n") || n.classList.contains("rev") || n.classList.contains("box"))))
+  .map(n => n.textContent).join("").trim();
+function helpOf(el){
+  const h = el && el.dataset.help && D.help[el.dataset.help];
+  return h ? {title: String(say(h.title)), rows: h.rows.map(([k, v]) => [String(say(k)), String(say(v))])} : null;
+}
+const PRESET_SEC = slot => {
+  const pre = PRESETS.find(p => p.slot === slot);
+  const el = pre && pre.show && (document.querySelector(pre.show) || document.querySelector(pre.show.split(" ")[0]));
+  const det = el && el.closest("details.grp");
+  return det ? secSlot(det) : null;
+};
+
+function selectModel(el, label){
+  const opt = o => ({value: o.value, text: o.textContent.trim()});
+  const groups = [...el.children].map(c => c.tagName === "OPTGROUP"
+    ? {label: c.label, options: [...c.children].map(opt)} : opt(c));
+  return {type: "select", ref: refOf(el), label: label && label.text, help: label && label.help,
+          value: el.value, disabled: el.disabled, options: groups,
+          set: el.value !== (el.id === "scanner" ? "1" : "")};
+}
+function numberModel(el, text, help){
+  const n = a => el.getAttribute(a) === null || el.getAttribute(a) === "" ? null : +el.getAttribute(a);
+  return {type: "number", ref: refOf(el), label: text, help, value: el.value, min: n("min"), max: n("max"),
+          step: n("step"), placeholder: el.placeholder, disabled: el.disabled,
+          set: el.value !== "" && !el.disabled && !/^(pctMin|matPctMin)$/.test(el.id)};
+}
+
+function sectionModel(d){
+  const out = [];
+  let label = null, group = null;
+  const els = d.querySelectorAll(
+    "label.f, label.spoil, select, button.chip, button.pill, p.note, #repList > p, #repList > button");
+  const used = new Set();
+  for (const el of els){
+    if (used.has(el) || !onPage(el)) continue;
+    const rep = el.closest("#repList");
+    if (rep){
+      let r = out.at(-1);
+      if (!r || r.type !== "rep") out.push(r = {type: "rep", items: []});
+      r.items.push(el.tagName === "P" ? {head: el.textContent.trim()}
+        : {ref: refOf(el), name: el.querySelector("b").textContent.trim(),
+           detail: el.querySelector(".muted").textContent.trim()});
+      group = null;
+      continue;
+    }
+    if (el.matches("label.f")){
+      const input = el.querySelector("input"), text = el.querySelector("span").textContent.trim();
+      const help = helpOf(el.querySelector("[data-help]"));
+      if (input){ used.add(input); out.push(numberModel(input, text, help)); label = null; }
+      else label = {text, help};
+      group = null;
+      continue;
+    }
+    if (el.matches("label.spoil")){
+      const cb = el.querySelector("input");
+      out.push({type: "check", ref: refOf(cb), label: el.textContent.trim(), value: cb.checked, set: cb.checked});
+      group = null;
+      continue;
+    }
+    if (el.tagName === "SELECT"){ out.push(selectModel(el, label)); label = null; group = null; continue; }
+    if (el.tagName === "P"){
+      if (el.innerHTML.trim()) out.push({type: "note", html: el.innerHTML.trim()});
+      group = null;
+      continue;
+    }
+    // A chip or pill joins the row it sits in: a pill group, a one-of group or the
+    // chips around it.
+    const key = el.id === "fullOnly" ? "fullOnly"
+      : el.closest("#presetRow, #secRow, #purpRow, #facRow, #gravRow")?.id || (el.dataset.one ? "one:" + el.dataset.one : "chips");
+    if (!group || group.key !== key){
+      out.push(group = {type: "chips", key, label: label && label.text, help: label && label.help,
+                        one: !!el.dataset.one, items: []});
+      label = null;
+    }
+    const on = el.getAttribute("aria-pressed") === "true";
+    group.items.push({ref: refOf(el), label: textOf(el), count: el.querySelector(".n")?.textContent.trim() || null,
+                      on, help: helpOf(el), preset: el.dataset.preset || null,
+                      opens: el.dataset.preset ? PRESET_SEC(el.dataset.preset) : null,
+                      spoil: !!(PRESETS.find(p => p.slot === el.dataset.preset) || {}).spoil,
+                      set: el.id === "fullOnly" ? !on : on});
+  }
+  const set = out.reduce((n, c) => n + (c.type === "chips" ? c.items.filter(i => i.set).length : c.set ? 1 : 0), 0);
+  const id = secSlot(d);
+  return {id, title: d.querySelector("summary > span").textContent.trim(),
+          article: SECTION_WIKI[id] || null, set, controls: out};
+}
+
+// The active filters as chips, one per thing a reader would remove at once. A
+// pressed preset is the whole of the filter, so it is one chip.
+function activeChips(){
+  const pre = document.querySelector('#presetRow .chip[aria-pressed="true"]');
+  if (pre) return [{id: "preset", label: textOf(pre)}];
+  const out = [], add = (id, label) => out.push({id, label});
+  const pct = v => v != null ? ` ${v}%+` : "";
+  for (const f of filters){
+    const chip = document.querySelector(`.chip[data-f="${CSS.escape(f)}"]`);
+    add("filters:" + f, chip ? textOf(chip) : f === "wreck" ? ui("pStation") : f === "eng" ? ui("pEngineers")
+      : f === "gate" ? ui("pGates") : f);
+  }
+  if (F.ore >= 0) add("ore", ORES[F.ore] + pct(F.pctMin));
+  if (F.ptype >= 0) add("ptype", PTYPES[F.ptype]);
+  if (F.startype){ const i = D.typeRaw.indexOf(F.startype); add("startype", i >= 0 ? TYPES[i] : F.startype); }
+  if (F.module >= 0) add("module", MODULES[F.module] + (F.fullOnly ? "" : ` · ${ui("hCapped")}`));
+  if (F.purp.size) add("purpose", [...F.purp].map(i => ui(D.purposeSlots[i])).join("/"));
+  if (F.fac.size) add("faction", [...F.fac].map(i => t(D.factionKeys[i])).join("/"));
+  if (F.grav.size) add("gravity", `${ui("gravity")} ${[...F.grav].sort().map(i => ui(GRAVS[i][0])).join("/")}`);
+  if (F.sec.size) add("security", `${ui("security")} ${[...F.sec].map(s => ui(SEC_SLOT[s])).join("/")}`);
+  if (F.mat >= 0) add("mat", MATS[F.mat] + pct(F.matPctMin));
+  if (F.arena === "all") add("arena", `${ui("ratingBattles")}: ${ui("arenaAll")}`);
+  else if (typeof F.arena === "number") add("arena", `${ui("arenaLevel")} ${F.arena}`);
+  if (F.valMin != null) add("value", `${ui("minValue")} ${short(F.valMin)}` + (F.oneHop ? ` · ${ui("useOneHop")}` : ""));
+  if (F.plMin != null) add("planets", `${ui("minPlanets")} ${F.plMin}`);
+  if (F.laMin != null) add("landable", `${ui("minLandable")} ${F.laMin}`);
+  if (F.stLs != null) add("stationls", `${ui("stationWithin")} ${num(F.stLs)}`);
+  if (F.lyMin != null) add("lymin", `≥ ${num(F.lyMin)} ly`);
+  if (F.lyMax != null) add("lymax", `≤ ${num(F.lyMax)} ly`);
+  return out;
+}
+// The deep-link keys each chip stands for.
+const CHIP_KEYS = {ore: ["ore", "pct"], mat: ["mat", "mpct"], module: ["module", "fullgrade"],
+                   value: ["value", "onehop"]};
+
+const filterFound = new Map();
+
+// ---- the route, for a page that draws its own route panel ----------------
+const endOf = e => e && {name: e.name, x: e.x, z: e.z};
+function routeModel(){
+  return {
+    ...routeInfo, from: endOf(routeFrom), to: endOf(routeTo), provisional: dowseProvisional, dowsing: dowsing(),
+    busy: routeBusy, jump: jumpLy, note: document.getElementById("routeNote").innerHTML,
+    path: (routePath || []).map((p, k) => ({name: p.name || "", x: p.x, z: p.z, coarse: !!p.coarse,
+                                            gate: !!(routeGates && routeGates[k])})),
+    gatesMask,
+    gates: D.gates.map(([a, b], i) => ({a, b, working: gateEndRepaired(a) && gateEndRepaired(b),
+      ends: [a, b].map((name, k) => ({name, bit: 2 * i + k, repaired: gateEndRepaired(name)}))})),
+  };
+}
+routeChanged = () => emit("route", routeModel());
+onRouteHere = name => emit("routeHere", name);
+const routeBox = which => document.getElementById(which === "from" ? "from" : "to");
+const hitItems = which => [...document.querySelectorAll(`.hits[data-for="${which}"] li`)];
+
+// ---- a system, for a page that draws its own card ------------------------
+// One shape for catalogued and generated systems, read from the same sources the
+// sidebar's card reads, so the page's card says what this one says.
+function systemModel(src){
+  const gen = !Array.isArray(src);
+  const name = gen ? src.name : src[NAME], x = gen ? src.x : src[X], z = gen ? src.z : src[Z];
+  const b = gen ? starBodies(src) : null;
+  const v = systemValue(src);
+  const secCode = gen ? "A" : (src[SEC] || "A");
+  const pct = (mats, k) => Math.round(100 * D.matRare[k] / mats.reduce((t, m) => t + D.matRare[m], 0));
+  const matName = k => MATS[D.matRaw.indexOf(k)] || k;
+  const ptypeName = k => { const i = D.ptypeRaw.indexOf(k); return i >= 0 ? PTYPES[i] : k; };
+  const named = gen ? null : D.namedMats[name];
+  const spans = gen ? matSpans(b.planets.map(p => p.mats).filter(m => m.length)) : D.matPct[name] || {};
+  const deep = D.oreRaw.findIndex((_k, j) => deepDigit(j) && (gen ? generatedOrePct(src, j) : src[ORE] >> j & 1));
+  const alias = gen ? {} : aliasBySystem.get(indexOfName.get(name)) || {};
+  const trade = gen ? 0 : tradeOf(src);
+  const route = routeTo && routeTo.name === name && routeFlown ? `${routeFlown} · ${ui("maxJump")}: ${num(jumpLy)} ly` : "";
+  return {
+    name, x, z, generated: gen, ly: Math.hypot(x, z),
+    star: gen ? (t(src.raw + "Name") || src.type) : TYPES[src[TY]], starRaw: gen ? src.raw : D.typeRaw[src[TY]],
+    security: ui(SEC_SLOT[secCode] || "secAnarchy"), secCode,
+    fuel: !!(gen ? src.fuel : src[FUEL]),
+    planets: gen ? b.planets.length : src[PL], landable: gen ? b.landable : src[LA], belts: gen ? b.belts.length : src[BE],
+    fromHere: routeFrom && (routeFrom.x !== x || routeFrom.z !== z)
+      ? {from: routeFrom.name, ly: Math.hypot(x - routeFrom.x, z - routeFrom.z)} : null,
+    flown: route,
+    deepOre: deep >= 0 ? {ore: ORES[deep], tons: DEEP_TONS} : null,
+    planetList: gen
+      ? b.planets.map(p => ({name: null, orbit: p.orbit, type: p.type, companion: p.group > 0, landable: p.landable,
+                             gravity: p.gravity, listed: planetListed(p.type === PTYPES[F.ptype], p.gravity), mats: p.mats.map(k => [matName(k), pct(p.mats, k)])}))
+      : (D.planetOrbits[name] ? (() => { const f = D.planetOrbits[name], out = [];
+          for (let i = 0; i < f.length; i += 5)
+            out.push({name: f[i + 3], orbit: f[i + 1], type: PTYPES[f[i]], companion: f[i + 2] > 0, gravity: f[i + 4],
+                      listed: planetListed(f[i] === F.ptype, f[i + 4])});
+          return out; })() : []),
+    namedMats: named ? named.map(([n, o, trio, ty, g]) => ({name: n, orbit: o, type: ptypeName(ty), gravity: g,
+      mats: trio.map(k => [matName(k), pct(trio, k)]).sort((a, c) => c[1] - a[1])})) : null,
+    matSpans: Object.entries(spans).map(([k, [lo, hi]]) => [matName(k), lo, hi]).sort((a, c) => a[0].localeCompare(c[0])),
+    ores: gen ? b.belts.flatMap(belt => belt.ores.map(o => [null, belt.orbit, t("Goods" + o.name) || o.name, o.pct]))
+              : (D.oreBodies[name] || []).map(([bn, orbit, o, p]) => [bn, orbit, ORES[D.oreRaw.indexOf(o)] || o, p]),
+    stations: gen ? [] : (D.stations[name] || []).map(([nm, model, fac, purp, ls]) => {
+      const stock = F.module >= 0 ? D.purposeStock[purp] : null;
+      return {name: nm, model: t(D.stationModel[model]) || model, faction: fac, purpose: ui(D.purposeSlots[purp]),
+              purposeRaw: D.purposes[purp], ls,
+              stocks: !stock ? "" : stock[0].includes(F.module) ? "full" : stock[1].includes(F.module) ? "capped" : ""};
+    }),
+    gate: gateOther.has(name) ? {to: gateOther.get(name), repaired: gateEndRepaired(name)} : null,
+    factions: gen ? [] : D.factionKeys.filter((_k, i) => src[FAC] >> i & 1).map(k => t(k)),
+    trade: trade ? {sellsBlack: trade & 1 ? blackHalf(trade) : null,
+                    other: TRADE_SLOT.filter(([bit]) => trade & bit).map(([, slot]) => ui(slot))} : null,
+    value: {explored: !v.full, arrival: v.arrival, scanner: D.scanners[scanner][0], reach: v.reach, hops: v.hops},
+    aliases: Object.fromEntries(["body", "engineer", "landmark"]
+      .filter(k => alias[k] && !(SPOILER_ALIAS.has(k) && !spoilers)).map(k => [k, alias[k]])),
+    wreck: WRECKS.has(name) ? WRECKS.get(name) : null,
+    arena: (D.arena || []).filter(a => a[1] === name).map(([lvl, , bots, reward]) => ({level: lvl, bots, reward})),
+  };
+}
+// What the filters and the link ask, for a card's third line.
+function linkContext(){
+  return {
+    ore: F.ore >= 0 ? ORES[F.ore] : null, deepOre: F.ore >= 0 && !!deepDigit(F.ore), pct: F.pctMin,
+    mat: F.mat >= 0 ? MATS[F.mat] : null, ptype: F.ptype >= 0 ? PTYPES[F.ptype] : null,
+    gravity: [...F.grav].sort().map(i => ui(GRAVS[i][0])),
+    module: F.module >= 0 ? MODULES[F.module] : null,
+    purposes: [...F.purp].map(i => D.purposes[i]), factions: [...F.fac].map(i => D.factions[i]),
+    arena: F.arena, value: F.valMin, filters: [...filters], station: linkStation,
+  };
+}
+
+// ---- view options: Jump to, the legend, Sectors, spoilers, language ------
+const JUMP_IDS = ["toSol", "toVoid", "toSagA", "toPreon", "toIsar", "toTerm", "toAll"];
+function viewOptions(){
+  const jump = JUMP_IDS.map(id => document.getElementById(id)).filter(b => !b.classList.contains("hidden"))
+    .map(b => {
+      const rev = b.querySelector(".rev");
+      return {id: b.id, label: textOf(b), help: helpOf(b),
+              gate: rev ? {end: rev.dataset.gate, help: helpOf(rev)} : null};
+    });
+  const legend = [...document.querySelectorAll(".legend [data-layer]")]
+    .filter(r => !r.hidden && !r.classList.contains("hidden"))
+    .map(r => ({layer: r.dataset.layer, label: r.textContent.trim(), swatch: r.querySelector("i")?.getAttribute("style") || ""}));
+  return {
+    jump, legend, solo, sectors: HL.sectors, sectorsLabel: ui("hlSectors"), spoilers, spoilersLabel: ui("spoilers"),
+    lang, langs: D.langCodes.map(code => ({code, name: `${LANG_FLAG[code] || ""} ${LANG_NAME[code] || code}`.trim()})),
+    credit: document.querySelector("footer.credit").innerHTML, unofficial: ui("unofficial"),
+    titles: {jump: ui("jumpTo"), legend: ui("marks"), language: ui("language")},
+  };
+}
+
+const ggMap = window.ggMap = {
+  getView: () => ({x: cx, z: cz, ly: acrossLy()}),
+  setView({x = cx, z = cz, ly} = {}){
+    flyStop();
+    goto(+x, +z, ly > 0 ? scaleFor(+ly) : scale);
+    writeURL();
+  },
+  async select(name){
+    if (name == null){ selectHit(null); return true; }
+    const s = await resolveName(String(name));
+    if (s) selectHit(s);
+    return !!s;
+  },
+  getSelection: () => selected && {name: selected.name, x: selected.x, z: selected.z,
+                                    ...(linkStation && (D.stations[selected.name] || []).some(r => r[0] === linkStation) ? {station: linkStation} : {})},
+  setFilter: (key, value) => editFilters(p => p.set(filterKey(key), String(value))),
+  clearFilter: key => editFilters(p => p.delete(filterKey(key))),
+  clearFilters: () => editFilters(p => { for (const k of FILTER_KEYS) p.delete(k); }),
+  getFilters: () => ({params: Object.fromEntries(filterParams()), ...matchCount(), label: filterLabel()}),
+  // The matching system nearest a point, by 2D distance (map_x, map_z), or null with no filter or no match: every
+  // catalogued match, and the generated matches in view unless only the catalogue can answer the filter.
+  nearestMatch(x, z){
+    if (!anyFilter()) return null;
+    let best = null, bd = Infinity;
+    const consider = (name, sx, sz) => { const d = Math.hypot(sx - x, sz - z); if (d < bd){ bd = d; best = name; } };
+    for (const s of S) if (passes(s)) consider(s[NAME], s[X], s[Z]);
+    if (!genNever()) for (const st of genVisible) consider(st.name, st.x, st.z);
+    return best;
+  },
+  async setRoute(from, to, jump){
+    if (jump > 0){
+      const el = document.getElementById("jump");
+      el.value = jump;
+      el.dispatchEvent(new Event("input"));
+    }
+    const a = await resolveName(String(from)), b = await resolveName(String(to));
+    if (!a || !b) return false;
+    routeTo = null;
+    setEnd("from", a);
+    setEnd("to", b);
+    writeURL();
+    return true;
+  },
+  clearRoute(){ clearRoute(); writeURL(); },
+  setInset({bottom = 0} = {}){ insetB = Math.max(0, +bottom || 0); draw(); },
+  // A deep-link query applied in place, as a fresh load would apply it.
+  async retarget(query = ""){
+    const p = new URLSearchParams(String(query).replace(/^\?/, ""));
+    urlBusy = true;
+    try {
+      flyStop();
+      resetFilters();
+      clearRoute();
+      selected = null;
+      linkStation = null;
+      solo = null;
+      HL.sectors = true;
+      document.getElementById("hlSectors").setAttribute("aria-pressed", "true");
+      overlays = {};
+      await applyParams(p, {select: true});
+    } finally { urlBusy = false; draw(); writeURL(); }
+  },
+  /** The filter sections as the sidebar holds them, the active chips and the match count. */
+  getPanel(){
+    return {sections: FILTER_SECTIONS.map(sectionModel), chips: activeChips(), spoilers, ...matchCount(),
+            label: filterLabel(), view: viewOptions()};
+  },
+  /** Drives one control by its ref: a button is pressed, a select or box takes `value`. */
+  act(ref, value){
+    const el = byRef(ref);
+    if (!el) return false;
+    if (el.tagName === "BUTTON") el.click();
+    else if (el.tagName === "SELECT"){
+      el.value = String(value);
+      el.dispatchEvent(new Event("change", {bubbles: true}));
+    } else if (el.type === "checkbox"){
+      el.checked = !!value;
+      el.dispatchEvent(new Event("change", {bubbles: true}));
+    } else {
+      el.value = value == null ? "" : String(value);
+      el.dispatchEvent(new Event("input", {bubbles: true}));
+      el.dispatchEvent(new Event("change", {bubbles: true}));
+    }
+    writeURL();
+    return true;
+  },
+  /** Removes one chip of getPanel().chips. */
+  clearChip(id){
+    if (id === "preset") return editFilters(p => { for (const k of FILTER_KEYS) if (k !== "scanner") p.delete(k); });
+    return editFilters(p => {
+      if (id.startsWith("filters:")){
+        const rest = (p.get("filters") || "").split(",").filter(f => f && f !== id.slice(8));
+        rest.length ? p.set("filters", rest.join(",")) : p.delete("filters");
+      } else for (const k of CHIP_KEYS[id] || [id]) p.delete(k);
+    });
+  },
+  /** Every filter back to none, as the sidebar's Clear all filters does; the scanner stays. */
+  resetFilters(){ clearFilters(); draw(); writeURL(); },
+  setSpoilers(on){
+    const box = document.getElementById("spoilers");
+    if (box.checked !== !!on) box.click();
+    writeURL();
+  },
+  /** The sidebar over an embedded map, for what the page does not draw itself. */
+  showRail(open){
+    document.documentElement.classList.toggle("withRail", !!open);
+    document.body.classList.toggle("menu", !!open);
+  },
+  railOpen: () => document.documentElement.classList.contains("withRail") && document.body.classList.contains("menu"),
+  /** Which parts of the full page an embedded map keeps: `card`, the system card on a tap. */
+  /** Which parts of the full page an embedded map keeps: `card`, the system card on a tap; `home`, it is the Map tab
+   *  (a hover names the star, and spoilers are saved as the reader's own). */
+  setChrome({card = false, home = false, desk = false} = {}){
+    document.documentElement.classList.toggle("withCard", !!card);
+    document.documentElement.classList.toggle("home", !!home);
+    document.documentElement.classList.toggle("desk", !!desk);
+    document.documentElement.classList.toggle("withRail", !!desk);
+    resize();
+  },
+  /** Filter controls matching `q`, as the sidebar's search finds them. */
+  findFilters(q){
+    filterFound.clear();
+    return filterHits(String(q).trim().toLowerCase())
+      .filter(h => h.sec && FILTER_SECTIONS.includes(h.sec))
+      .map((h, i) => { filterFound.set("f" + i, h); return {id: "f" + i, text: h.text, section: secSlot(h.sec), sectionTitle: h.secName}; });
+  },
+  pickFilter(id){
+    const h = filterFound.get(id);
+    if (!h) return false;
+    h.pick();
+    writeURL();
+    return true;
+  },
+  getRoute: routeModel,
+  /** A system's card data by name, catalogued or generated, and what the filters and link ask of it; null if unknown. */
+  async getSystem(name){
+    const s = await resolveName(String(name));
+    return s ? {...systemModel(s), link: linkContext()} : null;
+  },
+  /** Sets a route end by a catalogued or generated name; false when nothing has that name. */
+  async setEnd(which, name){
+    const s = await resolveName(String(name));
+    if (!s) return false;
+    if (which === "to") dowseProvisional = false;
+    setEnd(which, s);
+    writeURL();
+    return true;
+  },
+  /** Empties the destination, or with `from` the whole route. */
+  clearEnd(which){
+    if (which === "from"){ clearRoute(); writeURL(); return; }
+    routeTo = routePath = routeGates = null;
+    dowseProvisional = false;
+    document.getElementById("to").value = "";
+    document.getElementById("routeNote").textContent = "";
+    routeFlown = "";
+    showNotes();
+    setRouteInfo({status: "none"});
+    draw();
+    writeURL();
+  },
+  swap(){
+    const a = routeFrom, b = routeTo;
+    if (!b) return;
+    routeTo = null;
+    setEnd("from", b.src);
+    if (a) setEnd("to", a.src);
+    writeURL();
+  },
+  setJump(ly){
+    const box = document.getElementById("jump");
+    box.value = Math.max(1, Math.min(500, Math.round(+ly) || 1));
+    box.dispatchEvent(new Event("input"));
+    writeURL();
+  },
+  setGatesMask(m){ setGatesMask(+m || 0); writeURL(); },
+  /** The route box's hits for `q`, as the sidebar lists them: a system, then the aliases that matched under it. */
+  async routeHits(which, q){
+    const box = routeBox(which);
+    box.value = String(q);
+    box.dispatchEvent(new Event("input"));
+    await box.searching;
+    return hitItems(which).map((li, i) => li.classList.contains("sub")
+      ? {i, sub: true, name: li.querySelector("b").textContent, kind: li.querySelector("em").textContent}
+      : {i, sub: false, name: li.firstChild.textContent, ly: li.querySelector(".ly")?.textContent || ""});
+  },
+  /** Picks hit `i` of the last routeHits, as a tap on it does. */
+  pickHit(which, i){
+    const li = hitItems(which)[i];
+    if (!li) return false;
+    li.click();
+    writeURL();
+    return true;
+  },
+  /** Whether the page's route panel is open, which lets taps, long presses and pans plot. */
+  setRouteMode(on){ document.documentElement.classList.toggle("withRoute", !!on); draw(); },
+  fitRoute(){ fitToRoute(); writeURL(); },
+  /** Flies to a Jump to place (`toSol` …), or with `gate` to the other end of that place's warp gate. */
+  jumpTo(id, gate){
+    const b = document.getElementById(id);
+    if (!b) return false;
+    if (gate) b.querySelector(".rev")?.dispatchEvent(new MouseEvent("click", {bubbles: true}));
+    else b.click();
+    return true;
+  },
+  /** Solos a legend layer ("station", "rich", "fac:Pirates" …), or with null shows every layer. */
+  setSolo(layer){ solo = layer || null; draw(); writeURL(); },
+  setSectors(on){
+    HL.sectors = !!on;
+    document.getElementById("hlSectors").setAttribute("aria-pressed", String(HL.sectors));
+    draw();
+    writeURL();
+  },
+  /** The map's language, saved as the reader's. */
+  setLang(code){
+    const sel = document.getElementById("lang");
+    if (!D.langCodes.includes(code) || code === lang) return;
+    sel.value = code;
+    sel.dispatchEvent(new Event("change"));
+    draw();
+    writeURL();
+  },
+  /** Tells the sidebar a control is being reached for, as focusing it does (Min value widens an empty view). */
+  focusControl(ref){ byRef(ref)?.dispatchEvent(new Event("focus")); },
+  on(ev, cb){
+    if (!handlers[ev]) throw new Error(`ggMap: no event ${ev}`);
+    handlers[ev].add(cb);
+    return () => handlers[ev].delete(cb);
+  },
+};
 
 applyParams()
   .catch(e => { console.error("deep link", e); })
-  .finally(() => { urlBusy = false; syncToBox(); syncURL(); });
+  .finally(() => {
+    urlBusy = false; syncToBox(); syncURL();
+    if (window.parent !== window) window.parent.postMessage({type: "ggmap:ready"}, "*");
+  });

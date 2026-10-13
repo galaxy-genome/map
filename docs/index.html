@@ -6,9 +6,10 @@
 <title>Galaxy Genome Map</title>
 <meta name="description" content="Unofficial map of every reachable system in Galaxy Genome: ores, stations, modules and route planning.">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+SC:wght@400;600&display=swap">
-<link rel="stylesheet" href="style.css?v=568f0ad36f">
+<link rel="stylesheet" href="style.css?v=b46afad697">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
+<script>if (/[?&]embed=1(&|$)/.test(location.search)) document.documentElement.className = /[?&]home=1(&|$)/.test(location.search) ? "embed home" : "embed";</script>
 </head>
 <body>
 <button id="menuBtn" type="button" aria-expanded="false" aria-controls="rail"
@@ -80,6 +81,8 @@
       <label class="spoil"><input type="checkbox" id="oneHop"> <span data-ui="useOneHop">Use one-hop value</span></label>
       <label class="f"><span class="ask" data-help="what:ptype" tabindex="0" data-ui="planetPresent">Planet type present</span></label>
       <select id="ptype"><option value="">any</option></select>
+      <label class="f"><span class="ask" data-help="what:gravity" tabindex="0" data-ui="planetGravity">Planet gravity</span></label>
+      <div id="gravRow" class="body"></div>
       <label class="f"><span data-ui="minPlanets">Min planets</span><input type="number" id="plMin" min="0" step="1" placeholder="0"></label>
       <label class="f"><span class="ask" data-help="what:starhunter" tabindex="0" data-ui="starHunter">StarHunter class</span></label>
       <select id="startype"><option value="">any</option></select>
@@ -119,10 +122,13 @@
       <p class="note" id="moduleNote"></p>
       <label class="f"><span data-ui="shopPurpose">Shop purpose</span></label>
       <div id="purpRow" class="body"></div>
-      <label class="f"><span data-ui="faction">Faction</span></label>
-      <div id="facRow" class="body"></div>
       <button class="chip" data-f="station" data-help="basic:station" aria-pressed="false"><span class="box"></span><span data-ui="hasStation">Has station</span><span class="n" data-n="station"></span></button>
     </div>
+  </details>
+
+  <details class="grp">
+    <summary><span data-ui="faction">Faction</span></summary>
+    <div class="body" id="facRow"></div>
   </details>
 
   <details class="grp">
@@ -253,6 +259,7 @@
   <div><span data-ui="cursor">Cursor</span> <b id="cur">0, 0</b> <span data-ui-unit="ly">ly</span></div>
   <div><span data-ui="center">Center</span> <b id="ctr">0, 0</b></div>
   <div><span data-ui="scale">Scale</span> <b id="scl">—</b> <span data-ui="lyAcross">ly across</span></div>
+  <div id="readLine"></div>
 </div>
 
 <aside class="wikiPanel" id="wikiPanel" aria-label="Wiki" hidden>
@@ -281,9 +288,9 @@
     return r.json();
   };
   try {
-    const galaxy = await load("data/galaxy.json?v=568f0ad36f");
+    const galaxy = await load("data/galaxy.json?v=b46afad697");
     const files = await Promise.all(
-      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=568f0ad36f`)));
+      galaxy.langCodes.map(c => load(`data/lang/${c}.json?v=b46afad697`)));
     galaxy.langs = {};
     galaxy.ui = {};
     galaxy.langCodes.forEach((c, i) => {
@@ -292,7 +299,7 @@
     });
     window.__GG__ = galaxy;
     const s = document.createElement("script");
-    s.src = "app.js?v=568f0ad36f";
+    s.src = "app.js?v=b46afad697";
     document.body.append(s);
   } catch (err) {
     document.querySelector(".readout").innerHTML =

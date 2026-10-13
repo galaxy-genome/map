@@ -65,6 +65,14 @@
 "Polonium"
 ]
 ],
+"gravity": [
+0.79,
+6.17,
+0.65,
+0.46,
+7.17,
+0.96
+],
 "seed": 745967114,
 "raw": "K-YellowOrange"
 },
@@ -132,6 +140,13 @@
 "Selenium",
 "Manganese"
 ]
+],
+"gravity": [
+6.9,
+6.51,
+5.76,
+0.72,
+0.86
 ],
 "seed": 583290944,
 "raw": "G-WhiteYellow"
@@ -217,6 +232,15 @@
 "Polonium"
 ]
 ],
+"gravity": [
+6.23,
+0.13,
+0.11,
+4.33,
+0.44,
+0.43,
+0.81
+],
 "seed": 374800128,
 "raw": "K-YellowOrange"
 },
@@ -259,6 +283,11 @@
 "Polonium"
 ]
 ],
+"gravity": [
+0.95,
+6.49,
+5.06
+],
 "seed": 1364675584,
 "raw": "A-BlueWhite"
 },
@@ -269,6 +298,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 1782745350,
 "raw": "L-BrownDwarf"
 },
@@ -279,6 +309,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 593891328,
 "raw": "F-White"
 },
@@ -414,6 +445,20 @@
 "Cadmium"
 ]
 ],
+"gravity": [
+7.05,
+0.82,
+0.42,
+7.14,
+3.79,
+1.06,
+0.85,
+6.0,
+2.41,
+0.35,
+0.35,
+2.44
+],
 "seed": 1201726208,
 "raw": "M-RedDwarf"
 },
@@ -481,6 +526,14 @@
 [],
 []
 ],
+"gravity": [
+0.41,
+0.43,
+0.79,
+8.72,
+0.48,
+3.91
+],
 "seed": 761459714,
 "raw": "S-Star"
 },
@@ -537,6 +590,12 @@
 ],
 []
 ],
+"gravity": [
+0.1,
+0.91,
+1.44,
+0.67
+],
 "seed": 1486947585,
 "raw": "F-White"
 },
@@ -585,6 +644,11 @@
 "Sulphur",
 "Chromium"
 ]
+],
+"gravity": [
+0.7,
+1.11,
+6.12
 ],
 "seed": 469091608,
 "raw": "L-BrownDwarf"
@@ -684,6 +748,17 @@
 "Cadmium"
 ]
 ],
+"gravity": [
+2.23,
+0.73,
+5.03,
+0.21,
+0.65,
+0.16,
+3.66,
+0.67,
+0.5
+],
 "seed": 1097045012,
 "raw": "K-YellowOrange"
 },
@@ -717,6 +792,9 @@
 "Phosphorus",
 "Chromium"
 ]
+],
+"gravity": [
+0.82
 ],
 "seed": 1550053663,
 "raw": "L-BrownDwarf"
@@ -773,6 +851,12 @@
 "Selenium",
 "Polonium"
 ]
+],
+"gravity": [
+6.41,
+0.65,
+7.43,
+0.84
 ],
 "seed": 1396770563,
 "raw": "M-RedDwarf"
@@ -865,6 +949,16 @@
 "Cadmium"
 ]
 ],
+"gravity": [
+0.51,
+0.2,
+0.24,
+2.03,
+0.44,
+5.94,
+0.91,
+0.31
+],
 "seed": 378873351,
 "raw": "F-White"
 },
@@ -927,6 +1021,12 @@
 "Sulphur",
 "Nickel"
 ]
+],
+"gravity": [
+0.81,
+0.36,
+0.8,
+0.33
 ],
 "seed": 738625281,
 "raw": "T-BrownDwarf"
@@ -1038,6 +1138,18 @@
 "Nickel"
 ]
 ],
+"gravity": [
+0.91,
+5.7,
+0.71,
+0.28,
+0.64,
+0.35,
+0.17,
+0.35,
+8.3,
+0.11
+],
 "seed": 1253205761,
 "raw": "G-WhiteYellow"
 },
@@ -1140,6 +1252,17 @@
 "Phosphorus"
 ]
 ],
+"gravity": [
+3.57,
+0.59,
+0.73,
+0.99,
+0.8,
+0.19,
+6.9,
+2.93,
+0.86
+],
 "seed": 693468705,
 "raw": "K-YellowOrange"
 },
@@ -1161,6 +1284,7 @@
 ]
 ],
 "materials": [],
+"gravity": [],
 "seed": 62080256,
 "raw": "G-WhiteYellow"
 },
@@ -1182,6 +1306,9 @@
 "Phosphorus",
 "Vanadium"
 ]
+],
+"gravity": [
+0.64
 ],
 "seed": 884251980,
 "raw": "L-BrownDwarf"
@@ -1227,6 +1354,11 @@
 "Iron"
 ]
 ],
+"gravity": [
+0.86,
+0.84,
+0.93
+],
 "seed": 243479808,
 "raw": "K-YellowOrange"
 },
@@ -1259,6 +1391,10 @@
 "Sulphur",
 "Chromium"
 ]
+],
+"gravity": [
+0.71,
+6.76
 ],
 "seed": 318018562,
 "raw": "T-BrownDwarf"
@@ -1308,6 +1444,12 @@
 "Cadmium",
 "Polonium"
 ]
+],
+"gravity": [
+0.76,
+0.65,
+8.13,
+0.68
 ],
 "seed": 570840576,
 "raw": "K-YellowOrange"
@@ -1392,6 +1534,14 @@
 "Chromium"
 ]
 ],
+"gravity": [
+0.77,
+0.69,
+0.33,
+0.16,
+4.23,
+5.94
+],
 "seed": 536173583,
 "raw": "A-BlueWhite"
 },
@@ -1434,6 +1584,11 @@
 "Iron",
 "Polonium"
 ]
+],
+"gravity": [
+0.19,
+0.74,
+0.16
 ],
 "seed": 1349641232,
 "raw": "S-Star"
@@ -1520,6 +1675,15 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+2.52,
+0.92,
+0.35,
+4.98,
+0.74,
+0.57,
+0.79
+],
 "seed": 1261730052,
 "raw": "M-RedDwarf"
 },
@@ -1559,6 +1723,10 @@
 "Phosphorus",
 "Nickel"
 ]
+],
+"gravity": [
+1.18,
+0.4
 ],
 "seed": 738319619,
 "raw": "T-BrownDwarf"
@@ -1674,6 +1842,18 @@
 "Cadmium"
 ]
 ],
+"gravity": [
+4.39,
+0.47,
+0.6,
+0.59,
+0.65,
+8.17,
+0.29,
+3.38,
+5.66,
+7.7
+],
 "seed": 692335633,
 "raw": "G-WhiteYellow"
 },
@@ -1705,6 +1885,10 @@
 "Selenium",
 "Nickel"
 ]
+],
+"gravity": [
+0.11,
+2.92
 ],
 "seed": 1606530313,
 "raw": "F-White"
@@ -1833,6 +2017,18 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+4.88,
+5.95,
+6.09,
+0.16,
+0.42,
+6.03,
+0.53,
+7.99,
+7.63,
+0.37
+],
 "seed": 442863109,
 "raw": "K-YellowOrange"
 },
@@ -1870,6 +2066,10 @@
 "Sulphur",
 "Nickel"
 ]
+],
+"gravity": [
+0.27,
+0.78
 ],
 "seed": 1364577297,
 "raw": "L-BrownDwarf"
@@ -1982,6 +2182,17 @@
 "Tellurium"
 ]
 ],
+"gravity": [
+0.58,
+8.81,
+4.73,
+0.49,
+0.64,
+5.73,
+0.77,
+0.38,
+7.36
+],
 "seed": 336668672,
 "raw": "M-RedDwarf"
 },
@@ -2009,6 +2220,10 @@
 "Sulphur",
 "Nickel"
 ]
+],
+"gravity": [
+1.23,
+1.94
 ],
 "seed": 595900947,
 "raw": "M-RedDwarf"
@@ -2052,6 +2267,10 @@
 "Sulphur",
 "Chromium"
 ]
+],
+"gravity": [
+7.82,
+2.41
 ],
 "seed": 612760064,
 "raw": "L-BrownDwarf"
@@ -2137,6 +2356,14 @@
 "Chromium"
 ]
 ],
+"gravity": [
+0.36,
+0.81,
+1.71,
+0.76,
+0.85,
+0.38
+],
 "seed": 331723016,
 "raw": "L-BrownDwarf"
 },
@@ -2147,6 +2374,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 791094784,
 "raw": "G-WhiteYellow"
 },
@@ -2200,6 +2428,11 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+0.74,
+1.13,
+0.26
+],
 "seed": 1333909522,
 "raw": "L-BrownDwarf"
 },
@@ -2232,6 +2465,9 @@
 "Phosphorus",
 "Vanadium"
 ]
+],
+"gravity": [
+8.03
 ],
 "seed": 1801849350,
 "raw": "L-BrownDwarf"
@@ -2271,6 +2507,10 @@
 "Manganese"
 ]
 ],
+"gravity": [
+0.44,
+2.11
+],
 "seed": 1615109892,
 "raw": "M-RedDwarf"
 },
@@ -2287,6 +2527,7 @@
 ]
 ],
 "materials": [],
+"gravity": [],
 "seed": 1667679233,
 "raw": "M-RedDwarf"
 },
@@ -2343,6 +2584,12 @@
 [],
 []
 ],
+"gravity": [
+0.81,
+0.72,
+2.26,
+null
+],
 "seed": 884315417,
 "raw": "M-RedDwarf"
 },
@@ -2376,6 +2623,9 @@
 "Phosphorus",
 "Chromium"
 ]
+],
+"gravity": [
+0.83
 ],
 "seed": 1338292758,
 "raw": "Y-BrownDwarf"
@@ -2419,6 +2669,11 @@
 "Manganese"
 ]
 ],
+"gravity": [
+0.1,
+8.91,
+0.78
+],
 "seed": 1350938632,
 "raw": "M-RedDwarf"
 },
@@ -2461,6 +2716,10 @@
 "Cadmium",
 "Polonium"
 ]
+],
+"gravity": [
+0.73,
+6.47
 ],
 "seed": 508705795,
 "raw": "K-YellowOrange"
@@ -2523,6 +2782,14 @@
 [],
 []
 ],
+"gravity": [
+0.11,
+4.21,
+4.93,
+0.39,
+0.99,
+0.23
+],
 "seed": 665261568,
 "raw": "F-White"
 },
@@ -2566,6 +2833,10 @@
 "Chromium"
 ]
 ],
+"gravity": [
+0.22,
+0.96
+],
 "seed": 140631296,
 "raw": "F-White"
 },
@@ -2607,6 +2878,11 @@
 "Vanadium",
 "Sulphur"
 ]
+],
+"gravity": [
+6.02,
+7.54,
+0.19
 ],
 "seed": 749916936,
 "raw": "K-YellowOrange"
@@ -2735,6 +3011,19 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+0.18,
+3.16,
+0.69,
+2.66,
+4.31,
+0.39,
+0.71,
+0.68,
+0.1,
+0.67,
+0.17
+],
 "seed": 338819840,
 "raw": "K-YellowOrange"
 },
@@ -2746,6 +3035,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 1053841408,
 "raw": "M-RedDwarf"
 },
@@ -2830,6 +3120,15 @@
 "Iron"
 ]
 ],
+"gravity": [
+0.87,
+0.97,
+0.31,
+0.83,
+2.99,
+0.92,
+6.63
+],
 "seed": 727843330,
 "raw": "G-WhiteYellow"
 },
@@ -2840,6 +3139,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 1525979904,
 "raw": "S-Star"
 },
@@ -2925,6 +3225,15 @@
 "Tellurium"
 ]
 ],
+"gravity": [
+8.86,
+0.39,
+0.73,
+4.75,
+8.07,
+2.13,
+3.13
+],
 "seed": 1821667599,
 "raw": "M-RedDwarf"
 },
@@ -2948,6 +3257,9 @@
 ],
 "materials": [
 []
+],
+"gravity": [
+0.94
 ],
 "seed": 811891733,
 "raw": "L-BrownDwarf"
@@ -3002,6 +3314,12 @@
 "Sulphur",
 "Nickel"
 ]
+],
+"gravity": [
+0.87,
+0.64,
+0.68,
+0.21
 ],
 "seed": 569543447,
 "raw": "G-WhiteYellow"
@@ -3118,6 +3436,17 @@
 "Sulphur"
 ]
 ],
+"gravity": [
+0.9,
+0.38,
+0.21,
+0.13,
+0.21,
+0.76,
+0.99,
+0.99,
+0.64
+],
 "seed": 627321374,
 "raw": "F-White"
 },
@@ -3176,6 +3505,12 @@
 "Nickel"
 ]
 ],
+"gravity": [
+0.33,
+0.27,
+4.93,
+0.7
+],
 "seed": 193150976,
 "raw": "M-RedDwarf"
 },
@@ -3204,6 +3539,10 @@
 "Nickel"
 ],
 []
+],
+"gravity": [
+0.79,
+2.22
 ],
 "seed": 2002995968,
 "raw": "L-BrownDwarf"
@@ -3259,6 +3598,12 @@
 "Phosphorus",
 "Nickel"
 ]
+],
+"gravity": [
+0.32,
+0.18,
+5.05,
+0.11
 ],
 "seed": 696575003,
 "raw": "L-BrownDwarf"
@@ -3355,6 +3700,16 @@
 "Chromium"
 ]
 ],
+"gravity": [
+0.41,
+1.07,
+0.31,
+0.15,
+4.96,
+7.78,
+0.57,
+0.73
+],
 "seed": 1611024132,
 "raw": "K-YellowOrange"
 },
@@ -3449,6 +3804,15 @@
 "Tellurium"
 ]
 ],
+"gravity": [
+0.17,
+0.41,
+0.57,
+0.82,
+0.78,
+0.14,
+0.96
+],
 "seed": 1179997954,
 "raw": "M-RedDwarf"
 },
@@ -3481,6 +3845,10 @@
 "Phosphorus",
 "Vanadium"
 ]
+],
+"gravity": [
+0.85,
+0.81
 ],
 "seed": 1003771666,
 "raw": "T-BrownDwarf"
@@ -3539,6 +3907,11 @@
 "Tellurium"
 ]
 ],
+"gravity": [
+0.47,
+1.05,
+0.42
+],
 "seed": 1729413903,
 "raw": "L-BrownDwarf"
 },
@@ -3576,6 +3949,11 @@
 "Iron",
 "Polonium"
 ]
+],
+"gravity": [
+3.22,
+4.81,
+4.56
 ],
 "seed": 709929216,
 "raw": "G-WhiteYellow"
@@ -3639,6 +4017,12 @@
 "Selenium",
 "Germanium"
 ]
+],
+"gravity": [
+0.11,
+0.85,
+8.15,
+0.3
 ],
 "seed": 935579959,
 "raw": "Y-BrownDwarf"
@@ -3754,6 +4138,17 @@
 "Nickel"
 ]
 ],
+"gravity": [
+0.69,
+6.03,
+0.6,
+0.7,
+0.46,
+0.52,
+0.76,
+0.28,
+0.44
+],
 "seed": 1296223772,
 "raw": "M-RedDwarf"
 },
@@ -3764,6 +4159,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 153290752,
 "raw": "A-BlueWhite"
 },
@@ -3775,6 +4171,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 817279506,
 "raw": "M-RedDwarf"
 },
@@ -3817,6 +4214,10 @@
 "Selenium",
 "Manganese"
 ]
+],
+"gravity": [
+0.32,
+0.79
 ],
 "seed": 1905642243,
 "raw": "K-YellowOrange"
@@ -3877,6 +4278,13 @@
 "Selenium",
 "Nickel"
 ]
+],
+"gravity": [
+0.3,
+1.84,
+0.76,
+5.29,
+0.69
 ],
 "seed": 1159937031,
 "raw": "K-YellowOrange"
@@ -3990,6 +4398,18 @@
 "Tellurium"
 ]
 ],
+"gravity": [
+0.58,
+0.62,
+8.38,
+0.42,
+6.0,
+8.81,
+0.45,
+0.4,
+0.44,
+6.61
+],
 "seed": 1587981064,
 "raw": "M-RedDwarf"
 },
@@ -4099,6 +4519,17 @@
 "Cadmium"
 ]
 ],
+"gravity": [
+0.52,
+0.53,
+0.91,
+0.1,
+0.76,
+1.12,
+0.13,
+0.69,
+0.75
+],
 "seed": 412375816,
 "raw": "G-WhiteYellow"
 },
@@ -4200,6 +4631,16 @@
 "Sulphur"
 ]
 ],
+"gravity": [
+0.61,
+0.8,
+5.62,
+3.19,
+6.28,
+0.97,
+0.41,
+6.54
+],
 "seed": 1522721057,
 "raw": "K-YellowOrange"
 },
@@ -4285,6 +4726,15 @@
 "Chromium"
 ]
 ],
+"gravity": [
+6.4,
+0.77,
+0.47,
+0.4,
+0.45,
+8.9,
+0.94
+],
 "seed": 1488007680,
 "raw": "K-YellowOrange"
 },
@@ -4295,6 +4745,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 283432712,
 "raw": "F-White"
 },
@@ -4305,6 +4756,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 358801922,
 "raw": "L-BrownDwarf"
 },
@@ -4333,6 +4785,9 @@
 ],
 "materials": [
 []
+],
+"gravity": [
+5.62
 ],
 "seed": 136634880,
 "raw": "M-RedDwarf"
@@ -4406,6 +4861,13 @@
 "Sulphur",
 "Tellurium"
 ]
+],
+"gravity": [
+0.72,
+0.29,
+0.57,
+0.93,
+5.29
 ],
 "seed": 452329221,
 "raw": "L-BrownDwarf"
@@ -4487,6 +4949,14 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+0.4,
+6.78,
+0.14,
+0.89,
+0.93,
+7.71
+],
 "seed": 1521736974,
 "raw": "K-YellowOrange"
 },
@@ -4564,6 +5034,14 @@
 "Iron",
 "Vanadium"
 ]
+],
+"gravity": [
+0.31,
+0.42,
+0.54,
+0.56,
+0.91,
+0.49
 ],
 "seed": 1744172288,
 "raw": "G-WhiteYellow"
@@ -4666,6 +5144,16 @@
 ],
 []
 ],
+"gravity": [
+0.19,
+6.31,
+0.56,
+0.39,
+0.8,
+0.29,
+7.9,
+0.97
+],
 "seed": 297038604,
 "raw": "M-RedDwarf"
 },
@@ -4755,6 +5243,16 @@
 "Manganese"
 ],
 []
+],
+"gravity": [
+0.26,
+7.39,
+0.66,
+0.52,
+6.28,
+1.74,
+4.18,
+4.33
 ],
 "seed": 529748492,
 "raw": "M-RedDwarf"
@@ -4852,6 +5350,16 @@
 ],
 []
 ],
+"gravity": [
+1.85,
+0.72,
+0.7,
+0.47,
+0.83,
+0.73,
+2.74,
+0.86
+],
 "seed": 877771264,
 "raw": "K-YellowOrange"
 },
@@ -4900,6 +5408,11 @@
 "Vanadium",
 "Sulphur"
 ]
+],
+"gravity": [
+0.5,
+0.24,
+0.21
 ],
 "seed": 1248015129,
 "raw": "K-YellowOrange"
@@ -4992,6 +5505,17 @@
 "Polonium"
 ]
 ],
+"gravity": [
+4.22,
+0.62,
+0.51,
+0.45,
+8.21,
+0.7,
+0.99,
+3.15,
+0.76
+],
 "seed": 455313164,
 "raw": "K-YellowOrange"
 },
@@ -5029,6 +5553,10 @@
 "Selenium",
 "Manganese"
 ]
+],
+"gravity": [
+0.43,
+0.53
 ],
 "seed": 743496704,
 "raw": "T-BrownDwarf"
@@ -5138,6 +5666,18 @@
 [],
 []
 ],
+"gravity": [
+0.77,
+0.6,
+0.99,
+0.17,
+0.17,
+0.81,
+0.96,
+2.03,
+0.91,
+5.57
+],
 "seed": 419620361,
 "raw": "M-RedDwarf"
 },
@@ -5176,6 +5716,10 @@
 "Polonium"
 ],
 []
+],
+"gravity": [
+0.9,
+0.94
 ],
 "seed": 967935506,
 "raw": "L-BrownDwarf"
@@ -5230,6 +5774,11 @@
 "Selenium",
 "Polonium"
 ]
+],
+"gravity": [
+4.41,
+8.19,
+4.42
 ],
 "seed": 664935181,
 "raw": "T-BrownDwarf"
@@ -5319,6 +5868,16 @@
 "Nickel"
 ]
 ],
+"gravity": [
+0.7,
+0.55,
+0.48,
+0.84,
+0.54,
+0.49,
+4.52,
+0.31
+],
 "seed": 1339479810,
 "raw": "M-RedDwarf"
 },
@@ -5329,6 +5888,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 1687421444,
 "raw": "M-RedDwarf"
 },
@@ -5434,6 +5994,17 @@
 "Manganese"
 ]
 ],
+"gravity": [
+5.68,
+0.71,
+0.51,
+0.94,
+0.28,
+0.74,
+0.64,
+0.26,
+0.28
+],
 "seed": 916656455,
 "raw": "M-RedDwarf"
 },
@@ -5520,6 +6091,16 @@
 "Cadmium",
 "Polonium"
 ]
+],
+"gravity": [
+0.18,
+0.43,
+0.88,
+0.84,
+0.73,
+4.98,
+0.81,
+0.18
 ],
 "seed": 1139893764,
 "raw": "M-RedDwarf"
@@ -5647,6 +6228,19 @@
 "Manganese"
 ]
 ],
+"gravity": [
+5.59,
+7.17,
+0.3,
+4.47,
+0.91,
+0.88,
+0.3,
+0.64,
+4.88,
+0.79,
+6.97
+],
 "seed": 705136896,
 "raw": "F-White"
 },
@@ -5750,6 +6344,16 @@
 "Nickel"
 ]
 ],
+"gravity": [
+0.95,
+4.97,
+0.3,
+3.99,
+0.27,
+0.39,
+0.45,
+0.12
+],
 "seed": 65176320,
 "raw": "A-BlueWhite"
 },
@@ -5787,6 +6391,10 @@
 "Sulphur",
 "Nickel"
 ]
+],
+"gravity": [
+0.31,
+0.59
 ],
 "seed": 1740022784,
 "raw": "T-BrownDwarf"
@@ -5866,6 +6474,15 @@
 "Tellurium"
 ]
 ],
+"gravity": [
+8.13,
+0.65,
+0.83,
+1.28,
+0.55,
+0.74,
+2.18
+],
 "seed": 1433628445,
 "raw": "F-White"
 },
@@ -5929,6 +6546,13 @@
 "Iron",
 "Polonium"
 ]
+],
+"gravity": [
+2.94,
+0.48,
+0.73,
+0.35,
+0.99
 ],
 "seed": 181723392,
 "raw": "K-YellowOrange"
@@ -6034,6 +6658,17 @@
 "Selenium",
 "Polonium"
 ]
+],
+"gravity": [
+0.47,
+0.56,
+0.93,
+0.57,
+0.58,
+0.82,
+8.22,
+2.54,
+3.56
 ],
 "seed": 243396608,
 "raw": "G-WhiteYellow"
@@ -6154,6 +6789,18 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+0.38,
+6.68,
+0.61,
+0.17,
+3.08,
+3.24,
+0.53,
+0.66,
+0.7,
+8.71
+],
 "seed": 1351021832,
 "raw": "K-YellowOrange"
 },
@@ -6230,6 +6877,14 @@
 ],
 []
 ],
+"gravity": [
+4.83,
+0.14,
+0.97,
+0.53,
+0.24,
+0.72
+],
 "seed": 1385635333,
 "raw": "A-BlueWhite"
 },
@@ -6293,6 +6948,12 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+5.23,
+6.65,
+0.97,
+6.77
+],
 "seed": 1443001094,
 "raw": "L-BrownDwarf"
 },
@@ -6341,6 +7002,12 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+0.46,
+2.74,
+4.25,
+0.8
+],
 "seed": 634664204,
 "raw": "M-RedDwarf"
 },
@@ -6351,6 +7018,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 802503474,
 "raw": "K-YellowOrange"
 },
@@ -6408,6 +7076,12 @@
 "Sulphur",
 "Tellurium"
 ]
+],
+"gravity": [
+0.24,
+0.66,
+0.55,
+0.25
 ],
 "seed": 1501821231,
 "raw": "T-BrownDwarf"
@@ -6468,6 +7142,12 @@
 ],
 []
 ],
+"gravity": [
+0.48,
+0.95,
+0.16,
+0.86
+],
 "seed": 967303424,
 "raw": "K-YellowOrange"
 },
@@ -6516,6 +7196,11 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+0.58,
+2.5,
+2.32
+],
 "seed": 380847623,
 "raw": "F-White"
 },
@@ -6532,6 +7217,7 @@
 ]
 ],
 "materials": [],
+"gravity": [],
 "seed": 1036329769,
 "raw": "L-BrownDwarf"
 },
@@ -6564,6 +7250,10 @@
 "Polonium"
 ]
 ],
+"gravity": [
+2.54,
+0.55
+],
 "seed": 1564562432,
 "raw": "K-YellowOrange"
 },
@@ -6592,6 +7282,10 @@
 "Tellurium"
 ],
 []
+],
+"gravity": [
+0.12,
+3.08
 ],
 "seed": 279046664,
 "raw": "K-YellowOrange"
@@ -6693,6 +7387,16 @@
 "Tellurium"
 ]
 ],
+"gravity": [
+0.84,
+7.12,
+0.94,
+0.1,
+8.24,
+3.97,
+0.88,
+0.82
+],
 "seed": 1433692731,
 "raw": "L-BrownDwarf"
 },
@@ -6741,6 +7445,11 @@
 "Vanadium"
 ]
 ],
+"gravity": [
+3.69,
+3.22,
+8.88
+],
 "seed": 1212381445,
 "raw": "M-RedDwarf"
 },
@@ -6778,6 +7487,10 @@
 "Sulphur",
 "Chromium"
 ]
+],
+"gravity": [
+0.33,
+0.28
 ],
 "seed": 363054857,
 "raw": "T-BrownDwarf"
@@ -6832,6 +7545,11 @@
 "Polonium"
 ]
 ],
+"gravity": [
+0.92,
+0.97,
+0.94
+],
 "seed": 641143298,
 "raw": "M-RedDwarf"
 },
@@ -6853,6 +7571,7 @@
 ]
 ],
 "materials": [],
+"gravity": [],
 "seed": 760327938,
 "raw": "M-RedDwarf"
 },
@@ -6939,6 +7658,15 @@
 ],
 []
 ],
+"gravity": [
+0.22,
+0.92,
+0.24,
+0.25,
+0.18,
+0.58,
+0.83
+],
 "seed": 1783857152,
 "raw": "A-BlueWhite"
 },
@@ -6955,6 +7683,7 @@
 ]
 ],
 "materials": [],
+"gravity": [],
 "seed": 626284051,
 "raw": "L-BrownDwarf"
 },
@@ -6965,6 +7694,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 783314688,
 "raw": "K-YellowOrange"
 },
@@ -6976,6 +7706,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 1033206868,
 "raw": "F-White"
 },
@@ -7054,6 +7785,14 @@
 "Cadmium"
 ]
 ],
+"gravity": [
+6.39,
+5.25,
+0.98,
+0.48,
+0.29,
+0.27
+],
 "seed": 1737696512,
 "raw": "G-WhiteYellow"
 },
@@ -7064,6 +7803,7 @@
 "planets": [],
 "belts": [],
 "materials": [],
+"gravity": [],
 "seed": 932617737,
 "raw": "L-BrownDwarf"
 },
@@ -7193,6 +7933,20 @@
 "Selenium",
 "Nickel"
 ]
+],
+"gravity": [
+0.14,
+0.53,
+7.52,
+0.27,
+0.62,
+3.58,
+0.53,
+5.17,
+0.32,
+0.78,
+0.41,
+8.89
 ],
 "seed": 178517507,
 "raw": "M-RedDwarf"
